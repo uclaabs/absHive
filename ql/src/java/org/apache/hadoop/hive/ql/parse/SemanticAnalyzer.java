@@ -54,6 +54,8 @@ import org.apache.hadoop.hive.metastore.api.Order;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryProperties;
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
+import org.apache.hadoop.hive.ql.cs.ExplainTaskHelper;
 import org.apache.hadoop.hive.ql.exec.AbstractMapJoinOperator;
 import org.apache.hadoop.hive.ql.exec.ArchiveUtils;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
@@ -214,7 +216,11 @@ import org.apache.hadoop.mapred.InputFormat;
  * 2 change "getGenericUDAFInfo" into public
  * 3 change "groupByDescModeToUDAFMode" into public
  * 4 change "getGenericUDAFEvaluator" into public
+ * 5 set entry point for boost abm
+ * 6 report error msg in situations abm can not handle
  *
+ * TODO: ErrorMsg.WINDOW_SPEC_NOT_ALLOWED_FOR_ABM is different in hive 0.11
+ * so we do not add this error msg here.
  *
  * Implementation of the semantic analyzer.
  */
@@ -935,10 +941,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         // Rollup and Cubes are syntactic sugar on top of grouping sets
         if (ast.getToken().getType() == HiveParser.TOK_ROLLUP_GROUPBY) {
           qbp.getDestRollups().add(ctx_1.dest);
+          AbmUtilities.checkAndReport(conf, ErrorMsg.GROUPING_SET_NOT_ALLOWED_FOR_ABM);
         } else if (ast.getToken().getType() == HiveParser.TOK_CUBE_GROUPBY) {
           qbp.getDestCubes().add(ctx_1.dest);
+          AbmUtilities.checkAndReport(conf, ErrorMsg.GROUPING_SET_NOT_ALLOWED_FOR_ABM);
         } else if (ast.getToken().getType() == HiveParser.TOK_GROUPING_SETS) {
           qbp.getDestGroupingSets().add(ctx_1.dest);
+          AbmUtilities.checkAndReport(conf, ErrorMsg.GROUPING_SET_NOT_ALLOWED_FOR_ABM);
         }
         break;
 
@@ -8638,6 +8647,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   @Override
   @SuppressWarnings("nls")
   public void analyzeInternal(ASTNode ast) throws SemanticException {
+    // Set ABM mode according to conf.
+    AbmUtilities.setAbmMode(conf);
+
     ASTNode child = ast;
     this.ast = ast;
     viewsExpanded = new ArrayList<String>();
@@ -8653,6 +8665,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if ((child = analyzeCreateTable(ast, qb)) == null) {
         return;
       }
+      AbmUtilities.checkAndReport(conf, ErrorMsg.TABLE_CREATION_NOT_ALLOWED_FOR_ABM);
     } else {
       SessionState.get().setCommandType(HiveOperation.QUERY);
     }
@@ -8665,6 +8678,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if (child == null) {
         return;
       }
+      AbmUtilities.checkAndReport(conf, ErrorMsg.VIEW_CREATION_NOT_ALLOWED_FOR_ABM);
       viewSelect = child;
       // prevent view from referencing itself
       viewsExpanded.add(db.getCurrentDatabase() + "." + createVwDesc.getViewName());
@@ -8730,6 +8744,19 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     optm.setPctx(pCtx);
     optm.initialize(conf);
     pCtx = optm.optimize();
+
+    /**
+     * hack call starts here
+     * victor: only for showing modified plan, can be commented out in the release
+     */
+    try {
+      //ExplainTaskHelper.analyze(sinkOp, opParseCtx);
+      ExplainTaskHelper.test(sinkOp, pCtx);
+    }
+    catch (Exception e){
+      e.printStackTrace();
+      //System.out.println("Error in Jiaqi's Helper! Called from SemanticAnalyzer" + e.getMessage());
+    }
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("\n" + Operator.toString(pCtx.getTopOps().values()));
