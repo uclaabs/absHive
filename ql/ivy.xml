@@ -26,6 +26,10 @@
     <include file="${ivy.conf.dir}/common-configurations.xml"/>
   </configurations>
   <dependencies>
+    <!-- abm specific package -->
+    <dependency org="it.unimi.dsi" name="fastutil" rev="${fastutil.version}"/>
+    <dependency org="com.googlecode.javaewah" name="JavaEWAH" rev="${javaewah.version}"/>
+
     <dependency org="edu.berkeley.cs.shark" name="hive-metastore" rev="${version}"
                 conf="compile->default" />
     <dependency org="org.apache.mina" name="mina-core" rev="${mina.version}"
@@ -46,7 +50,6 @@
     <dependency org="commons-collections" name="commons-collections" rev="${commons-collections.version}"/>
     <dependency org="commons-configuration" name="commons-configuration" rev="${commons-configuration.version}"
                 transitive="false"/>
-    <dependency org="com.googlecode.javaewah" name="JavaEWAH" rev="${javaewah.version}"/>
     <dependency org="javolution" name="javolution" rev="${javolution.version}"/>
 
     <dependency org="jline" name="jline" rev="${jline.version}" transitive="false"/>

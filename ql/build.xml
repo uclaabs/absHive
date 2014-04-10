@@ -227,6 +227,12 @@
         <exclude name="meta-inf/manifest.mf"/>
       </patternset>
     </unzip>
+    <unzip src="${build.ivy.lib.dir}/default/fastutil-${fastutil.version}.jar" dest="${build.dir.hive}/fastutil/classes">
+      <patternset>
+        <exclude name="meta-inf"/>
+        <exclude name="meta-inf/manifest.mf"/>
+      </patternset>
+    </unzip>
     <unzip src="${build.ivy.lib.dir}/default/avro-${avro.version}.jar" dest="${build.dir.hive}/avro/classes">
       <patternset>
         <exclude name="META-INF"/>
