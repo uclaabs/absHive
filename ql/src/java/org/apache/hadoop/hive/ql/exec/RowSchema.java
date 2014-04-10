@@ -22,6 +22,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
+ * ABM modified file -- create empty signature
+ *
  * RowSchema Implementation.
  */
 public class RowSchema implements Serializable {
@@ -30,6 +32,7 @@ public class RowSchema implements Serializable {
   private ArrayList<ColumnInfo> signature;
 
   public RowSchema() {
+    this.signature = new ArrayList<ColumnInfo>();
   }
 
   public RowSchema(RowSchema that) {

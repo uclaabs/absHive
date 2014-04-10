@@ -39,6 +39,15 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.ql.abm.fake.FakeAggr;
+import org.apache.hadoop.hive.ql.abm.fake.TestAvg;
+import org.apache.hadoop.hive.ql.abm.fake.TestCount;
+import org.apache.hadoop.hive.ql.abm.fake.TestSum;
+import org.apache.hadoop.hive.ql.abm.fake.udf.SrvGreater;
+import org.apache.hadoop.hive.ql.abm.fake.udf.SrvGreaterEqual;
+import org.apache.hadoop.hive.ql.abm.fake.udf.SrvLess;
+import org.apache.hadoop.hive.ql.abm.fake.udf.SrvLessEqual;
+import org.apache.hadoop.hive.ql.abm.fake.udf.SrvReduce;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
@@ -158,6 +167,8 @@ import org.w3c.dom.NodeList;
 
 
 /**
+ * ABM modified file -- add UDFs and UDAFs
+ *
  * FunctionRegistry.
  */
 public final class FunctionRegistry {
@@ -379,6 +390,42 @@ public final class FunctionRegistry {
     registerGenericUDAF("compute_stats" , new GenericUDAFComputeStats());
 
     registerUDAF("percentile", UDAFPercentile.class);
+
+    /**
+     * ABM functions
+     */
+    //registerGenericUDAF("srv_lin" , new SrvLin());
+    //UDAFs
+    registerGenericUDAF("srv_sum" , new TestSum());
+    registerGenericUDAF("srv_avg" , new TestAvg());
+    registerGenericUDAF("srv_count" , new TestCount());
+    registerGenericUDAF("cond_sum" , new FakeAggr());
+    registerGenericUDAF("lin_sum", new FakeAggr());
+
+    //UDFs
+    registerGenericUDF("cond_merge" , SrvReduce.class);
+    //registerGenericUDF("cond_merge" , GenericUDFHash.class);
+
+    registerGenericUDF("srv_greater_than" , SrvGreater.class);
+    //registerGenericUDF("srv_greater_than" , GenericUDFHash.class);
+    registerGenericUDF("srv_less_than" , SrvLess.class);
+    registerGenericUDF("srv_equal_or_greater_than" , SrvGreaterEqual.class);
+    registerGenericUDF("srv_equal_or_less_than" , SrvLessEqual.class);
+
+    registerGenericUDF("srv_equal_or_greater_than_srv" , SrvGreaterEqual.class);
+    registerGenericUDF("srv_equal_or_less_than_srv" , SrvLessEqual.class);
+    registerGenericUDF("srv_greater_than_srv" , SrvGreater.class);
+    registerGenericUDF("srv_less_than_srv" , SrvLess.class);
+
+    registerGenericUDF("x>=x" , SrvGreaterEqual.class);
+    registerGenericUDF("x<=x" , SrvLessEqual.class);
+    registerGenericUDF("x>x" , SrvGreater.class);
+    registerGenericUDF("x<x" , SrvLess.class);
+
+    registerGenericUDF("x>=" , SrvGreaterEqual.class);
+    registerGenericUDF("x<=" , SrvLessEqual.class);
+    registerGenericUDF("x>" , SrvGreater.class);
+    registerGenericUDF("x<" , SrvLess.class);
 
 
     // Generic UDFs

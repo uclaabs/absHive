@@ -209,9 +209,15 @@ import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.InputFormat;
 
 /**
+ * ABM modified file
+ * 1 change "class GenericUDAFInfo" and its fields into public
+ * 2 change "getGenericUDAFInfo" into public
+ * 3 change "groupByDescModeToUDAFMode" into public
+ * 4 change "getGenericUDAFEvaluator" into public
+ *
+ *
  * Implementation of the semantic analyzer.
  */
-
 public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   private HashMap<TableScanOperator, ExprNodeDesc> opToPartPruner;
   private HashMap<TableScanOperator, PrunedPartitionList> opToPartList;
@@ -2703,10 +2709,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
   /**
    * Class to store GenericUDAF related information.
    */
-  static class GenericUDAFInfo {
-    ArrayList<ExprNodeDesc> convertedParameters;
-    GenericUDAFEvaluator genericUDAFEvaluator;
-    TypeInfo returnType;
+  public static class GenericUDAFInfo {
+    public ArrayList<ExprNodeDesc> convertedParameters;
+    public GenericUDAFEvaluator genericUDAFEvaluator;
+    public TypeInfo returnType;
   }
 
   /**
@@ -2747,7 +2753,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * Returns the GenericUDAFEvaluator for the aggregation. This is called once
    * for each GroupBy aggregation.
    */
-  static GenericUDAFEvaluator getGenericUDAFEvaluator(String aggName,
+  public static GenericUDAFEvaluator getGenericUDAFEvaluator(String aggName,
       ArrayList<ExprNodeDesc> aggParameters, ASTNode aggTree,
       boolean isDistinct, boolean isAllColumns)
       throws SemanticException {
@@ -2777,7 +2783,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * @throws SemanticException
    *           when the UDAF is not found or has problems.
    */
-  static GenericUDAFInfo getGenericUDAFInfo(GenericUDAFEvaluator evaluator,
+  public static GenericUDAFInfo getGenericUDAFInfo(GenericUDAFEvaluator evaluator,
       GenericUDAFEvaluator.Mode emode, ArrayList<ExprNodeDesc> aggParameters)
       throws SemanticException {
 
@@ -2806,7 +2812,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return r;
   }
 
-  private static GenericUDAFEvaluator.Mode groupByDescModeToUDAFMode(
+  public static GenericUDAFEvaluator.Mode groupByDescModeToUDAFMode(
       GroupByDesc.Mode mode, boolean isDistinct) {
     switch (mode) {
     case COMPLETE:

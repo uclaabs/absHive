@@ -25,6 +25,8 @@ import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 
 /**
+ * ABM modified file -- add support for broadcast
+ *
  * GroupByDesc.
  *
  */
@@ -66,6 +68,14 @@ public class GroupByDesc extends AbstractOperatorDesc {
   private float groupByMemoryUsage;
   private float memoryThreshold;
   transient private boolean isDistinct;
+
+  private boolean dontResetAggrsDistinct;
+
+  // ABM
+  private long[] lineageToLoad = null;
+  // ABM
+  private long broadcastId = 0;
+  private ArrayList<Integer> valColsInLineage = null;
 
   public GroupByDesc() {
   }
@@ -256,5 +266,42 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   public boolean isDistinct() {
     return isDistinct;
+  }
+
+
+  public void setDistinct(boolean isDistinct) {
+    this.isDistinct = isDistinct;
+  }
+
+  public boolean isDontResetAggrsDistinct() {
+    return dontResetAggrsDistinct;
+  }
+
+  public void setDontResetAggrsDistinct(boolean dontResetAggrsDistinct) {
+    this.dontResetAggrsDistinct = dontResetAggrsDistinct;
+  }
+
+  public long[] getLineageToLoad() {
+    return lineageToLoad;
+  }
+
+  public void setLineageToLoad(long[] lineageIds) {
+    lineageToLoad = lineageIds;
+  }
+
+  public long getBroadcastId() {
+    return broadcastId;
+  }
+
+  public void setBroadcastId(long id) {
+    broadcastId = id;
+  }
+
+  public ArrayList<Integer> getValColsInLineage() {
+    return valColsInLineage;
+  }
+
+  public void setValColsInLineage(ArrayList<Integer> valCols) {
+    valColsInLineage = valCols;
   }
 }

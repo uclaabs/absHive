@@ -30,6 +30,8 @@ import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.ASTNodeOrigin;
 
 /**
+ * ABM modified file -- add more error msgs
+ *
  * List of all error messages.
  * This list contains both compile time and run-time errors.
  **/
@@ -377,6 +379,34 @@ public enum ErrorMsg {
   COLUMNSTATSCOLLECTOR_PARSE_ERROR(30009, "Encountered parse error while parsing rewritten query"),
   COLUMNSTATSCOLLECTOR_IO_ERROR(30010, "Encountered I/O exception while parsing rewritten query"),
   DROP_COMMAND_NOT_ALLOWED_FOR_PARTITION(30011, "Partition protected from being dropped"),
+
+
+  /**
+   * ABM defined errors
+   */
+  TABLE_CREATION_NOT_ALLOWED_FOR_ABM(40000, "Dumping approximate query results with error bars into tables are not supported in analytical bootstrap mode currently"),
+  VIEW_CREATION_NOT_ALLOWED_FOR_ABM(40001, "Dumping approximate query results with error bars into views are not supported in analytical bootstrap mode currently"),
+  GROUPING_SET_NOT_ALLOWED_FOR_ABM(40002, "Grouping sets aggregations are not supported in analytical bootstrap mode currently"),
+  WINDOW_SPEC_NOT_ALLOWED_FOR_ABM(40003, "Window-based aggregations are not supported in analytical bootstrap mode currently"),
+  SAMPLE_NOT_ALLOWED_FOR_ABM(40004, "Sampling is not supported in analytical bootstrap mode currently"),
+  FIELDS_NOT_ALLOWED_FOR_ABM(40005, "Fields are not supported in analytical bootstrap mode currently"),
+  OPERATOR_NOT_ALLOWED_FOR_ABM(40006, "{0} are not supported in analytical bootstrap mode currently", true),
+  FUNC_OF_AGGR_NOT_ALLOWED_FOR_ABM(40007, "Complex functions/comparison of aggregates are not supported in analytical bootstrap mode currently"),
+  COMPLEX_AGGR_NOT_ALLOWED_FOR_ABM(40008, "Complex aggregates are not supported in analytical bootstrap mode currently"),
+  AGGR_16_LIN_ALLOWED_FOR_ABM(40009, "At most 16 lineages of aggregates can be maintained in analytical bootstrap mode currently"),
+  UNIQ_JOIN_NOT_ALLOWED_FOR_ABM(40010, "Unique join is not supported in analytical bootstrap mode currently"),
+  SEMI_JOIN_NOT_ALLOWED_FOR_ABM(40011, "Semi join is not supported in analytical bootstrap mode currently, use join instead"),
+
+  SCHEMA_MISSING_ABM(40012, "Missing or corrupted schema (primary key) file in analytical bootstrap mode. "
+      + "It should be set through hive.abm.schema."),
+
+  MIN_MAX_NOT_ABM_ELIGIBLE(40013, "Extreme aggregates (MIN/MAX) are not eligible to apply analytical bootstrap method"),
+  EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE(40014, "Equality test on aggregates are not eligible to apply analytical bootstrap method"),
+  AGGR_OF_AGGR_NOT_ABM_ELIGIBLE(40015, "Aggregates of aggregates are not eligible to apply analytical bootstrap method"),
+  DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE(40016, "Distinct aggregates are not ptime eligible to apply analytical bootstrap method"),
+  QUERY_NOT_ABM_ELIGIBLE(40017, "The query is not eligible to apply analytical bootstrap method"),
+  QUERY_NOT_ABM_PTIME_ELIGIBLE(40018, "The query is not ptime eligible to apply analytical bootstrap method"),
+
     ;
 
   private int errorCode;

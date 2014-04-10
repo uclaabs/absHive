@@ -23,6 +23,9 @@ import java.util.List;
 
 
 /**
+ *
+ * ABM modified file -- add support for broadcast
+ *
  * SelectDesc.
  *
  */
@@ -33,6 +36,9 @@ public class SelectDesc extends AbstractOperatorDesc {
   private List<java.lang.String> outputColumnNames;
   private boolean selectStar;
   private boolean selStarNoCompute;
+
+  // ABM
+  private long[] lineageToLoad = null;
 
   public SelectDesc() {
   }
@@ -132,5 +138,13 @@ public class SelectDesc extends AbstractOperatorDesc {
    */
   public void setSelStarNoCompute(boolean selStarNoCompute) {
     this.selStarNoCompute = selStarNoCompute;
+  }
+
+  public long[] getLineageToLoad() {
+    return lineageToLoad;
+  }
+
+  public void setLineageToLoad(long[] lineageIds) {
+    lineageToLoad = lineageIds;
   }
 }
