@@ -1,0 +1,643 @@
+PREHOOK: query: -- Tests merge when writing into partitioned table
+
+DROP TABLE IF EXISTS orcfile_merge1
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: -- Tests merge when writing into partitioned table
+
+DROP TABLE IF EXISTS orcfile_merge1
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: DROP TABLE IF EXISTS orcfile_merge1a
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: DROP TABLE IF EXISTS orcfile_merge1a
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: DROP TABLE IF EXISTS orcfile_merge1b
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: DROP TABLE IF EXISTS orcfile_merge1b
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: CREATE TABLE orcfile_merge1 (key INT, value STRING) 
+    PARTITIONED BY (ds STRING, part STRING) STORED AS ORC
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: CREATE TABLE orcfile_merge1 (key INT, value STRING) 
+    PARTITIONED BY (ds STRING, part STRING) STORED AS ORC
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@orcfile_merge1
+PREHOOK: query: CREATE TABLE orcfile_merge1a (key INT, value STRING) 
+    PARTITIONED BY (ds STRING, part STRING) STORED AS ORC
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: CREATE TABLE orcfile_merge1a (key INT, value STRING) 
+    PARTITIONED BY (ds STRING, part STRING) STORED AS ORC
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@orcfile_merge1a
+PREHOOK: query: CREATE TABLE orcfile_merge1b (key INT, value STRING) 
+    PARTITIONED BY (ds STRING, part STRING) STORED AS ORC
+PREHOOK: type: CREATETABLE
+POSTHOOK: query: CREATE TABLE orcfile_merge1b (key INT, value STRING) 
+    PARTITIONED BY (ds STRING, part STRING) STORED AS ORC
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: default@orcfile_merge1b
+PREHOOK: query: -- Write into multiple partitions to generate multiple input splits
+INSERT OVERWRITE TABLE orcfile_merge1 PARTITION (ds='1', part)
+    SELECT key, value, PMOD(HASH(key), 9) as part
+    FROM src
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: default@orcfile_merge1@ds=1
+POSTHOOK: query: -- Write into multiple partitions to generate multiple input splits
+INSERT OVERWRITE TABLE orcfile_merge1 PARTITION (ds='1', part)
+    SELECT key, value, PMOD(HASH(key), 9) as part
+    FROM src
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=0
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=1
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=2
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=3
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=4
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=5
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=6
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=7
+POSTHOOK: Output: default@orcfile_merge1@ds=1/part=8
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+PREHOOK: query: -- Use non block-level merge
+EXPLAIN
+    INSERT OVERWRITE TABLE orcfile_merge1a PARTITION (ds='1', part)
+        SELECT key, value, PMOD(HASH(key), 3) as part
+        FROM orcfile_merge1 where ds='1'
+PREHOOK: type: QUERY
+POSTHOOK: query: -- Use non block-level merge
+EXPLAIN
+    INSERT OVERWRITE TABLE orcfile_merge1a PARTITION (ds='1', part)
+        SELECT key, value, PMOD(HASH(key), 3) as part
+        FROM orcfile_merge1 where ds='1'
+POSTHOOK: type: QUERY
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+ABSTRACT SYNTAX TREE:
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME orcfile_merge1))) (TOK_INSERT (TOK_DESTINATION (TOK_TAB (TOK_TABNAME orcfile_merge1a) (TOK_PARTSPEC (TOK_PARTVAL ds '1') (TOK_PARTVAL part)))) (TOK_SELECT (TOK_SELEXPR (TOK_TABLE_OR_COL key)) (TOK_SELEXPR (TOK_TABLE_OR_COL value)) (TOK_SELEXPR (TOK_FUNCTION PMOD (TOK_FUNCTION HASH (TOK_TABLE_OR_COL key)) 3) part)) (TOK_WHERE (= (TOK_TABLE_OR_COL ds) '1'))))
+
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-7 depends on stages: Stage-1 , consists of Stage-4, Stage-3, Stage-5
+  Stage-4
+  Stage-0 depends on stages: Stage-4, Stage-3, Stage-6
+  Stage-2 depends on stages: Stage-0
+  Stage-3
+  Stage-5
+  Stage-6 depends on stages: Stage-5
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Alias -> Map Operator Tree:
+        orcfile_merge1 
+          TableScan
+            alias: orcfile_merge1
+            Select Operator
+              expressions:
+                    expr: key
+                    type: int
+                    expr: value
+                    type: string
+                    expr: pmod(hash(key), 3)
+                    type: int
+              outputColumnNames: _col0, _col1, _col2
+              File Output Operator
+                compressed: false
+                GlobalTableId: 1
+                table:
+                    input format: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+                    output format: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+                    serde: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+                    name: default.orcfile_merge1a
+
+  Stage: Stage-7
+    Conditional Operator
+
+  Stage: Stage-4
+    Move Operator
+      files:
+          hdfs directory: true
+#### A masked pattern was here ####
+
+  Stage: Stage-0
+    Move Operator
+      tables:
+          partition:
+            ds 1
+            part 
+          replace: true
+          table:
+              input format: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+              output format: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+              serde: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+              name: default.orcfile_merge1a
+
+  Stage: Stage-2
+    Stats-Aggr Operator
+
+  Stage: Stage-3
+    Map Reduce
+      Alias -> Map Operator Tree:
+#### A masked pattern was here ####
+            File Output Operator
+              compressed: false
+              GlobalTableId: 0
+              table:
+                  input format: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+                  output format: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+                  serde: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+                  name: default.orcfile_merge1a
+
+  Stage: Stage-5
+    Map Reduce
+      Alias -> Map Operator Tree:
+#### A masked pattern was here ####
+            File Output Operator
+              compressed: false
+              GlobalTableId: 0
+              table:
+                  input format: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+                  output format: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+                  serde: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+                  name: default.orcfile_merge1a
+
+  Stage: Stage-6
+    Move Operator
+      files:
+          hdfs directory: true
+#### A masked pattern was here ####
+
+
+PREHOOK: query: INSERT OVERWRITE TABLE orcfile_merge1b PARTITION (ds='1', part)
+    SELECT key, value, PMOD(HASH(key), 3) as part
+    FROM orcfile_merge1 where ds='1'
+PREHOOK: type: QUERY
+PREHOOK: Input: default@orcfile_merge1
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=0
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=1
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=2
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=3
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=4
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=5
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=6
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=7
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=8
+PREHOOK: Output: default@orcfile_merge1b@ds=1
+POSTHOOK: query: INSERT OVERWRITE TABLE orcfile_merge1b PARTITION (ds='1', part)
+    SELECT key, value, PMOD(HASH(key), 3) as part
+    FROM orcfile_merge1 where ds='1'
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@orcfile_merge1
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=0
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=1
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=2
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=3
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=4
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=5
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=6
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=7
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=8
+POSTHOOK: Output: default@orcfile_merge1b@ds=1/part=0
+POSTHOOK: Output: default@orcfile_merge1b@ds=1/part=1
+POSTHOOK: Output: default@orcfile_merge1b@ds=1/part=2
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+PREHOOK: query: EXPLAIN
+    INSERT OVERWRITE TABLE orcfile_merge1b PARTITION (ds='1', part)
+        SELECT key, value, PMOD(HASH(key), 3) as part
+        FROM orcfile_merge1 where ds='1'
+PREHOOK: type: QUERY
+POSTHOOK: query: EXPLAIN
+    INSERT OVERWRITE TABLE orcfile_merge1b PARTITION (ds='1', part)
+        SELECT key, value, PMOD(HASH(key), 3) as part
+        FROM orcfile_merge1 where ds='1'
+POSTHOOK: type: QUERY
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+ABSTRACT SYNTAX TREE:
+  (TOK_QUERY (TOK_FROM (TOK_TABREF (TOK_TABNAME orcfile_merge1))) (TOK_INSERT (TOK_DESTINATION (TOK_TAB (TOK_TABNAME orcfile_merge1b) (TOK_PARTSPEC (TOK_PARTVAL ds '1') (TOK_PARTVAL part)))) (TOK_SELECT (TOK_SELEXPR (TOK_TABLE_OR_COL key)) (TOK_SELEXPR (TOK_TABLE_OR_COL value)) (TOK_SELEXPR (TOK_FUNCTION PMOD (TOK_FUNCTION HASH (TOK_TABLE_OR_COL key)) 3) part)) (TOK_WHERE (= (TOK_TABLE_OR_COL ds) '1'))))
+
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-7 depends on stages: Stage-1 , consists of Stage-4, Stage-3, Stage-5
+  Stage-4
+  Stage-0 depends on stages: Stage-4, Stage-3, Stage-6
+  Stage-2 depends on stages: Stage-0
+  Stage-3
+  Stage-5
+  Stage-6 depends on stages: Stage-5
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Alias -> Map Operator Tree:
+        orcfile_merge1 
+          TableScan
+            alias: orcfile_merge1
+            Select Operator
+              expressions:
+                    expr: key
+                    type: int
+                    expr: value
+                    type: string
+                    expr: pmod(hash(key), 3)
+                    type: int
+              outputColumnNames: _col0, _col1, _col2
+              File Output Operator
+                compressed: false
+                GlobalTableId: 1
+                table:
+                    input format: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+                    output format: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+                    serde: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+                    name: default.orcfile_merge1b
+
+  Stage: Stage-7
+    Conditional Operator
+
+  Stage: Stage-4
+    Move Operator
+      files:
+          hdfs directory: true
+#### A masked pattern was here ####
+
+  Stage: Stage-0
+    Move Operator
+      tables:
+          partition:
+            ds 1
+            part 
+          replace: true
+          table:
+              input format: org.apache.hadoop.hive.ql.io.orc.OrcInputFormat
+              output format: org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat
+              serde: org.apache.hadoop.hive.ql.io.orc.OrcSerde
+              name: default.orcfile_merge1b
+
+  Stage: Stage-2
+    Stats-Aggr Operator
+
+  Stage: Stage-3
+    Block level merge
+
+  Stage: Stage-5
+    Block level merge
+
+  Stage: Stage-6
+    Move Operator
+      files:
+          hdfs directory: true
+#### A masked pattern was here ####
+
+
+PREHOOK: query: INSERT OVERWRITE TABLE orcfile_merge1b PARTITION (ds='1', part)
+    SELECT key, value, PMOD(HASH(key), 3) as part
+    FROM orcfile_merge1 where ds='1'
+PREHOOK: type: QUERY
+PREHOOK: Input: default@orcfile_merge1
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=0
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=1
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=2
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=3
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=4
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=5
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=6
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=7
+PREHOOK: Input: default@orcfile_merge1@ds=1/part=8
+PREHOOK: Output: default@orcfile_merge1b@ds=1
+POSTHOOK: query: INSERT OVERWRITE TABLE orcfile_merge1b PARTITION (ds='1', part)
+    SELECT key, value, PMOD(HASH(key), 3) as part
+    FROM orcfile_merge1 where ds='1'
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@orcfile_merge1
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=0
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=1
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=2
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=3
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=4
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=5
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=6
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=7
+POSTHOOK: Input: default@orcfile_merge1@ds=1/part=8
+POSTHOOK: Output: default@orcfile_merge1b@ds=1/part=0
+POSTHOOK: Output: default@orcfile_merge1b@ds=1/part=1
+POSTHOOK: Output: default@orcfile_merge1b@ds=1/part=2
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+PREHOOK: query: -- Verify
+SELECT SUM(HASH(c)) FROM (
+    SELECT TRANSFORM(*) USING 'tr \t _' AS (c)
+    FROM orcfile_merge1a WHERE ds='1'
+) t
+PREHOOK: type: QUERY
+PREHOOK: Input: default@orcfile_merge1a
+#### A masked pattern was here ####
+POSTHOOK: query: -- Verify
+SELECT SUM(HASH(c)) FROM (
+    SELECT TRANSFORM(*) USING 'tr \t _' AS (c)
+    FROM orcfile_merge1a WHERE ds='1'
+) t
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@orcfile_merge1a
+#### A masked pattern was here ####
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+NULL
+PREHOOK: query: SELECT SUM(HASH(c)) FROM (
+    SELECT TRANSFORM(*) USING 'tr \t _' AS (c)
+    FROM orcfile_merge1b WHERE ds='1'
+) t
+PREHOOK: type: QUERY
+PREHOOK: Input: default@orcfile_merge1b
+PREHOOK: Input: default@orcfile_merge1b@ds=1/part=0
+PREHOOK: Input: default@orcfile_merge1b@ds=1/part=1
+PREHOOK: Input: default@orcfile_merge1b@ds=1/part=2
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT SUM(HASH(c)) FROM (
+    SELECT TRANSFORM(*) USING 'tr \t _' AS (c)
+    FROM orcfile_merge1b WHERE ds='1'
+) t
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@orcfile_merge1b
+POSTHOOK: Input: default@orcfile_merge1b@ds=1/part=0
+POSTHOOK: Input: default@orcfile_merge1b@ds=1/part=1
+POSTHOOK: Input: default@orcfile_merge1b@ds=1/part=2
+#### A masked pattern was here ####
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+-21975308527
+PREHOOK: query: DROP TABLE orcfile_merge1
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@orcfile_merge1
+PREHOOK: Output: default@orcfile_merge1
+POSTHOOK: query: DROP TABLE orcfile_merge1
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@orcfile_merge1
+POSTHOOK: Output: default@orcfile_merge1
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+PREHOOK: query: DROP TABLE orcfile_merge1a
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@orcfile_merge1a
+PREHOOK: Output: default@orcfile_merge1a
+POSTHOOK: query: DROP TABLE orcfile_merge1a
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@orcfile_merge1a
+POSTHOOK: Output: default@orcfile_merge1a
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+PREHOOK: query: DROP TABLE orcfile_merge1b
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@orcfile_merge1b
+PREHOOK: Output: default@orcfile_merge1b
+POSTHOOK: query: DROP TABLE orcfile_merge1b
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@orcfile_merge1b
+POSTHOOK: Output: default@orcfile_merge1b
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=0).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=1).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=2).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=3).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=4).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=5).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=6).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=7).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).key EXPRESSION [(src)src.FieldSchema(name:key, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1 PARTITION(ds=1,part=8).value SIMPLE [(src)src.FieldSchema(name:value, type:string, comment:default), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=0).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=1).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).key SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:key, type:int, comment:from deserializer), ]
+POSTHOOK: Lineage: orcfile_merge1b PARTITION(ds=1,part=2).value SIMPLE [(orcfile_merge1)orcfile_merge1.FieldSchema(name:value, type:string, comment:from deserializer), ]

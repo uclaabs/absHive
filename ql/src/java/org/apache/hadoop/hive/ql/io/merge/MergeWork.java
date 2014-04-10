@@ -1,0 +1,229 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.hadoop.hive.ql.io.merge;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.ql.io.CombineHiveInputFormat;
+import org.apache.hadoop.hive.ql.io.rcfile.merge.RCFileBlockMergeInputFormat;
+import org.apache.hadoop.hive.ql.plan.DynamicPartitionCtx;
+import org.apache.hadoop.hive.ql.plan.Explain;
+import org.apache.hadoop.hive.ql.plan.ListBucketingCtx;
+import org.apache.hadoop.hive.ql.plan.MapredWork;
+import org.apache.hadoop.hive.ql.plan.PartitionDesc;
+import org.apache.hadoop.hive.ql.plan.TableDesc;
+import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.Mapper;
+
+@Explain(displayName = "Block level merge")
+public class MergeWork extends MapredWork implements Serializable {
+
+  private static final long serialVersionUID = 1L;
+
+  private List<String> inputPaths;
+  private String outputDir;
+  private boolean hasDynamicPartitions;
+  private DynamicPartitionCtx dynPartCtx;
+  private boolean isListBucketingAlterTableConcatenate;
+  private ListBucketingCtx listBucketingCtx;
+
+  private Class<? extends Mapper> mapperClass;
+  private Class<? extends InputFormat> inputFormatClass;
+
+  public MergeWork() {
+  }
+
+  public MergeWork(List<String> inputPaths, String outputDir, Class<? extends Mapper> mapperClass,
+                   Class<? extends InputFormat> inputFormatClass) {
+    this(inputPaths, outputDir, false, null, mapperClass, inputFormatClass);
+  }
+
+  @SuppressWarnings("unchecked")
+  public MergeWork(List<String> inputPaths, String outputDir,
+      boolean hasDynamicPartitions, DynamicPartitionCtx dynPartCtx,
+      Class<? extends Mapper> mapperClass, Class<? extends InputFormat> inputFormatClass) {
+    super();
+    this.inputPaths = inputPaths;
+    this.outputDir = outputDir;
+    this.hasDynamicPartitions = hasDynamicPartitions;
+    this.dynPartCtx = dynPartCtx;
+    this.mapperClass = mapperClass;
+    this.inputFormatClass = inputFormatClass;
+    PartitionDesc partDesc = new PartitionDesc();
+    partDesc.setInputFileFormatClass(inputFormatClass);
+    if(this.getPathToPartitionInfo() == null) {
+      this.setPathToPartitionInfo(new LinkedHashMap<String, PartitionDesc>());
+    }
+    if(this.getNumReduceTasks() == null) {
+      this.setNumReduceTasks(0);
+    }
+    for(String path: this.inputPaths) {
+      this.getPathToPartitionInfo().put(path, partDesc);
+    }
+  }
+
+  public List<String> getInputPaths() {
+    return inputPaths;
+  }
+
+  public void setInputPaths(List<String> inputPaths) {
+    this.inputPaths = inputPaths;
+  }
+
+  public String getOutputDir() {
+    return outputDir;
+  }
+
+  public void setOutputDir(String outputDir) {
+    this.outputDir = outputDir;
+  }
+
+  public Class<? extends Mapper> getMapperClass() {
+    return mapperClass;
+  }
+
+  @Override
+  public Long getMinSplitSize() {
+    return null;
+  }
+
+  @Override
+  public String getInputformat() {
+    return CombineHiveInputFormat.class.getName();
+  }
+
+  @Override
+  public boolean isGatheringStats() {
+    return false;
+  }
+
+  public boolean hasDynamicPartitions() {
+    return this.hasDynamicPartitions;
+  }
+
+  public void setHasDynamicPartitions(boolean hasDynamicPartitions) {
+    this.hasDynamicPartitions = hasDynamicPartitions;
+  }
+
+  public Class<? extends InputFormat> getInputFormatClass() {
+    return inputFormatClass;
+  }
+
+  public void setInputFormatClass(Class<? extends InputFormat> inputFormatClass) {
+    this.inputFormatClass = inputFormatClass;
+  }
+
+  public void setMapperClass(Class<? extends Mapper> mapperClass) {
+    this.mapperClass = mapperClass;
+  }
+
+  @Override
+  public void resolveDynamicPartitionStoredAsSubDirsMerge(HiveConf conf, Path path,
+      TableDesc tblDesc, ArrayList<String> aliases, PartitionDesc partDesc) {
+
+    partDesc.setInputFileFormatClass(inputFormatClass);
+    super.resolveDynamicPartitionStoredAsSubDirsMerge(conf, path, tblDesc, aliases, partDesc);
+
+    // Add the DP path to the list of input paths
+    inputPaths.add(path.toString());
+  }
+
+  /**
+   * alter table ... concatenate
+   *
+   * If it is skewed table, use subdirectories in inputpaths.
+   */
+  public void resolveConcatenateMerge(HiveConf conf) {
+    isListBucketingAlterTableConcatenate = ((listBucketingCtx == null) ? false : listBucketingCtx
+        .isSkewedStoredAsDir());
+    if (isListBucketingAlterTableConcatenate) {
+      // use sub-dir as inputpath.
+      assert ((this.inputPaths != null) && (this.inputPaths.size() == 1)) :
+        "alter table ... concatenate should only have one directory inside inputpaths";
+      String dirName = inputPaths.get(0);
+      Path dirPath = new Path(dirName);
+      try {
+        FileSystem inpFs = dirPath.getFileSystem(conf);
+        FileStatus[] status = Utilities.getFileStatusRecurse(dirPath, listBucketingCtx
+            .getSkewedColNames().size(), inpFs);
+        List<String> newInputPath = new ArrayList<String>();
+        boolean succeed = true;
+        for (int i = 0; i < status.length; ++i) {
+           if (status[i].isDir()) {
+             // Add the lb path to the list of input paths
+             newInputPath.add(status[i].getPath().toString());
+           } else {
+             // find file instead of dir. dont change inputpath
+             succeed = false;
+           }
+        }
+        assert (succeed || ((!succeed) && newInputPath.isEmpty())) : "This partition has "
+            + " inconsistent file structure: "
+            + "it is stored-as-subdir and expected all files in the same depth of subdirectories.";
+        if (succeed) {
+          inputPaths.clear();
+          inputPaths.addAll(newInputPath);
+        }
+      } catch (IOException e) {
+        String msg = "Fail to get filesystem for directory name : " + dirName;
+        throw new RuntimeException(msg, e);
+      }
+
+    }
+  }
+
+  public DynamicPartitionCtx getDynPartCtx() {
+    return dynPartCtx;
+  }
+
+  public void setDynPartCtx(DynamicPartitionCtx dynPartCtx) {
+    this.dynPartCtx = dynPartCtx;
+  }
+
+  /**
+   * @return the listBucketingCtx
+   */
+  public ListBucketingCtx getListBucketingCtx() {
+    return listBucketingCtx;
+  }
+
+  /**
+   * @param listBucketingCtx the listBucketingCtx to set
+   */
+  public void setListBucketingCtx(ListBucketingCtx listBucketingCtx) {
+    this.listBucketingCtx = listBucketingCtx;
+  }
+
+  /**
+   * @return the isListBucketingAlterTableConcatenate
+   */
+  public boolean isListBucketingAlterTableConcatenate() {
+    return isListBucketingAlterTableConcatenate;
+  }
+
+}
