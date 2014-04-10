@@ -19,9 +19,6 @@ package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-
-import javaewah.EWAHCompressedBitmap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,8 +41,12 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.util.StringUtils;
 
+import com.googlecode.javaewah.EWAHCompressedBitmap;
+
 
 /**
+ * ABM modified file -- import newer version javaewah
+ *
  * GenericUDAFEWAHBitmap.
  *
  */

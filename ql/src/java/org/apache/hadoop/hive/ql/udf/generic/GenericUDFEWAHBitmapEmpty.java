@@ -21,8 +21,6 @@ package org.apache.hadoop.hive.ql.udf.generic;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import javaewah.EWAHCompressedBitmap;
-
 import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
@@ -31,14 +29,20 @@ import org.apache.hadoop.hive.ql.index.bitmap.BitmapObjectInput;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.LongWritable;
 
+import com.googlecode.javaewah.EWAHCompressedBitmap;
+
+/**
+ * ABM modified file -- import newer version javaewah
+ *
+ */
 @Description(name = "ewah_bitmap_empty", value = "_FUNC_(bitmap) - "
     + "Predicate that tests whether an EWAH-compressed bitmap is all zeros ")
 public class GenericUDFEWAHBitmapEmpty extends GenericUDF {

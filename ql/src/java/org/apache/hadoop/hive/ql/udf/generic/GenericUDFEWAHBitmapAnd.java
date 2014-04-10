@@ -18,11 +18,13 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
-import javaewah.EWAHCompressedBitmap;
-
 import org.apache.hadoop.hive.ql.exec.Description;
 
+import com.googlecode.javaewah.EWAHCompressedBitmap;
+
 /**
+ * ABM modified file -- import newer version javaewah
+ *
  * GenericEWAHUDFBitmapAnd.
  *
  */

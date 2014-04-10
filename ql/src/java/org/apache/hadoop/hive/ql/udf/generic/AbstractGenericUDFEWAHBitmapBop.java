@@ -22,25 +22,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javaewah.EWAHCompressedBitmap;
-
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.index.bitmap.BitmapObjectInput;
 import org.apache.hadoop.hive.ql.index.bitmap.BitmapObjectOutput;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableVoidObjectInspector;
 import org.apache.hadoop.io.LongWritable;
 
+import com.googlecode.javaewah.EWAHCompressedBitmap;
+
 /**
+ * ABM modified file -- import newer version javaewah
+ *
  * An abstract class for a UDF that performs a binary operation between two EWAH-compressed bitmaps.
  * For example: Bitmap OR and AND operations between two EWAH-compressed bitmaps.
  */
@@ -111,14 +112,14 @@ abstract public class AbstractGenericUDFEWAHBitmapBop extends GenericUDF {
     }
     return ret;
   }
-  
+
   protected EWAHCompressedBitmap wordArrayToBitmap(Object b) {
     ListObjectInspector lloi = (ListObjectInspector) b1OI;
     int length = lloi.getListLength(b);
     ArrayList<LongWritable> bitmapArray = new ArrayList<LongWritable>();
     for (int i = 0; i < length; i++) {
       long l = PrimitiveObjectInspectorUtils.getLong(
-          lloi.getListElement(b, i), 
+          lloi.getListElement(b, i),
           (PrimitiveObjectInspector) lloi.getListElementObjectInspector());
       bitmapArray.add(new LongWritable(l));
     }
@@ -142,7 +143,7 @@ abstract public class AbstractGenericUDFEWAHBitmapBop extends GenericUDF {
     }
     return bitmapObjOut.list();
   }
-  
+
   @Override
   public String getDisplayString(String[] children) {
     StringBuilder sb = new StringBuilder();
