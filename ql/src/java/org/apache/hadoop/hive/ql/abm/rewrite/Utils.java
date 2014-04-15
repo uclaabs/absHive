@@ -11,7 +11,7 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class Utils {
 
-  public static ArrayList<ExprNodeColumnDesc> generateColumnDescs(
+  public static List<ExprNodeColumnDesc> generateColumnDescs(
       Operator<? extends OperatorDesc> op, Integer index) {
     if (index == null) {
       return new ArrayList<ExprNodeColumnDesc>();
@@ -19,7 +19,7 @@ public class Utils {
     return generateColumnDescs(op, Arrays.asList(index));
   }
 
-  public static ArrayList<ExprNodeColumnDesc> generateColumnDescs(
+  public static List<ExprNodeColumnDesc> generateColumnDescs(
       Operator<? extends OperatorDesc> op, List<Integer> indexes) {
     ArrayList<ExprNodeColumnDesc> ret = new ArrayList<ExprNodeColumnDesc>();
     if (indexes != null) {

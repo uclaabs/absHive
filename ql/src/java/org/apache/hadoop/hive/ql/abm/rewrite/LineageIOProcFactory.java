@@ -69,6 +69,10 @@ public class LineageIOProcFactory {
           Utils.generateColumnDescs(parent, index));
 
       if (!ctx.hasLineageToWrite(gby)) {
+        if (firstGby) {
+          // aggParameter[0] is tid
+          addTidToAggrsAndConditionColumn(desc, aggParameters.get(0));
+        }
         return null;
       }
 

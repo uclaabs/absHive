@@ -88,9 +88,9 @@ public class RewriteProcFactory {
     GenericUDF srvMerge = getUdf(COND_MERGE);
 
     ArrayList<ColumnInfo> colInfos = op.getSchema().getSignature();
-    ArrayList<Integer> indexes = ctx.getCondColumnIndexes(op);
+    List<Integer> indexes = ctx.getCondColumnIndexes(op);
     assert indexes != null;
-    ArrayList<ExprNodeColumnDesc> conds = Utils.generateColumnDescs(op, indexes);
+    List<ExprNodeColumnDesc> conds = Utils.generateColumnDescs(op, indexes);
 
     // the condition column
     ExprNodeDesc cond = conds.get(0);
@@ -102,19 +102,13 @@ public class RewriteProcFactory {
       List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
       list.add(cond);
       list.add(conds.get(i));
-      // list = Arrays.asList(cond, conds.get(i));
-
       cond = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
-      // cond = ExprNodeGenericFuncDesc.newInstance(getUdf("x<="), list);
     }
     for (ExprNodeDesc newCond : additionalConds) {
       List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
       list.add(cond);
       list.add(newCond);
-      // list = Arrays.asList(cond, newCond);
-
       cond = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
-      // cond = ExprNodeGenericFuncDesc.newInstance(getUdf("x<="), list);
     }
 
     List<ExprNodeDesc> columns = new ArrayList<ExprNodeDesc>();
@@ -184,7 +178,7 @@ public class RewriteProcFactory {
     // info (3)
     HashSet<LineageInfo> condLineage = ctx.getConditions(op);
     if (condLineage != null) {
-      ctx.addConditions(sel, condLineage);
+      ctx.addConditionLineages(sel, condLineage);
     }
 
     // info (2)
@@ -249,7 +243,7 @@ public class RewriteProcFactory {
         for (Operator<? extends OperatorDesc> parent : parents) {
           HashSet<LineageInfo> condLineage = ctx.getConditions(parent);
           if (condLineage != null) {
-            ctx.addConditions(op, condLineage);
+            ctx.addConditionLineages(op, condLineage);
           }
         }
       }
@@ -335,7 +329,7 @@ public class RewriteProcFactory {
       // For maintaining condition column, DO NOTHING!
       // Note: we assume a single parent
       Operator<? extends OperatorDesc> parent = op.getParentOperators().get(0);
-      ArrayList<Integer> indexes = ctx.getCondColumnIndexes(parent);
+      List<Integer> indexes = ctx.getCondColumnIndexes(parent);
 
       if (indexes == null) {
         return null;
@@ -502,52 +496,53 @@ public class RewriteProcFactory {
         gby.getSchema().getSignature().get(numKeys + i).setType(udaf.returnType);
       }
 
-      if (!ctx.getLineageCtx().isSampled(gby)) {
-        return null;
-      }
-
-      // Add the condition column
       Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-      ArrayList<ExprNodeColumnDesc> condCols = Utils.generateColumnDescs(parent,
-          ctx.getCondColumnIndexes(parent));
-      assert condCols.size() < 2;
-      GroupByDesc.Mode amode = desc.getMode();
-      GenericUDAFEvaluator.Mode emode = SemanticAnalyzer.groupByDescModeToUDAFMode(
-          amode, false);
-      ArrayList<ExprNodeDesc> aggParameters = new ArrayList<ExprNodeDesc>(condCols);
-      GenericUDAFEvaluator udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(
-          COND_SUM, aggParameters, null, false, false);
-      assert (udafEvaluator != null);
-      GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
-          udafEvaluator, emode, aggParameters);
-      AggregationDesc aggrDesc = new AggregationDesc(COND_SUM,
-          udaf.genericUDAFEvaluator, udaf.convertedParameters, false,
-          emode);
-
-      // colExprMap only has keys in it, so don't add this aggregation
-      RowResolver rowResovler = ctx.getParseContext().getOpParseCtx().get(gby).getRowResolver();
-      ArrayList<String> outputColNames = desc.getOutputColumnNames();
-
-      aggrs.add(aggrDesc);
-      String colName = Utils.getColumnInternalName(numKeys + aggrs.size() - 1);
-      rowResovler.put("", colName, new ColumnInfo(colName, udaf.returnType, "", false));
-      outputColNames.add(colName);
-
       boolean firstGby = !(parent instanceof ReduceSinkOperator);
+      boolean withConditions = (ctx.getConditions(gby) != null);
+      boolean dedup = aggrs.isEmpty();
 
-      // Before we add gby itself for info (3)
-      // gby needs to read lineage unless it has other conditions.
-      if (firstGby && ctx.getConditions(gby) != null) {
-        ctx.addToLineageReaders(gby);
+      if (withConditions || dedup) {
+        // Add the condition column only if this group by has conditions or it is a deduplication.
+        List<ExprNodeColumnDesc> condCols = Utils.generateColumnDescs(parent,
+            ctx.getCondColumnIndexes(parent));
+        assert condCols.size() < 2;
+        GroupByDesc.Mode amode = desc.getMode();
+        GenericUDAFEvaluator.Mode emode = SemanticAnalyzer.groupByDescModeToUDAFMode(
+            amode, false);
+        ArrayList<ExprNodeDesc> aggParameters = new ArrayList<ExprNodeDesc>(condCols);
+        GenericUDAFEvaluator udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(
+            COND_SUM, aggParameters, null, false, false);
+        assert (udafEvaluator != null);
+        GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
+            udafEvaluator, emode, aggParameters);
+        AggregationDesc aggrDesc = new AggregationDesc(COND_SUM,
+            udaf.genericUDAFEvaluator, udaf.convertedParameters, false,
+            emode);
+
+        // colExprMap only has keys in it, so don't add this aggregation
+        RowResolver rowResovler = ctx.getParseContext().getOpParseCtx().get(gby).getRowResolver();
+        ArrayList<String> outputColNames = desc.getOutputColumnNames();
+
+        aggrs.add(aggrDesc);
+        String colName = Utils.getColumnInternalName(numKeys + aggrs.size() - 1);
+        rowResovler.put("", colName, new ColumnInfo(colName, udaf.returnType, "", false));
+        outputColNames.add(colName);
+
+        ctx.putCondColumnIndex(gby, outputColNames.size() - 1);
+
+        if (firstGby) {
+          // If this is the first group-by and this has conditions, read lineage.
+          if (withConditions) {
+            ctx.addToLineageReaders(gby);
+          }
+        } else {
+          // Add itself into condition lineages only if it is the second group-by and a deduplication,
+          // as COUNT>0 is implicitly implied by the aggregates.
+          if (dedup) {
+            ctx.addConditionLineage(gby, new LineageInfo(gby, -1));
+          }
+        }
       }
-
-      // info (3)
-      // index = -1 means that it's a count, so without any value
-      if (!firstGby) {
-        ctx.addCondition(gby, new LineageInfo(gby, -1));
-      }
-
-      ctx.putCondColumnIndex(gby, outputColNames.size() - 1);
 
       return null;
     }
@@ -653,7 +648,7 @@ public class RewriteProcFactory {
         LineageInfo li = ctx.getLineage(parent, column.getColumn());
         if (li != null) {
           column.setTypeInfo(li.getTypeInfo());
-          ctx.addCondition(filter, li);
+          ctx.addConditionLineage(filter, li);
           return column;
         }
         return null;

@@ -26,6 +26,8 @@ import org.apache.hadoop.io.IntWritable;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
+import com.googlecode.javaewah.EWAHCompressedBitmap;
+
 public class LinMergeUtil {
 
   public static final String ID = "id";

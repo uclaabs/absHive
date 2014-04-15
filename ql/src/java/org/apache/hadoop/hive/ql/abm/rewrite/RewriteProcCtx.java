@@ -3,11 +3,9 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.hadoop.hive.ql.ErrorMsg;
-import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
@@ -18,22 +16,19 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
-  private static final AtomicInteger globalId = new AtomicInteger(0);
-
-  private final HashMap<Operator<? extends OperatorDesc>, HashMap<String, LineageInfo>> map =
+  private final HashMap<Operator<? extends OperatorDesc>, HashMap<String, LineageInfo>> lineageMap =
       new HashMap<Operator<? extends OperatorDesc>, HashMap<String, LineageInfo>>();
 
-  private final HashMap<Operator<? extends OperatorDesc>, HashSet<LineageInfo>> conditions =
+  private final HashMap<Operator<? extends OperatorDesc>, HashSet<LineageInfo>> conditionLineage =
       new HashMap<Operator<? extends OperatorDesc>, HashSet<LineageInfo>>();
-  private final HashMap<LineageInfo, Integer> uniqLinInfo = new HashMap<LineageInfo, Integer>();
-  private final HashSet<Operator<? extends OperatorDesc>> lineageReaders =
-      new HashSet<Operator<? extends OperatorDesc>>();
-
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condColumnIndexes =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
+
+  private final HashSet<Operator<? extends OperatorDesc>> lineageReaders =
+      new HashSet<Operator<? extends OperatorDesc>>();
 
   private final LineageCtx lctx;
 
@@ -42,7 +37,7 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public LineageInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
-    HashMap<String, LineageInfo> lineage = map.get(op);
+    HashMap<String, LineageInfo> lineage = lineageMap.get(op);
     if (lineage == null) {
       return null;
     }
@@ -50,64 +45,57 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public void addLineage(Operator<? extends OperatorDesc> op, String internalName, LineageInfo linfo) {
-    HashMap<String, LineageInfo> lineage = map.get(op);
+    HashMap<String, LineageInfo> lineage = lineageMap.get(op);
     if (lineage == null) {
       lineage = new HashMap<String, LineageInfo>();
-      map.put(op, lineage);
+      lineageMap.put(op, lineage);
     }
     lineage.put(internalName, linfo);
   }
 
   public HashSet<LineageInfo> getConditions(Operator<? extends OperatorDesc> op) {
-    return conditions.get(op);
+    return conditionLineage.get(op);
   }
 
-  public void addCondition(Operator<? extends OperatorDesc> op,
+  public void addConditionLineage(Operator<? extends OperatorDesc> op,
       LineageInfo condition) throws SemanticException {
-    HashSet<LineageInfo> conds = conditions.get(op);
+    HashSet<LineageInfo> conds = conditionLineage.get(op);
     if (conds == null) {
       conds = new HashSet<LineageInfo>();
-      conditions.put(op, conds);
+      conditionLineage.put(op, conds);
     }
     conds.add(condition);
-
-    recordCondition(condition);
   }
 
-  public void addConditions(Operator<? extends OperatorDesc> op,
-      HashSet<LineageInfo> condition) throws SemanticException {
-    HashSet<LineageInfo> conds = conditions.get(op);
+  public void addConditionLineages(Operator<? extends OperatorDesc> op,
+      Set<LineageInfo> condition) throws SemanticException {
+    HashSet<LineageInfo> conds = conditionLineage.get(op);
     if (conds == null) {
       conds = new HashSet<LineageInfo>();
-      conditions.put(op, conds);
+      conditionLineage.put(op, conds);
     }
     conds.addAll(condition);
-
-    for (LineageInfo c : condition) {
-      recordCondition(c);
-    }
-  }
-
-  private void recordCondition(LineageInfo condition) throws SemanticException {
-    if (!uniqLinInfo.containsKey(condition)) {
-      int id = globalId.getAndIncrement();
-      if (id >= 16) {
-        AbmUtilities.report(ErrorMsg.AGGR_16_LIN_ALLOWED_FOR_ABM);
-      }
-      uniqLinInfo.put(condition, id);
-    }
   }
 
   public Set<LineageInfo> getAllLineagesToWrite() {
     HashSet<LineageInfo> ret = new HashSet<LineageInfo>();
     for (Operator<? extends OperatorDesc> reader : lineageReaders) {
-      ret.addAll(conditions.get(reader));
+      ret.addAll(conditionLineage.get(reader));
     }
     return ret;
   }
 
-  public HashMap<LineageInfo, Integer> getUniqLineageInfo() {
-    return uniqLinInfo;
+  public List<Integer> getCondColumnIndexes(Operator<? extends OperatorDesc> op) {
+    return condColumnIndexes.get(op);
+  }
+
+  public void putCondColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+    ArrayList<Integer> indexes = condColumnIndexes.get(op);
+    if (indexes == null) {
+      indexes = new ArrayList<Integer>();
+      condColumnIndexes.put(op, indexes);
+    }
+    indexes.add(index);
   }
 
   public void addToLineageReaders(Operator<? extends OperatorDesc> op) {
@@ -129,19 +117,6 @@ public class RewriteProcCtx implements NodeProcessorCtx {
       transform.put(filter, funcs);
     }
     funcs.add(func);
-  }
-
-  public ArrayList<Integer> getCondColumnIndexes(Operator<? extends OperatorDesc> op) {
-    return condColumnIndexes.get(op);
-  }
-
-  public void putCondColumnIndex(Operator<? extends OperatorDesc> op, int index) {
-    ArrayList<Integer> indexes = condColumnIndexes.get(op);
-    if (indexes == null) {
-      indexes = new ArrayList<Integer>();
-      condColumnIndexes.put(op, indexes);
-    }
-    indexes.add(index);
   }
 
   public LineageCtx getLineageCtx() {
