@@ -22,7 +22,7 @@ Then, you should be able to run all the unit tests by Run->Run.
 
 !! Run hive command line interface by right-click HiveCLI.launch->Run As->HiveCLI
 
-!! You need to reference JDK1.7 library to run HiveCLI.
+!! USE JDK1.6 for compile and run
 
 
 
