@@ -6,13 +6,9 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hadoop.hive.ql.abm.lib.PreOrderWalker;
-import org.apache.hadoop.hive.ql.abm.lineage.ExprInfo;
-import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
@@ -89,26 +85,29 @@ public class RewriteProcFactory {
 
     ArrayList<ColumnInfo> colInfos = op.getSchema().getSignature();
     List<Integer> indexes = ctx.getCondColumnIndexes(op);
-    assert indexes != null;
-    List<ExprNodeColumnDesc> conds = Utils.generateColumnDescs(op, indexes);
-
     // the condition column
-    ExprNodeDesc cond = conds.get(0);
+    ExprNodeDesc condColumn = null;
 
-    /**
-     * notice: use Arrays.asList will cause bugs
-     */
-    for (int i = 1; i < conds.size(); ++i) {
-      List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
-      list.add(cond);
-      list.add(conds.get(i));
-      cond = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
+    // Note: use Arrays.asList will cause bugs
+    for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(op, indexes)) {
+      if (condColumn == null) {
+        condColumn = cond;
+      } else {
+        List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
+        list.add(condColumn);
+        list.add(cond);
+        condColumn = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
+      }
     }
     for (ExprNodeDesc newCond : additionalConds) {
-      List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
-      list.add(cond);
-      list.add(newCond);
-      cond = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
+      if (condColumn == null) {
+        condColumn = newCond;
+      } else {
+        List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
+        list.add(condColumn);
+        list.add(newCond);
+        condColumn = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
+      }
     }
 
     List<ExprNodeDesc> columns = new ArrayList<ExprNodeDesc>();
@@ -118,7 +117,7 @@ public class RewriteProcFactory {
 
     // Forward original columns
     for (int i = 0; i < colInfos.size(); ++i) {
-      if (indexes.indexOf(i) != -1) {
+      if (indexes != null && indexes.indexOf(i) != -1) {
         continue;
       }
       ColumnInfo colInfo = colInfos.get(i);
@@ -135,12 +134,12 @@ public class RewriteProcFactory {
               colInfo.getType(), colInfo.getTabAlias(), colInfo.getIsVirtualCol()));
     }
 
-    columns.add(cond);
+    columns.add(condColumn);
     String condName = Utils.getColumnInternalName(columns.size() - 1);
     colName.add(condName);
-    colExprMap.put(condName, cond);
+    colExprMap.put(condName, condColumn);
     rowResolver.put("", condName,
-        new ColumnInfo(condName, cond.getTypeInfo(), null, false));
+        new ColumnInfo(condName, condColumn.getTypeInfo(), null, false));
 
 
     // Create SEL
@@ -175,31 +174,12 @@ public class RewriteProcFactory {
     OpParseContext opParseContext = new OpParseContext(rowResolver);
     ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
 
-    // info (3)
-    HashSet<LineageInfo> condLineage = ctx.getConditions(op);
-    if (condLineage != null) {
-      ctx.addConditionLineages(sel, condLineage);
-    }
-
-    // info (2)
-    for (int i = 0; i < colInfos.size(); ++i) {
-      if (indexes.indexOf(i) != -1) {
-        continue;
-      }
-      ColumnInfo colInfo = colInfos.get(i);
-      String internalName = colInfo.getInternalName();
-      LineageInfo linfo = ctx.getLineage(op, internalName);
-      if (linfo != null) {
-        ctx.addLineage(sel, internalName, linfo);
-      }
-    }
-
     ctx.putCondColumnIndex(sel, colName.size() - 1);
 
     if (ctx.getConditions(sel) != null) {
       // Tell ctx that this SEL needs to load the lineage
       HashSet<GroupByOperator> sources = new HashSet<GroupByOperator>();
-      for (LineageInfo li : ctx.getConditions(sel)) {
+      for (AggregateInfo li : ctx.getConditions(sel)) {
         sources.add(li.getGroupByOperator());
       }
       if (sources.size() > 1) {
@@ -208,26 +188,12 @@ public class RewriteProcFactory {
     }
   }
 
-  private static void cleanRowResolver(RewriteProcCtx ctx, Operator<? extends OperatorDesc> op) {
-    OpParseContext opParseCtx = ctx.getParseContext().getOpParseCtx().get(op);
-    RowResolver oldRR = opParseCtx.getRowResolver();
-    RowResolver newRR = new RowResolver();
-    ArrayList<ColumnInfo> colInfos = op.getSchema().getSignature();
-    for (ColumnInfo ci : colInfos) {
-      String[] name = oldRR.reverseLookup(ci.getInternalName());
-      newRR.put((name[0] == null) ? "" : name[0], name[1], ci);
-    }
-    op.setSchema(newRR.getRowSchema());
-    opParseCtx.setRowResolver(newRR);
-    assert op.getSchema().getSignature() != null;
-  }
-
   /**
    *
-   * Base1Processor maintains info (3) by propagating the correlated columns.
+   * BaseProcessor propagates the correct types.
    *
    */
-  public static class Base1Processor implements NodeProcessor {
+  public static abstract class BaseProcessor implements NodeProcessor {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
@@ -236,65 +202,13 @@ public class RewriteProcFactory {
       Operator<? extends OperatorDesc> op = (Operator<? extends OperatorDesc>) nd;
       RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
 
-      cleanRowResolver(ctx, op);
-
-      List<Operator<? extends OperatorDesc>> parents = op.getParentOperators();
-      if (parents != null) {
-        for (Operator<? extends OperatorDesc> parent : parents) {
-          HashSet<LineageInfo> condLineage = ctx.getConditions(parent);
-          if (condLineage != null) {
-            ctx.addConditionLineages(op, condLineage);
-          }
-        }
-      }
-
-      return null;
-    }
-
-  }
-
-  /**
-   *
-   * Base2Processor maintains info (1) and (2), and propagates the correct types.
-   * Since it works with the original columns (to maintain info (2) and propagate types),
-   * it must be called before you make any change to the schema.
-   *
-   */
-  public static abstract class Base2Processor extends Base1Processor {
-
-    @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      super.process(nd, stack, procCtx, nodeOutputs);
-
-      @SuppressWarnings("unchecked")
-      Operator<? extends OperatorDesc> op = (Operator<? extends OperatorDesc>) nd;
-      RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
-
-      // info (2)
-      LineageCtx lctx = ctx.getLineageCtx();
-      HashMap<String, ExprInfo> columnInfos = lctx.get(op);
-      if (columnInfos != null) {
-        for (Entry<String, ExprInfo> entry : columnInfos.entrySet()) {
-          ExprInfo ei = entry.getValue();
-          if (!ei.hasAggrOutput()) {
-            continue;
-          }
-          Set<String> cols = ei.getColumns();
-          assert cols.size() == 1;
-          for (String col : cols) {
-            Operator<? extends OperatorDesc> parent = ei.getOperator();
-            ctx.addLineage(op, entry.getKey(), ctx.getLineage(parent, col));
-          }
-        }
-      }
-
-      // Propagates the correct types of the original columns
-      ArrayList<ColumnInfo> columns = op.getSchema().getSignature();
-      for (ColumnInfo ci : columns) {
-        LineageInfo li = ctx.getLineage(op, ci.getInternalName());
-        if (li != null) {
-          ci.setType(li.getTypeInfo());
+      // Propagates the correct types
+      // Hack! We assume the columns generated by aggregates are w/ no transformation.
+      ArrayList<ColumnInfo> allCols = op.getSchema().getSignature();
+      for (ColumnInfo col : allCols) {
+        AggregateInfo aggr = ctx.getLineage(op, col.getInternalName());
+        if (aggr != null) {
+          col.setType(aggr.getTypeInfo());
         }
       }
 
@@ -306,12 +220,11 @@ public class RewriteProcFactory {
   /**
    *
    * DefaultProcessor implicitly forwards the condition column if exists,
-   * i.e., we do not need to make ExprNodeDesc or change the schema (they use their parent's
-   * schema).
+   * i.e., we do not need to make new ExprNodeDesc's (they forward their parent's columns).
    * For Forward, FileSink.
    *
    */
-  public static class DefaultProcessor extends Base2Processor {
+  public static class DefaultProcessor extends BaseProcessor {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
@@ -335,8 +248,8 @@ public class RewriteProcFactory {
         return null;
       }
 
-      RowResolver rowResolver = ctx.getParseContext().getOpParseCtx().get(op).getRowResolver();
-      RowResolver parentRR = ctx.getParseContext().getOpParseCtx().get(parent).getRowResolver();
+      RowResolver rowResolver = ctx.getOpParseContext(op).getRowResolver();
+      RowResolver parentRR = ctx.getOpParseContext(parent).getRowResolver();
       ArrayList<ColumnInfo> parentColInfos = parent.getSchema().getSignature();
 
       for (Integer index : indexes) {
@@ -357,7 +270,7 @@ public class RewriteProcFactory {
    * ReduceSinkProcessor explicitly forwards the condition column if exists.
    *
    */
-  public static class ReduceSinkProcessor extends Base2Processor {
+  public static class ReduceSinkProcessor extends BaseProcessor {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
@@ -369,22 +282,20 @@ public class RewriteProcFactory {
 
       // Explicitly forward the condition column
       // Note: we still maintain the row resolver
+      Map<String, ExprNodeDesc> colExprMap = rs.getColumnExprMap();
+      ReduceSinkDesc desc = rs.getConf();
+      ArrayList<String> outputValColNames = desc.getOutputValueColumnNames();
+      ArrayList<ExprNodeDesc> valCols = desc.getValueCols();
+      RowResolver rowResolver = ctx.getOpParseContext(rs).getRowResolver();
+
       Operator<? extends OperatorDesc> parent = rs.getParentOperators().get(0);
       for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(parent,
           ctx.getCondColumnIndexes(parent))) {
-        Map<String, ExprNodeDesc> colExprMap = rs.getColumnExprMap();
-        ReduceSinkDesc desc = rs.getConf();
-        ArrayList<String> outputValColNames = desc.getOutputValueColumnNames();
-        ArrayList<ExprNodeDesc> valCols = desc.getValueCols();
-        // ArrayList<ColumnInfo> colInfos = rs.getSchema().getSignature();
-        RowResolver rowResolver = ctx.getParseContext().getOpParseCtx().get(rs).getRowResolver();
-
         valCols.add(cond);
         String valOutputName = Utils.getColumnInternalName(valCols.size() - 1);
         outputValColNames.add(valOutputName);
         String valName = Utilities.ReduceField.VALUE.toString() + "." + valOutputName;
         colExprMap.put(valName, cond);
-        // colInfos.add(new ColumnInfo(valName, cond.getTypeInfo(), null, false));
         rowResolver.put("", valName, new ColumnInfo(valName, cond.getTypeInfo(), null, false));
 
         ArrayList<ColumnInfo> colInfos = rs.getSchema().getSignature();
@@ -401,7 +312,7 @@ public class RewriteProcFactory {
    * SelectProcessor explicitly forwards the condition column if exists.
    *
    */
-  public static class SelectProcessor extends Base2Processor {
+  public static class SelectProcessor extends BaseProcessor {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
@@ -413,16 +324,16 @@ public class RewriteProcFactory {
 
       // Explicitly forward the condition column
       // Note: we still maintain the row resolvers
+      Map<String, ExprNodeDesc> colExprMap = sel.getColumnExprMap();
+      SelectDesc desc = sel.getConf();
+      List<String> outputColNames = desc.getOutputColumnNames();
+      List<ExprNodeDesc> cols = desc.getColList();
+      // ArrayList<ColumnInfo> colInfos = sel.getSchema().getSignature();
+      RowResolver rowResolver = ctx.getOpParseContext(sel).getRowResolver();
+
       Operator<? extends OperatorDesc> parent = sel.getParentOperators().get(0);
       for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(parent,
           ctx.getCondColumnIndexes(parent))) {
-        Map<String, ExprNodeDesc> colExprMap = sel.getColumnExprMap();
-        SelectDesc desc = sel.getConf();
-        List<String> outputColNames = desc.getOutputColumnNames();
-        List<ExprNodeDesc> cols = desc.getColList();
-        // ArrayList<ColumnInfo> colInfos = sel.getSchema().getSignature();
-        RowResolver rowResolver = ctx.getParseContext().getOpParseCtx().get(sel).getRowResolver();
-
         cols.add(cond);
         String outputName = Utils.getColumnInternalName(cols.size() - 1);
         outputColNames.add(outputName);
@@ -442,18 +353,14 @@ public class RewriteProcFactory {
 
   /**
    *
-   * GroupByProcessor maintains info (1) by putting aggregate columns --> itself into
-   * RewriteContext.
-   * Since GroupBy is the source of info (2), so it does not need to maintain info (2).
-   * It maintains info (3) by putting itself as an extra condition.
+   * GroupByProcessor.
    *
    */
-  public static class GroupByProcessor extends Base1Processor {
+  public static class GroupByProcessor implements NodeProcessor {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
-      super.process(nd, stack, procCtx, nodeOutputs);
 
       GroupByOperator gby = (GroupByOperator) nd;
       RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
@@ -463,15 +370,9 @@ public class RewriteProcFactory {
       }
 
       GroupByDesc desc = gby.getConf();
-      ArrayList<ColumnInfo> cols = gby.getSchema().getSignature();
       ArrayList<AggregationDesc> aggrs = desc.getAggregators();
 
       int numKeys = desc.getKeys().size();
-      for (int i = numKeys; i < cols.size(); ++i) {
-        // hack!: we assume no null value. Otherwise, count(x) and count(*) should be treated
-        // differently and that make the lineage larger
-        ctx.addLineage(gby, cols.get(i).getInternalName(), new LineageInfo(gby, i - numKeys));
-      }
 
       // Rewrite AggregationDesc:
       // (1) Use the ABM version of SUM/COUNT/AVERAGE
@@ -520,7 +421,7 @@ public class RewriteProcFactory {
             emode);
 
         // colExprMap only has keys in it, so don't add this aggregation
-        RowResolver rowResovler = ctx.getParseContext().getOpParseCtx().get(gby).getRowResolver();
+        RowResolver rowResovler = ctx.getOpParseContext(gby).getRowResolver();
         ArrayList<String> outputColNames = desc.getOutputColumnNames();
 
         aggrs.add(aggrDesc);
@@ -535,13 +436,15 @@ public class RewriteProcFactory {
           if (withConditions) {
             ctx.addToLineageReaders(gby);
           }
-        } else {
-          // Add itself into condition lineages only if it is the second group-by and a deduplication,
-          // as COUNT>0 is implicitly implied by the aggregates.
-          if (dedup) {
-            ctx.addConditionLineage(gby, new LineageInfo(gby, -1));
-          }
         }
+//        else {
+//          // Add itself into condition lineages only if it is the second group-by and a
+//          // deduplication,
+//          // as COUNT>0 is implicitly implied by the aggregates.
+//          if (dedup) {
+//            ctx.addCondition(gby, new AggregateInfo(gby, -1, deterministic));
+//          }
+//        }
       }
 
       return null;
@@ -562,7 +465,7 @@ public class RewriteProcFactory {
 
   /**
    *
-   * FilterProcessor maintains info (3) by adding extra correlated columns from the predicate.
+   * FilterProcessor.
    *
    */
   public static class FilterProcessor extends DefaultProcessor {
@@ -576,13 +479,12 @@ public class RewriteProcFactory {
       RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
 
       FilterDesc desc = fil.getConf();
-      Operator<? extends OperatorDesc> parent = fil.getParentOperators().get(0);
-      ExprNodeDesc ret = rewrite(fil, parent, ctx, desc.getPredicate());
+      ExprNodeDesc ret = rewrite(desc.getPredicate(), fil, ctx);
       if (ret != null) {
         desc.setPredicate(ret);
       }
 
-      // Add an SEL after FIL to transform the condition column
+      // Add a SEL after FIL to transform the condition column
       if (ctx.getTransform(fil) != null) {
         createAndConnectSelectOperator(fil, ctx, ctx.getTransform(fil).toArray(new ExprNodeDesc[0]));
       }
@@ -590,16 +492,16 @@ public class RewriteProcFactory {
       return null;
     }
 
-    private ExprNodeDesc rewrite(FilterOperator filter, Operator<? extends OperatorDesc> parent,
-        RewriteProcCtx ctx, ExprNodeDesc pred) throws SemanticException {
-      if (pred instanceof ExprNodeGenericFuncDesc) {
-        ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) pred;
+    private ExprNodeDesc rewrite(ExprNodeDesc expr, FilterOperator fil,
+        RewriteProcCtx ctx) throws SemanticException {
+      if (expr instanceof ExprNodeGenericFuncDesc) {
+        ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) expr;
         GenericUDF udf = func.getGenericUDF();
 
         if (udf instanceof GenericUDFOPAnd) {
           List<ExprNodeDesc> children = func.getChildExprs();
           for (int i = 0; i < children.size(); ++i) {
-            ExprNodeDesc ret = rewrite(filter, parent, ctx, children.get(i));
+            ExprNodeDesc ret = rewrite(children.get(i), fil, ctx);
             if (ret != null) {
               children.set(i, ret);
             }
@@ -618,7 +520,7 @@ public class RewriteProcFactory {
           List<ExprNodeDesc> children = func.getChildExprs();
           assert children.size() == 2;
           for (int i = 0; i < children.size(); ++i) {
-            ExprNodeDesc ret = rewrite(filter, parent, ctx, children.get(i));
+            ExprNodeDesc ret = rewrite(children.get(i), fil, ctx);
             if (ret != null) {
               changeCode = ((changeCode << 1) | 1);
               children.set(i, ret);
@@ -630,7 +532,7 @@ public class RewriteProcFactory {
             normalizeParameters(children, changeCode);
 
             // Add to ctx: filter transforms the condition set of the annotation
-            ctx.addTransform(filter, ExprNodeGenericFuncDesc.newInstance(
+            ctx.addTransform(fil, ExprNodeGenericFuncDesc.newInstance(
                 getUdf(getCondUdfName(udf, changeCode)), children));
 
             // Rewrite the predicate.
@@ -643,12 +545,12 @@ public class RewriteProcFactory {
         return null;
       }
 
-      if (pred instanceof ExprNodeColumnDesc) {
-        ExprNodeColumnDesc column = (ExprNodeColumnDesc) pred;
-        LineageInfo li = ctx.getLineage(parent, column.getColumn());
-        if (li != null) {
-          column.setTypeInfo(li.getTypeInfo());
-          ctx.addConditionLineage(filter, li);
+      if (expr instanceof ExprNodeColumnDesc) {
+        Operator<? extends OperatorDesc> parent = fil.getParentOperators().get(0);
+        ExprNodeColumnDesc column = (ExprNodeColumnDesc) expr;
+        AggregateInfo aggr = ctx.getLineage(parent, column.getColumn());
+        if (aggr != null) {
+          column.setTypeInfo(aggr.getTypeInfo());
           return column;
         }
         return null;
@@ -757,7 +659,7 @@ public class RewriteProcFactory {
     }
   }
 
-  public static class JoinProcessor extends Base2Processor {
+  public static class JoinProcessor extends BaseProcessor {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
@@ -773,12 +675,12 @@ public class RewriteProcFactory {
       Map<String, Byte> reversedExprs = desc.getReversedExprs();
       Map<Byte, List<ExprNodeDesc>> exprMap = desc.getExprs();
       Map<String, ExprNodeDesc> colExprMap = join.getColumnExprMap();
-      RowResolver rowResolver = ctx.getParseContext().getOpParseCtx().get(join).getRowResolver();
+      RowResolver rowResolver = ctx.getOpParseContext(join).getRowResolver();
 
       int countOfCondCols = 0;
       for (Operator<? extends OperatorDesc> parent : join.getParentOperators()) {
         ReduceSinkOperator rs = (ReduceSinkOperator) parent;
-        RowResolver inputRR = ctx.getParseContext().getOpParseCtx().get(rs).getRowResolver();
+        RowResolver inputRR = ctx.getOpParseContext(rs).getRowResolver();
         Byte tag = (byte) rs.getConf().getTag();
         for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(rs, ctx.getCondColumnIndexes(rs))) {
           String colName = Utils.getColumnInternalName(outputColumnNames.size());
@@ -832,8 +734,8 @@ public class RewriteProcFactory {
     return new JoinProcessor();
   }
 
-  public static ParseContext rewritePlan(LineageCtx lctx) throws SemanticException {
-    RewriteProcCtx ctx = new RewriteProcCtx(lctx);
+  public static ParseContext rewritePlan(TraceProcCtx tctx) throws SemanticException {
+    RewriteProcCtx ctx = new RewriteProcCtx(tctx);
 
     Map<Rule, NodeProcessor> opRules = new LinkedHashMap<Rule, NodeProcessor>();
     opRules.put(new RuleRegExp("R1", FilterOperator.getOperatorName() + "%"),

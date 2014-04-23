@@ -769,7 +769,7 @@ public class HiveConf extends Configuration {
     HIVE_PTF_PARTITION_PERSISTENT_SIZE("hive.ptf.partition.persistence.memsize",
       (int) Math.pow(2, (5 + 10 + 10)) ), // 32MB
 
-    // ABM
+    // ABM confs start here.
     // Enable analytical bootstrap method.
     HIVE_ABM("hive.abm", true),
 
@@ -777,8 +777,8 @@ public class HiveConf extends Configuration {
     HIVE_ABM_SCHEMA("hive.abm.schema", "schema_tpch.txt"),
 
     // User specified ABM sampled table
-    //HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "lineitem"),
-    HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "emp"),
+    HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "lineitem"),
+//    HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "emp"),
 
     // Label, for debugging
     HIVE_ABM_LABEL("hive.abm.label", ""),

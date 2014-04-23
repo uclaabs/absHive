@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hadoop.hive.ql.abm.lib.PreOrderWalker;
@@ -371,10 +372,10 @@ public class LineageIOProcFactory {
   }
 
   private static long[] generateLineageLoadingInfo(LineageIOCtx ctx,
-      Operator<? extends OperatorDesc> op, HashSet<LineageInfo> conds) {
+      Operator<? extends OperatorDesc> op, Set<AggregateInfo> conds) {
     HashSet<Long> set = new HashSet<Long>();
 
-    for (LineageInfo cond : conds) {
+    for (AggregateInfo cond : conds) {
       set.add(ctx.getBroadcastId(cond.getGroupByOperator()));
     }
 

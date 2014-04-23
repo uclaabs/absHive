@@ -38,15 +38,15 @@ public class LineageIOCtx implements NodeProcessorCtx {
   private final HashMap<Operator<? extends OperatorDesc>, Integer> lineageCols =
       new HashMap<Operator<? extends OperatorDesc>, Integer>();
 
-  public LineageIOCtx(LineageCtx ctx, Set<LineageInfo> lineageToWrite,
+  public LineageIOCtx(LineageCtx ctx, Set<AggregateInfo> lineageToWrite,
       Set<Operator<? extends OperatorDesc>> lineageReaders) {
     lctx = ctx;
     populateLineageToWrite(lineageToWrite);
     findOperatorsWithTid(lineageReaders);
   }
 
-  private void populateLineageToWrite(Set<LineageInfo> lineageToWrite) {
-    for (LineageInfo lineageInfo : lineageToWrite) {
+  private void populateLineageToWrite(Set<AggregateInfo> lineageToWrite) {
+    for (AggregateInfo lineageInfo : lineageToWrite) {
       GroupByOperator gby2 = lineageInfo.getGroupByOperator();
       // hack: get the first group by
       GroupByOperator gby1 = (GroupByOperator) gby2.getParentOperators().get(0)

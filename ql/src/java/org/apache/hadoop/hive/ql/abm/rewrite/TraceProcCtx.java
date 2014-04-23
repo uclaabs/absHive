@@ -10,6 +10,7 @@ import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.OpParseContext;
+import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
@@ -20,6 +21,7 @@ public class TraceProcCtx implements NodeProcessorCtx {
 
   private final HashMap<Operator<? extends OperatorDesc>, HashSet<AggregateInfo>> conditions =
       new HashMap<Operator<? extends OperatorDesc>, HashSet<AggregateInfo>>();
+  private final HashSet<AggregateInfo> allAggrs = new HashSet<AggregateInfo>();
 
   private final LineageCtx lctx;
 
@@ -48,24 +50,38 @@ public class TraceProcCtx implements NodeProcessorCtx {
     return conditions.get(op);
   }
 
+  public Set<AggregateInfo> getAllAggregatesAsConditions() {
+    return allAggrs;
+  }
+
   public void addCondition(Operator<? extends OperatorDesc> op,
-      AggregateInfo condition) throws SemanticException {
+      AggregateInfo aggr) throws SemanticException {
     HashSet<AggregateInfo> conds = conditions.get(op);
     if (conds == null) {
       conds = new HashSet<AggregateInfo>();
       conditions.put(op, conds);
     }
-    conds.add(condition);
+    conds.add(aggr);
+    allAggrs.add(aggr);
   }
 
   public void addConditions(Operator<? extends OperatorDesc> op,
-      Set<AggregateInfo> condition) throws SemanticException {
+      Set<AggregateInfo> aggrs) throws SemanticException {
     HashSet<AggregateInfo> conds = conditions.get(op);
     if (conds == null) {
       conds = new HashSet<AggregateInfo>();
       conditions.put(op, conds);
     }
-    conds.addAll(condition);
+    conds.addAll(aggrs);
+    allAggrs.addAll(aggrs);
+  }
+
+  public LineageCtx getLineageCtx() {
+    return lctx;
+  }
+
+  public ParseContext getParseContext() {
+    return lctx.getParseContext();
   }
 
   public Map<String, ExprInfo> getOpColumnMapping(Operator<? extends OperatorDesc> op) {

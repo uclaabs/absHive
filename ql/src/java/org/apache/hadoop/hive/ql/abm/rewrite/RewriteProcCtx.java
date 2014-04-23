@@ -5,22 +5,19 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
+import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
+import org.apache.hadoop.hive.ql.parse.OpParseContext;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
-import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
-  private final HashMap<Operator<? extends OperatorDesc>, HashMap<String, LineageInfo>> lineageMap =
-      new HashMap<Operator<? extends OperatorDesc>, HashMap<String, LineageInfo>>();
-
-  private final HashMap<Operator<? extends OperatorDesc>, HashSet<LineageInfo>> conditionLineage =
-      new HashMap<Operator<? extends OperatorDesc>, HashSet<LineageInfo>>();
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condColumnIndexes =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
 
@@ -30,57 +27,56 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   private final HashSet<Operator<? extends OperatorDesc>> lineageReaders =
       new HashSet<Operator<? extends OperatorDesc>>();
 
-  private final LineageCtx lctx;
+  private final TraceProcCtx tctx;
 
-  public RewriteProcCtx(LineageCtx ctx) {
-    lctx = ctx;
+  public RewriteProcCtx(TraceProcCtx ctx) {
+    tctx = ctx;
+
+    condenseConditions();
   }
 
-  public LineageInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
-    HashMap<String, LineageInfo> lineage = lineageMap.get(op);
-    if (lineage == null) {
-      return null;
+  // If another (gby, index) exists, remove (gby, -1), as COUNT>0 is implied by the aggregate;
+  private void condenseConditions() {
+    Set<AggregateInfo> allAggrs = tctx.getAllAggregatesAsConditions();
+
+    HashMap<GroupByOperator, TreeSet<AggregateInfo>> condensed =
+        new HashMap<GroupByOperator, TreeSet<AggregateInfo>>();
+    for (AggregateInfo aggr : allAggrs) {
+      GroupByOperator gby = aggr.getGroupByOperator();
+      TreeSet<AggregateInfo> aggrs = condensed.get(gby);
+      if (aggrs == null) {
+        aggrs = new TreeSet<AggregateInfo>();
+        condensed.put(gby, aggrs);
+      }
+      aggrs.add(aggr);
     }
-    return lineage.get(internalName);
-  }
-
-  public void addLineage(Operator<? extends OperatorDesc> op, String internalName, LineageInfo linfo) {
-    HashMap<String, LineageInfo> lineage = lineageMap.get(op);
-    if (lineage == null) {
-      lineage = new HashMap<String, LineageInfo>();
-      lineageMap.put(op, lineage);
+    for (TreeSet<AggregateInfo> aggrs : condensed.values()) {
+      if (aggrs.size() == 1) {
+        continue;
+      }
+      AggregateInfo toRemove = null;
+      for (AggregateInfo aggr : aggrs) {
+        if (aggr.getIndex() == -1) {
+          toRemove = aggr;
+          break;
+        }
+      }
+      aggrs.remove(toRemove);
     }
-    lineage.put(internalName, linfo);
   }
 
-  public HashSet<LineageInfo> getConditions(Operator<? extends OperatorDesc> op) {
-    return conditionLineage.get(op);
+  public AggregateInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
+    return tctx.getLineage(op, internalName);
   }
 
-  public void addConditionLineage(Operator<? extends OperatorDesc> op,
-      LineageInfo condition) throws SemanticException {
-    HashSet<LineageInfo> conds = conditionLineage.get(op);
-    if (conds == null) {
-      conds = new HashSet<LineageInfo>();
-      conditionLineage.put(op, conds);
-    }
-    conds.add(condition);
+  public Set<AggregateInfo> getConditions(Operator<? extends OperatorDesc> op) {
+    return tctx.getConditions(op);
   }
 
-  public void addConditionLineages(Operator<? extends OperatorDesc> op,
-      Set<LineageInfo> condition) throws SemanticException {
-    HashSet<LineageInfo> conds = conditionLineage.get(op);
-    if (conds == null) {
-      conds = new HashSet<LineageInfo>();
-      conditionLineage.put(op, conds);
-    }
-    conds.addAll(condition);
-  }
-
-  public Set<LineageInfo> getAllLineagesToWrite() {
-    HashSet<LineageInfo> ret = new HashSet<LineageInfo>();
+  public Set<AggregateInfo> getAllLineagesToWrite() {
+    HashSet<AggregateInfo> ret = new HashSet<AggregateInfo>();
     for (Operator<? extends OperatorDesc> reader : lineageReaders) {
-      ret.addAll(conditionLineage.get(reader));
+      ret.addAll(tctx.getConditions(reader));
     }
     return ret;
   }
@@ -120,11 +116,15 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public LineageCtx getLineageCtx() {
-    return lctx;
+    return tctx.getLineageCtx();
   }
 
   public ParseContext getParseContext() {
-    return lctx.getParseContext();
+    return tctx.getParseContext();
+  }
+
+  public OpParseContext getOpParseContext(Operator<? extends OperatorDesc> op) {
+    return tctx.getOpParseContext(op);
   }
 
 }

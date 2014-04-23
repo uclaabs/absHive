@@ -7,12 +7,13 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
-public class AggregateInfo {
+public class AggregateInfo implements Comparable<AggregateInfo> {
 
   private final GroupByOperator gby;
   private final int index;
   // Whether the set of tuples contributing to this aggregate is deterministic
   private final boolean deterministic;
+  private TypeInfo type = null;
 
   public AggregateInfo(GroupByOperator gbyOp, int ind, boolean det) {
     gby = gbyOp;
@@ -33,10 +34,13 @@ public class AggregateInfo {
   }
 
   public TypeInfo getTypeInfo() throws SemanticException {
-    AggregationDesc desc = gby.getConf().getAggregators().get(index);
-    GenericUDAFInfo info = SemanticAnalyzer.getGenericUDAFInfo(
-        desc.getGenericUDAFEvaluator(), desc.getMode(), desc.getParameters());
-    return info.returnType;
+    if (type == null) { // resolve the type
+      AggregationDesc desc = gby.getConf().getAggregators().get(index);
+      GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
+          desc.getGenericUDAFEvaluator(), desc.getMode(), desc.getParameters());
+      type = udaf.returnType;
+    }
+    return type;
   }
 
   @Override
@@ -52,6 +56,15 @@ public class AggregateInfo {
 
     AggregateInfo info = (AggregateInfo) obj;
     return gby.equals(info.gby) && index == info.index;
+  }
+
+  @Override
+  public int compareTo(AggregateInfo arg0) {
+    int ret = Integer.parseInt(gby.getIdentifier()) - Integer.parseInt(arg0.gby.getIdentifier());
+    if (ret == 0) {
+      return index - arg0.index;
+    }
+    return ret;
   }
 
   @Override
