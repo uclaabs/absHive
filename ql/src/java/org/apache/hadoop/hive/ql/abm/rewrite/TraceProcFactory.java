@@ -26,6 +26,7 @@ import org.apache.hadoop.hive.ql.lib.RuleRegExp;
 import org.apache.hadoop.hive.ql.parse.OpParseContext;
 import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
@@ -210,6 +211,7 @@ public class TraceProcFactory {
 
       GroupByDesc desc = gby.getConf();
       ArrayList<ColumnInfo> allCols = gby.getSchema().getSignature();
+      ArrayList<AggregationDesc> aggrs = desc.getAggregators();
 
       // If this GroupByOperator has no condition,
       // then the set of tuples contributing to the aggregates is deterministic.
@@ -218,12 +220,13 @@ public class TraceProcFactory {
       // info (1)
       int numKeys = desc.getKeys().size();
       for (int i = numKeys; i < allCols.size(); ++i) {
+        int idx = i -  numKeys;
         ctx.addLineage(gby, allCols.get(i).getInternalName(),
-            new AggregateInfo(gby, i - numKeys, deterministic));
+            new AggregateInfo(gby, idx, aggrs.get(idx).getGenericUDAFName(), deterministic));
       }
 
       // info (3)
-      ctx.addCondition(gby, new AggregateInfo(gby, -1, deterministic));
+      ctx.addCondition(gby, new AggregateInfo(gby, -1, "count", deterministic));
 
       return null;
     }
