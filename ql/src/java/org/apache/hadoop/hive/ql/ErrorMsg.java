@@ -380,7 +380,6 @@ public enum ErrorMsg {
   COLUMNSTATSCOLLECTOR_IO_ERROR(30010, "Encountered I/O exception while parsing rewritten query"),
   DROP_COMMAND_NOT_ALLOWED_FOR_PARTITION(30011, "Partition protected from being dropped"),
 
-
   /**
    * ABM defined errors
    */
@@ -396,16 +395,17 @@ public enum ErrorMsg {
   AGGR_16_LIN_ALLOWED_FOR_ABM(40009, "At most 16 lineages of aggregates can be maintained in analytical bootstrap mode currently"),
   UNIQ_JOIN_NOT_ALLOWED_FOR_ABM(40010, "Unique join is not supported in analytical bootstrap mode currently"),
   SEMI_JOIN_NOT_ALLOWED_FOR_ABM(40011, "Semi join is not supported in analytical bootstrap mode currently, use join instead"),
+  SELF_JOIN_NOT_ALLOWED_FOR_ABM(40012, "Self join is not supported in analytical bootstrap mode currently"),
 
-  SCHEMA_MISSING_ABM(40012, "Missing or corrupted schema (primary key) file in analytical bootstrap mode. "
+  SCHEMA_MISSING_ABM(40013, "Missing or corrupted schema (primary key) file in analytical bootstrap mode. "
       + "It should be set through hive.abm.schema."),
 
-  MIN_MAX_NOT_ABM_ELIGIBLE(40013, "Extreme aggregates (MIN/MAX) are not eligible to apply analytical bootstrap method"),
-  EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE(40014, "Equality test on aggregates are not eligible to apply analytical bootstrap method"),
-  AGGR_OF_AGGR_NOT_ABM_ELIGIBLE(40015, "Aggregates of aggregates are not eligible to apply analytical bootstrap method"),
-  DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE(40016, "Distinct aggregates are not ptime eligible to apply analytical bootstrap method"),
-  QUERY_NOT_ABM_ELIGIBLE(40017, "The query is not eligible to apply analytical bootstrap method"),
-  QUERY_NOT_ABM_PTIME_ELIGIBLE(40018, "The query is not ptime eligible to apply analytical bootstrap method"),
+  MIN_MAX_NOT_ABM_ELIGIBLE(40014, "Extreme aggregates (MIN/MAX) are not eligible to apply analytical bootstrap method"),
+  EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE(40015, "Equality test on aggregates are not eligible to apply analytical bootstrap method"),
+  AGGR_OF_AGGR_NOT_ABM_ELIGIBLE(40016, "Aggregates of aggregates are not eligible to apply analytical bootstrap method"),
+  DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE(40017, "Distinct aggregates are not ptime eligible to apply analytical bootstrap method"),
+  QUERY_NOT_ABM_ELIGIBLE(40018, "The query is not eligible to apply analytical bootstrap method"),
+  QUERY_NOT_ABM_PTIME_ELIGIBLE(40019, "The query is not ptime eligible to apply analytical bootstrap method"),
 
     ;
 

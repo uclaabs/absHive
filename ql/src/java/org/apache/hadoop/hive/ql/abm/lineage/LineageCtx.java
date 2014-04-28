@@ -15,6 +15,8 @@ public class LineageCtx implements NodeProcessorCtx {
       new HashMap<Operator<? extends OperatorDesc>, HashMap<String, ExprInfo>>();
   private final HashSet<Operator<? extends OperatorDesc>> sampled =
       new HashSet<Operator<? extends OperatorDesc>>();
+  private final HashSet<Operator<? extends OperatorDesc>> mtnomial =
+      new HashSet<Operator<? extends OperatorDesc>>();
   private final ParseContext ctx;
 
   public LineageCtx(ParseContext pctx) {
@@ -52,6 +54,14 @@ public class LineageCtx implements NodeProcessorCtx {
 
   public boolean isSampled(Operator<? extends OperatorDesc> op) {
     return sampled.contains(op);
+  }
+
+  public void annotateMultinomial(Operator<? extends OperatorDesc> op) {
+    mtnomial.add(op);
+  }
+
+  public boolean multinomialAnnotated(Operator<? extends OperatorDesc> op) {
+    return mtnomial.contains(op);
   }
 
   @Override

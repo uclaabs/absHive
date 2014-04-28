@@ -69,7 +69,9 @@ public class LineageProcFactory {
 
   /**
    *
-   * BaseLineage: maintains whether an operator's input/output are from the sampled table.
+   * BaseLineage:
+   * 1. maintains whether an operator's input/output are from the sampled table.
+   * 2. maintains the type of the annotation.
    *
    */
   public static class BaseLineage implements NodeProcessor {
@@ -77,18 +79,42 @@ public class LineageProcFactory {
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
-      LineageCtx ctx = (LineageCtx) procCtx;
-
       @SuppressWarnings("unchecked")
       Operator<? extends OperatorDesc> op = (Operator<? extends OperatorDesc>) nd;
+      LineageCtx ctx = (LineageCtx) procCtx;
+
+      checkIsSampled(op, ctx);
+      checkAnnotationType(op, ctx);
+
+      return null;
+    }
+
+    // 1.
+    protected void checkIsSampled(Operator<? extends OperatorDesc> op,
+        LineageCtx ctx) {
       for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
         if (ctx.isSampled(parent)) {
           ctx.addSampled(op);
           break;
         }
       }
+    }
 
-      return null;
+    // 2.
+    protected void checkAnnotationType(Operator<? extends OperatorDesc> op,
+        LineageCtx ctx) throws SemanticException {
+      int numMultinomial = 0;
+      for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
+        if (ctx.multinomialAnnotated(parent)) {
+          ++numMultinomial;
+        }
+      }
+
+      if (numMultinomial == 1) {
+        ctx.annotateMultinomial(op);
+      } else if (numMultinomial > 1) {
+        AbmUtilities.report(ErrorMsg.SELF_JOIN_NOT_ALLOWED_FOR_ABM);
+      }
     }
 
   }
@@ -96,8 +122,10 @@ public class LineageProcFactory {
   /**
    *
    * Processor for table scan operator.
-   * Only maintains whether an operator's input/output are from the sampled table,
-   * do not maintain lineage (as there is no parent).
+   * Only maintains
+   * 1. whether an operator's input/output are from the sampled table,
+   * 2. the type of the annotation.
+   * Do not maintain lineage (as there is no parent).
    *
    */
   public static class TableScanLineage implements NodeProcessor {
@@ -112,6 +140,7 @@ public class LineageProcFactory {
       Table tab = pctx.getTopToTable().get(ts);
       if (AbmUtilities.getSampledTable().equals(tab.getTableName())) {
         ctx.addSampled(ts);
+        ctx.annotateMultinomial(ts);
       }
 
       return null;
@@ -290,6 +319,21 @@ public class LineageProcFactory {
       }
 
       return null;
+    }
+
+    @Override
+    protected void checkAnnotationType(Operator<? extends OperatorDesc> op,
+        LineageCtx ctx) throws SemanticException {
+      int numMultinomial = 0;
+      for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
+        if (ctx.multinomialAnnotated(parent)) {
+          ++numMultinomial;
+        }
+      }
+
+      if (numMultinomial > 1) {
+        AbmUtilities.report(ErrorMsg.SELF_JOIN_NOT_ALLOWED_FOR_ABM);
+      }
     }
 
   }
