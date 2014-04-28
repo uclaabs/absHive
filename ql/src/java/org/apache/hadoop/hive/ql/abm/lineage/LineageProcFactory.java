@@ -18,7 +18,6 @@ import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.ForwardOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
-import org.apache.hadoop.hive.ql.exec.ListSinkOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
@@ -434,22 +433,6 @@ public class LineageProcFactory {
 
   /**
    *
-   * Processor for ListSink.
-   * Do nothing.
-   *
-   */
-  public static class ListSinkLineage extends BaseLineage {
-
-    @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      return super.process(nd, stack, procCtx, nodeOutputs);
-    }
-
-  }
-
-  /**
-   *
    * Exceptional processor.
    * Throw NOT_ALLOWED exception for:
    * Extract, LateralViewForward, LateralVewJoin, PTF, Script, Union, Limit,
@@ -475,10 +458,6 @@ public class LineageProcFactory {
 
   public static NodeProcessor getDefaultProc() {
     return new DefaultLineage();
-  }
-
-  public static NodeProcessor getListSinkProc() {
-    return new ListSinkLineage();
   }
 
   public static NodeProcessor getReduceSinkProc() {
@@ -509,6 +488,7 @@ public class LineageProcFactory {
     LineageCtx ctx = new LineageCtx(pctx);
 
     // MapJoin, SMBMapJoin, DummyStore are added in physical optimizer.
+    // We do not consider ListSink, as ABM rewriting is added before MapJoin is added, which is before ListSink optimization.
     Map<Rule, NodeProcessor> opRules = new LinkedHashMap<Rule, NodeProcessor>();
     opRules.put(new RuleRegExp("R1", TableScanOperator.getOperatorName() + "%"),
         getTableScanProc());
@@ -525,8 +505,6 @@ public class LineageProcFactory {
         getGroupByProc());
     opRules.put(new RuleRegExp("R7", CommonJoinOperator.getOperatorName() + "%"),
         getJoinProc());
-    opRules.put(new RuleRegExp("R8", ListSinkOperator.getOperatorName() + "%"),
-        getListSinkProc());
 
     // The dispatcher fires the processor corresponding to the closest matching rule
     // and passes the context along
