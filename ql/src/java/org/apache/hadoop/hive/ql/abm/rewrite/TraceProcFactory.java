@@ -15,6 +15,7 @@ import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
 import org.apache.hadoop.hive.ql.lib.Dispatcher;
 import org.apache.hadoop.hive.ql.lib.GraphWalker;
@@ -206,6 +207,13 @@ public class TraceProcFactory {
       TraceProcCtx ctx = (TraceProcCtx) procCtx;
 
       if (!ctx.isSampled(gby)) {
+        return null;
+      }
+
+      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
+      boolean firstGby = !(parent instanceof ReduceSinkOperator);
+
+      if (firstGby) {
         return null;
       }
 
