@@ -307,6 +307,9 @@ public class LineageProcFactory {
           }
           if (!basic.contains(agg.getGenericUDAFName().toLowerCase())) {
             AbmUtilities.report(ErrorMsg.COMPLEX_AGGR_NOT_ALLOWED_FOR_ABM);
+          } else if (agg.getGenericUDAFName().equalsIgnoreCase("count")
+              && !agg.getParameters().isEmpty()) {
+            AbmUtilities.report(ErrorMsg.COUNT_PARAM_NOT_ALLOWED_FOR_ABM);
           }
           if (info.hasAggrOutput()) {
             AbmUtilities.report(ErrorMsg.AGGR_OF_AGGR_NOT_ABM_ELIGIBLE);

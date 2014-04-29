@@ -380,9 +380,7 @@ public enum ErrorMsg {
   COLUMNSTATSCOLLECTOR_IO_ERROR(30010, "Encountered I/O exception while parsing rewritten query"),
   DROP_COMMAND_NOT_ALLOWED_FOR_PARTITION(30011, "Partition protected from being dropped"),
 
-  /**
-   * ABM defined errors
-   */
+  // ABM defined errors
   TABLE_CREATION_NOT_ALLOWED_FOR_ABM(40000, "Dumping approximate query results with error bars into tables are not supported in analytical bootstrap mode currently"),
   VIEW_CREATION_NOT_ALLOWED_FOR_ABM(40001, "Dumping approximate query results with error bars into views are not supported in analytical bootstrap mode currently"),
   GROUPING_SET_NOT_ALLOWED_FOR_ABM(40002, "Grouping sets aggregations are not supported in analytical bootstrap mode currently"),
@@ -394,8 +392,10 @@ public enum ErrorMsg {
   COMPLEX_AGGR_NOT_ALLOWED_FOR_ABM(40008, "Complex aggregates are not supported in analytical bootstrap mode currently"),
   AGGR_16_LIN_ALLOWED_FOR_ABM(40009, "At most 16 lineages of aggregates can be maintained in analytical bootstrap mode currently"),
   UNIQ_JOIN_NOT_ALLOWED_FOR_ABM(40010, "Unique join is not supported in analytical bootstrap mode currently"),
-  SEMI_JOIN_NOT_ALLOWED_FOR_ABM(40011, "Semi join is not supported in analytical bootstrap mode currently, use join instead"),
+  SEMI_JOIN_NOT_ALLOWED_FOR_ABM(40011, "Semi join is not supported in analytical bootstrap mode currently. Use join instead"),
   SELF_JOIN_NOT_ALLOWED_FOR_ABM(40012, "Self join is not supported in analytical bootstrap mode currently"),
+  COUNT_PARAM_NOT_ALLOWED_FOR_ABM(40012, "COUNT with parameters is not supported in analytical bootstrap mode currently. "
+      + "Please rewrite it using SUM"),
 
   SCHEMA_MISSING_ABM(40013, "Missing or corrupted schema (primary key) file in analytical bootstrap mode. "
       + "It should be set through hive.abm.schema."),
