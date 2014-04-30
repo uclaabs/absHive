@@ -85,7 +85,7 @@ public class TraceProcCtx implements NodeProcessorCtx {
   }
 
   public Map<String, ExprInfo> getOpColumnMapping(Operator<? extends OperatorDesc> op) {
-    return lctx.get(op);
+    return lctx.getLineages(op);
   }
 
   public OpParseContext getOpParseContext(Operator<? extends OperatorDesc> op) {

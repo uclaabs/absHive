@@ -228,7 +228,7 @@ public class TraceProcFactory {
       // info (1)
       int numKeys = desc.getKeys().size();
       for (int i = numKeys; i < allCols.size(); ++i) {
-        int idx = i -  numKeys;
+        int idx = i - numKeys;
         ctx.addLineage(gby, allCols.get(i).getInternalName(),
             new AggregateInfo(gby, idx, aggrs.get(idx).getGenericUDAFName(), deterministic));
       }
