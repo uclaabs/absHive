@@ -386,7 +386,7 @@ public class FuncDepProcFactory {
       FuncDepCtx ctx = (FuncDepCtx) procCtx;
       @SuppressWarnings("unchecked")
       Operator<? extends OperatorDesc> op = (Operator<? extends OperatorDesc>) nd;
-      HashMap<String, ExprInfo> lineage = ctx.getLineage().get(op);
+      HashMap<String, ExprInfo> lineage = ctx.getLineage().getLineages(op);
 
       if (lineage == null) {
         return null;

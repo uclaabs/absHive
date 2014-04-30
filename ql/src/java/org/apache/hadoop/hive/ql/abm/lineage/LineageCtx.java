@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.ql.abm.lineage;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
@@ -13,10 +14,12 @@ public class LineageCtx implements NodeProcessorCtx {
 
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<String, ExprInfo>> lineage =
       new HashMap<Operator<? extends OperatorDesc>, HashMap<String, ExprInfo>>();
-  private final HashSet<Operator<? extends OperatorDesc>> sampled =
-      new HashSet<Operator<? extends OperatorDesc>>();
-  private final HashSet<Operator<? extends OperatorDesc>> mtnomial =
-      new HashSet<Operator<? extends OperatorDesc>>();
+
+  private final HashMap<Operator<? extends OperatorDesc>, HashSet<Operator<? extends OperatorDesc>>> annoSrc =
+      new HashMap<Operator<? extends OperatorDesc>, HashSet<Operator<? extends OperatorDesc>>>();
+  private final HashMap<Operator<? extends OperatorDesc>, HashSet<Operator<? extends OperatorDesc>>> condSrc =
+      new HashMap<Operator<? extends OperatorDesc>, HashSet<Operator<? extends OperatorDesc>>>();
+
   private final ParseContext ctx;
 
   public LineageCtx(ParseContext pctx) {
@@ -27,7 +30,7 @@ public class LineageCtx implements NodeProcessorCtx {
     return ctx;
   }
 
-  public void put(Operator<? extends OperatorDesc> op, String internalName, ExprInfo ctx) {
+  public void putLineage(Operator<? extends OperatorDesc> op, String internalName, ExprInfo ctx) {
     HashMap<String, ExprInfo> map = lineage.get(op);
     if (map == null) {
       map = new HashMap<String, ExprInfo>();
@@ -36,7 +39,7 @@ public class LineageCtx implements NodeProcessorCtx {
     map.put(internalName, ctx);
   }
 
-  public ExprInfo get(Operator<? extends OperatorDesc> op, String internalName) {
+  public ExprInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
     HashMap<String, ExprInfo> map = lineage.get(op);
     if (map != null) {
       return map.get(internalName);
@@ -44,24 +47,56 @@ public class LineageCtx implements NodeProcessorCtx {
     return null;
   }
 
-  public HashMap<String, ExprInfo> get(Operator<? extends OperatorDesc> op) {
+  public HashMap<String, ExprInfo> getLineages(Operator<? extends OperatorDesc> op) {
     return lineage.get(op);
   }
 
-  public void addSampled(Operator<? extends OperatorDesc> op) {
-    sampled.add(op);
-  }
-
   public boolean isSampled(Operator<? extends OperatorDesc> op) {
-    return sampled.contains(op);
+    return annoSrc.containsKey(op) && condSrc.containsKey(op);
   }
 
-  public void annotateMultinomial(Operator<? extends OperatorDesc> op) {
-    mtnomial.add(op);
+  public void addAnnoSrc(Operator<? extends OperatorDesc> op, Operator<? extends OperatorDesc> src) {
+    HashSet<Operator<? extends OperatorDesc>> srcSet = annoSrc.get(op);
+    if (srcSet == null) {
+      srcSet = new HashSet<Operator<? extends OperatorDesc>>();
+      annoSrc.put(op, srcSet);
+    }
+    srcSet.add(src);
   }
 
-  public boolean multinomialAnnotated(Operator<? extends OperatorDesc> op) {
-    return mtnomial.contains(op);
+  public void addAnnoSrcs(Operator<? extends OperatorDesc> op, Set<Operator<? extends OperatorDesc>> srcs) {
+    HashSet<Operator<? extends OperatorDesc>> srcSet = annoSrc.get(op);
+    if (srcSet == null) {
+      srcSet = new HashSet<Operator<? extends OperatorDesc>>();
+      annoSrc.put(op, srcSet);
+    }
+    srcSet.addAll(srcs);
+  }
+
+  public Set<Operator<? extends OperatorDesc>> getAnnoSrcs(Operator<? extends OperatorDesc> op) {
+    return annoSrc.get(op);
+  }
+
+  public void addCondSrc(Operator<? extends OperatorDesc> op, Operator<? extends OperatorDesc> src) {
+    HashSet<Operator<? extends OperatorDesc>> srcSet = condSrc.get(op);
+    if (srcSet == null) {
+      srcSet = new HashSet<Operator<? extends OperatorDesc>>();
+      condSrc.put(op, srcSet);
+    }
+    srcSet.add(src);
+  }
+
+  public void addCondSrcs(Operator<? extends OperatorDesc> op, Set<Operator<? extends OperatorDesc>> srcs) {
+    HashSet<Operator<? extends OperatorDesc>> srcSet = condSrc.get(op);
+    if (srcSet == null) {
+      srcSet = new HashSet<Operator<? extends OperatorDesc>>();
+      condSrc.put(op, srcSet);
+    }
+    srcSet.addAll(srcs);
+  }
+
+  public Set<Operator<? extends OperatorDesc>> getCondSrcs(Operator<? extends OperatorDesc> op) {
+    return condSrc.get(op);
   }
 
   @Override

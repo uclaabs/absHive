@@ -62,7 +62,7 @@ public class ExprProcFactory {
       info.addColumn(internalName);
 
       Operator<? extends OperatorDesc> op = ctx.getParentOp();
-      ExprInfo dep = ctx.getLineageCtx().get(op, internalName);
+      ExprInfo dep = ctx.getLineageCtx().getLineage(op, internalName);
       if (dep != null) {
         if (info.hasAggrOutput()) {
           AbmUtilities.report(ErrorMsg.FUNC_OF_AGGR_NOT_ALLOWED_FOR_ABM);

@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hadoop.hive.ql.ErrorMsg;
@@ -68,9 +69,7 @@ public class LineageProcFactory {
 
   /**
    *
-   * BaseLineage:
-   * 1. maintains whether an operator's input/output are from the sampled table.
-   * 2. maintains the type of the annotation.
+   * BaseLineage maintains the annotation/condition sources of an operator.
    *
    */
   public static class BaseLineage implements NodeProcessor {
@@ -82,37 +81,34 @@ public class LineageProcFactory {
       Operator<? extends OperatorDesc> op = (Operator<? extends OperatorDesc>) nd;
       LineageCtx ctx = (LineageCtx) procCtx;
 
-      checkIsSampled(op, ctx);
-      checkAnnotationType(op, ctx);
+      propagateAnnoAndCond(op, ctx);
 
       return null;
     }
 
-    // 1.
-    protected void checkIsSampled(Operator<? extends OperatorDesc> op,
-        LineageCtx ctx) {
-      for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
-        if (ctx.isSampled(parent)) {
-          ctx.addSampled(op);
-          break;
-        }
-      }
-    }
-
-    // 2.
-    protected void checkAnnotationType(Operator<? extends OperatorDesc> op,
+    protected void propagateAnnoAndCond(Operator<? extends OperatorDesc> op,
         LineageCtx ctx) throws SemanticException {
-      int numMultinomial = 0;
+      int numAnnoSrc = 0;
+      int numCondSrc = 0;
       for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
-        if (ctx.multinomialAnnotated(parent)) {
-          ++numMultinomial;
+        Set<Operator<? extends OperatorDesc>> anno = ctx.getAnnoSrcs(parent);
+        Set<Operator<? extends OperatorDesc>> cond = ctx.getCondSrcs(parent);
+        if (anno != null) {
+          ++numAnnoSrc;
+          ctx.addAnnoSrcs(op, anno);
+        }
+        if (cond != null) {
+          ++numCondSrc;
+          ctx.addCondSrcs(op, cond);
         }
       }
 
-      if (numMultinomial == 1) {
-        ctx.annotateMultinomial(op);
-      } else if (numMultinomial > 1) {
+      if (numAnnoSrc > 1) {
         AbmUtilities.report(ErrorMsg.SELF_JOIN_NOT_ALLOWED_FOR_ABM);
+      } else if (numAnnoSrc == 1) {
+        ctx.addAnnoSrc(op, op);
+      } else if (numCondSrc > 0) {
+        ctx.addCondSrc(op, op);
       }
     }
 
@@ -138,8 +134,7 @@ public class LineageProcFactory {
 
       Table tab = pctx.getTopToTable().get(ts);
       if (AbmUtilities.getSampledTable().equals(tab.getTableName())) {
-        ctx.addSampled(ts);
-        ctx.annotateMultinomial(ts);
+        ctx.addAnnoSrc(ts, ts);
       }
 
       return null;
@@ -171,7 +166,7 @@ public class LineageProcFactory {
         for (ExprNodeDesc expr : rs.getConf().getKeyCols()) {
           String internalName = colInfos.get(cnt).getInternalName();
           ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, expr);
-          ctx.put(rs, internalName, info);
+          ctx.putLineage(rs, internalName, info);
           cnt++;
         }
       }
@@ -179,7 +174,7 @@ public class LineageProcFactory {
       for (ExprNodeDesc expr : rs.getConf().getValueCols()) {
         String internalName = colInfos.get(cnt).getInternalName();
         ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, expr);
-        ctx.put(rs, internalName, info);
+        ctx.putLineage(rs, internalName, info);
         cnt++;
       }
 
@@ -218,7 +213,7 @@ public class LineageProcFactory {
       for (ExprNodeDesc expr : desc.getColList()) {
         String internalName = colInfos.get(cnt).getInternalName();
         ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, expr);
-        ctx.put(sel, internalName, info);
+        ctx.putLineage(sel, internalName, info);
         cnt++;
       }
 
@@ -283,7 +278,7 @@ public class LineageProcFactory {
         if (info.hasAggrOutput()) {
           AbmUtilities.report(ErrorMsg.EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE);
         }
-        ctx.put(gby, internalName, info);
+        ctx.putLineage(gby, internalName, info);
         cnt++;
       }
 
@@ -316,7 +311,7 @@ public class LineageProcFactory {
           }
           info.setHasAggrOutput(true);
         }
-        ctx.put(gby, internalName, info);
+        ctx.putLineage(gby, internalName, info);
         cnt++;
       }
 
@@ -324,17 +319,27 @@ public class LineageProcFactory {
     }
 
     @Override
-    protected void checkAnnotationType(Operator<? extends OperatorDesc> op,
+    protected void propagateAnnoAndCond(Operator<? extends OperatorDesc> op,
         LineageCtx ctx) throws SemanticException {
-      int numMultinomial = 0;
+      int numAnnoSrc = 0;
+      int numCondSrc = 0;
       for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
-        if (ctx.multinomialAnnotated(parent)) {
-          ++numMultinomial;
+        Set<Operator<? extends OperatorDesc>> anno = ctx.getAnnoSrcs(parent);
+        Set<Operator<? extends OperatorDesc>> cond = ctx.getCondSrcs(parent);
+        if (anno != null) {
+          ++numAnnoSrc;
+          ctx.addCondSrcs(op, anno);
+        }
+        if (cond != null) {
+          ++numCondSrc;
+          ctx.addCondSrcs(op, cond);
         }
       }
 
-      if (numMultinomial > 1) {
+      if (numAnnoSrc > 1) {
         AbmUtilities.report(ErrorMsg.SELF_JOIN_NOT_ALLOWED_FOR_ABM);
+      } else if (numAnnoSrc == 1 && numCondSrc > 0) {
+        ctx.addCondSrc(op, op);
       }
     }
 
@@ -385,7 +390,7 @@ public class LineageProcFactory {
           ExprNodeDesc expr = exprs.get(cnt);
 
           ExprInfo info = ExprProcFactory.extractExprInfo(rs, ctx, expr);
-          ctx.put(join, internalName, info);
+          ctx.putLineage(join, internalName, info);
           cnt++;
         }
       }
@@ -416,12 +421,12 @@ public class LineageProcFactory {
         String internalName = ci.getInternalName();
         ExprInfo info = new ExprInfo(parent, internalName);
 
-        ExprInfo dep = ctx.get(parent, internalName);
+        ExprInfo dep = ctx.getLineage(parent, internalName);
         if (dep != null) {
           info.setHasAggrOutput(dep.hasAggrOutput());
         }
 
-        ctx.put(op, internalName, info);
+        ctx.putLineage(op, internalName, info);
       }
 
       return super.process(nd, stack, procCtx, nodeOutputs);
@@ -459,10 +464,6 @@ public class LineageProcFactory {
     return new TableScanLineage();
   }
 
-  public static NodeProcessor getDefaultProc() {
-    return new DefaultLineage();
-  }
-
   public static NodeProcessor getReduceSinkProc() {
     return new ReduceSinkLineage();
   }
@@ -481,6 +482,10 @@ public class LineageProcFactory {
 
   public static NodeProcessor getJoinProc() {
     return new JoinLineage();
+  }
+
+  public static NodeProcessor getDefaultProc() {
+    return new DefaultLineage();
   }
 
   public static NodeProcessor getExceptionalProc() {

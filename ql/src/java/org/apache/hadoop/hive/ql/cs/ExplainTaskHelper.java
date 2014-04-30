@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +17,6 @@ import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.funcdep.FuncDepProcFactory;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageProcFactory;
-import org.apache.hadoop.hive.ql.abm.rewrite.RewriteProcFactory;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.ExplainTask;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
@@ -178,13 +176,13 @@ public class ExplainTaskHelper {
       }
 
 
-      try {
-        RewriteProcFactory.rewritePlan(ctx);
-      }
-      catch (Exception e) {
-        logExceptions("exceptions.txt", e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());
-        e.printStackTrace();
-      }
+//      try {
+//        RewriteProcFactory.rewritePlan(ctx);
+//      }
+//      catch (Exception e) {
+//        logExceptions("exceptions.txt", e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());
+//        e.printStackTrace();
+//      }
 
       if (pCtx.getFetchTask() == null) {
         println(0, "####### After Rewrite #########");
