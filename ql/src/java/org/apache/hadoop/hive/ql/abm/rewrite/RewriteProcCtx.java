@@ -18,7 +18,13 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
-  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condColumnIndexes =
+  private final HashMap<GroupByOperator, TreeSet<AggregateInfo>> condensed =
+      new HashMap<GroupByOperator, TreeSet<AggregateInfo>>();
+  private final HashMap<Operator<? extends OperatorDesc>, Integer> innerCovIndex =
+      new HashMap<Operator<? extends OperatorDesc>, Integer>();
+  private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> interCovIndex =
+      new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
+  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
@@ -35,12 +41,11 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     condenseConditions();
   }
 
-  // If another (gby, index) exists, remove (gby, -1), as COUNT>0 is implied by the aggregate;
+  // 1. Group conditions by GroupByOperator;
+  // 2. Sort them by indexes.
   private void condenseConditions() {
     Set<AggregateInfo> allAggrs = tctx.getAllAggregatesAsConditions();
 
-    HashMap<GroupByOperator, TreeSet<AggregateInfo>> condensed =
-        new HashMap<GroupByOperator, TreeSet<AggregateInfo>>();
     for (AggregateInfo aggr : allAggrs) {
       GroupByOperator gby = aggr.getGroupByOperator();
       TreeSet<AggregateInfo> aggrs = condensed.get(gby);
@@ -49,19 +54,6 @@ public class RewriteProcCtx implements NodeProcessorCtx {
         condensed.put(gby, aggrs);
       }
       aggrs.add(aggr);
-    }
-    for (TreeSet<AggregateInfo> aggrs : condensed.values()) {
-      if (aggrs.size() == 1) {
-        continue;
-      }
-      AggregateInfo toRemove = null;
-      for (AggregateInfo aggr : aggrs) {
-        if (aggr.getIndex() == -1) {
-          toRemove = aggr;
-          break;
-        }
-      }
-      aggrs.remove(toRemove);
     }
   }
 
@@ -73,6 +65,50 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return tctx.getConditions(op);
   }
 
+  public AggregateInfo[] getInnerGroupAggrs(GroupByOperator gby) {
+    TreeSet<AggregateInfo> ret = condensed.get(gby);
+    return ret.toArray(new AggregateInfo[ret.size()]);
+  }
+
+  public List<AggregateInfo[]> getInterGroupAggrs(GroupByOperator gby) {
+    HashSet<GroupByOperator> gbys = new HashSet<GroupByOperator>();
+    for (AggregateInfo cond : tctx.getConditions(gby)) {
+      gbys.add(cond.getGroupByOperator());
+    }
+
+    ArrayList<AggregateInfo[]> ret = new ArrayList<AggregateInfo[]>();
+    for (GroupByOperator gbyOp : gbys) {
+      TreeSet<AggregateInfo> aggrs = condensed.get(gbyOp);
+      ret.add(aggrs.toArray(new AggregateInfo[aggrs.size()]));
+    }
+    return ret;
+  }
+
+  public Integer getInnerCovIndex(Operator<? extends OperatorDesc> op) {
+    return innerCovIndex.get(op);
+  }
+
+  public void putInnerCovIndex(Operator<? extends OperatorDesc> op, Integer index) {
+    innerCovIndex.put(op, index);
+  }
+
+  public Integer getInterCovIndex(Operator<? extends OperatorDesc> op, GroupByOperator other) {
+    HashMap<GroupByOperator, Integer> map = interCovIndex.get(op);
+    if (map == null) {
+      return null;
+    }
+    return map.get(other);
+  }
+
+  public void putInterCovIndex(Operator<? extends OperatorDesc> op, GroupByOperator other, Integer index) {
+    HashMap<GroupByOperator, Integer> map = interCovIndex.get(op);
+    if (map == null) {
+      map = new HashMap<GroupByOperator, Integer>();
+      interCovIndex.put(op, map);
+    }
+    map.put(other, index);
+  }
+
   public Set<AggregateInfo> getAllLineagesToWrite() {
     HashSet<AggregateInfo> ret = new HashSet<AggregateInfo>();
     for (Operator<? extends OperatorDesc> reader : lineageReaders) {
@@ -82,14 +118,14 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public List<Integer> getCondColumnIndexes(Operator<? extends OperatorDesc> op) {
-    return condColumnIndexes.get(op);
+    return condIndex.get(op);
   }
 
   public void putCondColumnIndex(Operator<? extends OperatorDesc> op, int index) {
-    ArrayList<Integer> indexes = condColumnIndexes.get(op);
+    ArrayList<Integer> indexes = condIndex.get(op);
     if (indexes == null) {
       indexes = new ArrayList<Integer>();
-      condColumnIndexes.put(op, indexes);
+      condIndex.put(op, indexes);
     }
     indexes.add(index);
   }
@@ -117,6 +153,10 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   public LineageCtx getLineageCtx() {
     return tctx.getLineageCtx();
+  }
+
+  public boolean isSampled(Operator<? extends OperatorDesc> op) {
+    return tctx.isSampled(op);
   }
 
   public ParseContext getParseContext() {
