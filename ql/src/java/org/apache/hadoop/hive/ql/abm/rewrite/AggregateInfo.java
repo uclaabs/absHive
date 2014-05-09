@@ -12,15 +12,12 @@ public class AggregateInfo implements Comparable<AggregateInfo> {
   private final GroupByOperator gby;
   private final int index;
   private final UdafType udaf;
-  // Whether the set of tuples contributing to this aggregate is deterministic
-  private final boolean deterministic;
   private TypeInfo type = null;
 
-  public AggregateInfo(GroupByOperator gbyOp, int ind, String udafName, boolean det) {
+  public AggregateInfo(GroupByOperator gbyOp, int ind, String udafName) {
     gby = gbyOp;
     index = ind;
     udaf = UdafType.valueOf(udafName.toUpperCase());
-    deterministic = det;
   }
 
   public GroupByOperator getGroupByOperator() {
@@ -33,10 +30,6 @@ public class AggregateInfo implements Comparable<AggregateInfo> {
 
   public UdafType getUdafType() {
     return udaf;
-  }
-
-  public boolean isDeterministic() {
-    return deterministic;
   }
 
   public TypeInfo getTypeInfo() throws SemanticException {
@@ -68,6 +61,12 @@ public class AggregateInfo implements Comparable<AggregateInfo> {
   public int compareTo(AggregateInfo arg0) {
     int ret = Integer.parseInt(gby.getIdentifier()) - Integer.parseInt(arg0.gby.getIdentifier());
     if (ret == 0) {
+      if (index == -1) {
+        return 1;
+      }
+      if (arg0.index == -1) {
+        return -1;
+      }
       return index - arg0.index;
     }
     return ret;
