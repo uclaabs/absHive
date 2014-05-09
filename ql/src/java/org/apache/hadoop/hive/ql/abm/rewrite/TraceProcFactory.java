@@ -86,9 +86,9 @@ public class TraceProcFactory {
       List<Operator<? extends OperatorDesc>> parents = op.getParentOperators();
       if (parents != null) {
         for (Operator<? extends OperatorDesc> parent : parents) {
-          Set<AggregateInfo> condLineage = ctx.getConditions(parent);
-          if (condLineage != null) {
-            ctx.addConditions(op, condLineage);
+          ConditionAnnotation cond = ctx.getCondition(parent);
+          if (cond != null) {
+            ctx.addCondition(op, cond);
           }
         }
       }
@@ -124,7 +124,7 @@ public class TraceProcFactory {
             assert cols.size() == 1;
             for (String col : cols) {
               Operator<? extends OperatorDesc> parent = dep.getOperator();
-              ctx.addLineage(op, entry.getKey(), ctx.getLineage(parent, col));
+              ctx.putLineage(op, entry.getKey(), ctx.getLineage(parent, col));
             }
           }
         }
@@ -221,20 +221,17 @@ public class TraceProcFactory {
       ArrayList<ColumnInfo> allCols = gby.getSchema().getSignature();
       ArrayList<AggregationDesc> aggrs = desc.getAggregators();
 
-      // If this GroupByOperator has no condition,
-      // then the set of tuples contributing to the aggregates is deterministic.
-      boolean deterministic = (ctx.getConditions(gby) == null);
-
       // info (1)
       int numKeys = desc.getKeys().size();
       for (int i = numKeys; i < allCols.size(); ++i) {
         int idx = i - numKeys;
-        ctx.addLineage(gby, allCols.get(i).getInternalName(),
-            new AggregateInfo(gby, idx, aggrs.get(idx).getGenericUDAFName(), deterministic));
+        ctx.putLineage(gby, allCols.get(i).getInternalName(),
+            new AggregateInfo(gby, idx, aggrs.get(idx).getGenericUDAFName()));
       }
 
       // info (3)
-      ctx.addCondition(gby, new AggregateInfo(gby, -1, "count", deterministic));
+      ctx.groupByAt(gby);
+      ctx.addCondition(gby, new AggregateInfo(gby, -1, "count"));
 
       return null;
     }
@@ -270,6 +267,8 @@ public class TraceProcFactory {
     // Start walking from the top ops
     ArrayList<Node> topNodes = new ArrayList<Node>(lctx.getParseContext().getTopOps().values());
     walker.startWalking(topNodes, null);
+
+    ctx.check();
 
     return ctx;
   }

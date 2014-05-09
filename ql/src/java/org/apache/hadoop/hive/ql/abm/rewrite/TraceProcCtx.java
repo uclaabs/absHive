@@ -1,17 +1,15 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.hadoop.hive.ql.abm.lineage.ExprInfo;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
+import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.OpParseContext;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
-import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class TraceProcCtx implements NodeProcessorCtx {
@@ -19,9 +17,8 @@ public class TraceProcCtx implements NodeProcessorCtx {
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<String, AggregateInfo>> lineages =
       new HashMap<Operator<? extends OperatorDesc>, HashMap<String, AggregateInfo>>();
 
-  private final HashMap<Operator<? extends OperatorDesc>, HashSet<AggregateInfo>> conditions =
-      new HashMap<Operator<? extends OperatorDesc>, HashSet<AggregateInfo>>();
-  private final HashSet<AggregateInfo> allAggrs = new HashSet<AggregateInfo>();
+  private final HashMap<Operator<? extends OperatorDesc>, ConditionAnnotation> conditions =
+      new HashMap<Operator<? extends OperatorDesc>, ConditionAnnotation>();
 
   private final LineageCtx lctx;
 
@@ -37,7 +34,7 @@ public class TraceProcCtx implements NodeProcessorCtx {
     return lineage.get(internalName);
   }
 
-  public void addLineage(Operator<? extends OperatorDesc> op, String internalName, AggregateInfo linfo) {
+  public void putLineage(Operator<? extends OperatorDesc> op, String internalName, AggregateInfo linfo) {
     HashMap<String, AggregateInfo> lineage = lineages.get(op);
     if (lineage == null) {
       lineage = new HashMap<String, AggregateInfo>();
@@ -46,34 +43,38 @@ public class TraceProcCtx implements NodeProcessorCtx {
     lineage.put(internalName, linfo);
   }
 
-  public Set<AggregateInfo> getConditions(Operator<? extends OperatorDesc> op) {
+  public ConditionAnnotation getCondition(Operator<? extends OperatorDesc> op) {
     return conditions.get(op);
   }
 
-  public Set<AggregateInfo> getAllAggregatesAsConditions() {
-    return allAggrs;
+  public void addCondition(Operator<? extends OperatorDesc> op, ConditionAnnotation cond) {
+    ConditionAnnotation anno = getOrCreateCondAnno(op);
+    anno.combine(cond);
   }
 
-  public void addCondition(Operator<? extends OperatorDesc> op,
-      AggregateInfo aggr) throws SemanticException {
-    HashSet<AggregateInfo> conds = conditions.get(op);
-    if (conds == null) {
-      conds = new HashSet<AggregateInfo>();
-      conditions.put(op, conds);
-    }
-    conds.add(aggr);
-    allAggrs.add(aggr);
+  public void addCondition(Operator<? extends OperatorDesc> op, AggregateInfo aggr) {
+    ConditionAnnotation anno = getOrCreateCondAnno(op);
+    anno.conditionOn(aggr);
   }
 
-  public void addConditions(Operator<? extends OperatorDesc> op,
-      Set<AggregateInfo> aggrs) throws SemanticException {
-    HashSet<AggregateInfo> conds = conditions.get(op);
-    if (conds == null) {
-      conds = new HashSet<AggregateInfo>();
-      conditions.put(op, conds);
+  public void groupByAt(GroupByOperator gby) {
+    ConditionAnnotation anno = getOrCreateCondAnno(gby);
+    anno.groupByAt(gby);
+  }
+
+  private ConditionAnnotation getOrCreateCondAnno(Operator<? extends OperatorDesc> op) {
+    ConditionAnnotation anno = conditions.get(op);
+    if (anno == null) {
+      anno = new ConditionAnnotation();
+      conditions.put(op, anno);
     }
-    conds.addAll(aggrs);
-    allAggrs.addAll(aggrs);
+    return anno;
+  }
+
+  public void check() {
+    for (ConditionAnnotation cond : conditions.values()) {
+      cond.check();
+    }
   }
 
   public LineageCtx getLineageCtx() {
