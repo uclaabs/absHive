@@ -13,7 +13,7 @@ import java.util.Stack;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.funcdep.FuncDepCtx.FuncDep;
-import org.apache.hadoop.hive.ql.abm.lib.PreOrderWalker;
+import org.apache.hadoop.hive.ql.abm.lib.PostOrderPlanWalker;
 import org.apache.hadoop.hive.ql.abm.lineage.ExprInfo;
 import org.apache.hadoop.hive.ql.abm.lineage.ExprProcFactory;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
@@ -445,7 +445,7 @@ public class FuncDepProcFactory {
     // The dispatcher fires the processor corresponding to the closest matching rule
     // and passes the context along
     Dispatcher disp = new DefaultRuleDispatcher(getDefaultProc(), opRules, ctx);
-    GraphWalker walker = new PreOrderWalker(disp);
+    GraphWalker walker = new PostOrderPlanWalker(disp);
 
     // Start walking from the top ops
     ArrayList<Node> topNodes = new ArrayList<Node>(ctx.getParseContext().getTopOps().values());

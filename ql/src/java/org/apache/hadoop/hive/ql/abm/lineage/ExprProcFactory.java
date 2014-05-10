@@ -10,7 +10,7 @@ import java.util.Stack;
 
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.abm.lib.PostOrderWalker;
+import org.apache.hadoop.hive.ql.abm.lib.PostOrderExprWalker;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
@@ -196,7 +196,7 @@ public class ExprProcFactory {
     ExprProcCtx ctx = new ExprProcCtx(parent, lctx);
     Dispatcher disp = new DefaultRuleDispatcher(getDefaultExprProcessor(),
         exprRules, ctx);
-    GraphWalker walker = new PostOrderWalker(disp);
+    GraphWalker walker = new PostOrderExprWalker(disp);
 
     ArrayList<Node> startNodes = new ArrayList<Node>();
     startNodes.addAll(exprs);
