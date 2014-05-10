@@ -8,7 +8,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 
-import org.apache.hadoop.hive.ql.abm.lib.PreOrderWalker;
+import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
+import org.apache.hadoop.hive.ql.abm.algebra.ConstantTransform;
+import org.apache.hadoop.hive.ql.abm.algebra.IdentityTransform;
+import org.apache.hadoop.hive.ql.abm.algebra.Transform;
+import org.apache.hadoop.hive.ql.abm.lib.PostOrderPlanWalker;
 import org.apache.hadoop.hive.ql.abm.lineage.ExprInfo;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
@@ -29,6 +33,7 @@ import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
@@ -155,24 +160,42 @@ public class TraceProcFactory {
       return null;
     }
 
-    private void traverse(ExprNodeDesc expr, FilterOperator fil,
+    private Transform traverse(ExprNodeDesc expr, FilterOperator fil,
         TraceProcCtx ctx) throws SemanticException {
       if (expr instanceof ExprNodeGenericFuncDesc) {
         ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) expr;
         GenericUDF udf = func.getGenericUDF();
 
-        if ((udf instanceof GenericUDFOPAnd)
-            || (udf instanceof GenericUDFOPEqualOrGreaterThan)
-            || (udf instanceof GenericUDFOPEqualOrLessThan)
-            || (udf instanceof GenericUDFOPGreaterThan)
-            || (udf instanceof GenericUDFOPLessThan)) {
+        if (udf instanceof GenericUDFOPAnd) {
           for (ExprNodeDesc childExpr : func.getChildExprs()) {
             traverse(childExpr, fil, ctx);
           }
-          return;
+          return null;
         }
 
-        return;
+        if ((udf instanceof GenericUDFOPEqualOrGreaterThan)
+            || (udf instanceof GenericUDFOPEqualOrLessThan)
+            || (udf instanceof GenericUDFOPGreaterThan)
+            || (udf instanceof GenericUDFOPLessThan)) {
+          ArrayList<Transform> params = new ArrayList<Transform>();
+          for (ExprNodeDesc childExpr : func.getChildExprs()) {
+            params.add(traverse(childExpr, fil, ctx));
+          }
+
+          boolean uncertain = false;
+          for (Transform param : params) {
+            uncertain = uncertain || (param instanceof IdentityTransform);
+          }
+
+          if (uncertain) {
+            assert params.size() == 2;
+            ctx.addCondition(fil, new ComparisonTransform(params.get(0), params.get(1)));
+          }
+
+          return null;
+        }
+
+        return null;
       }
 
       if (expr instanceof ExprNodeColumnDesc) {
@@ -180,12 +203,17 @@ public class TraceProcFactory {
         ExprNodeColumnDesc col = (ExprNodeColumnDesc) expr;
         AggregateInfo aggr = ctx.getLineage(parent, col.getColumn());
         if (aggr != null) {
-          ctx.addCondition(fil, aggr);
+          return new IdentityTransform(aggr);
         }
-        return;
+        return null;
       }
 
-      return;
+      if (expr instanceof ExprNodeConstantDesc) {
+        ExprNodeConstantDesc cons = (ExprNodeConstantDesc) expr;
+        return new ConstantTransform(cons.getValue());
+      }
+
+      return null;
     }
   }
 
@@ -231,7 +259,9 @@ public class TraceProcFactory {
 
       // info (3)
       ctx.groupByAt(gby);
-      ctx.addCondition(gby, new AggregateInfo(gby, -1, "count"));
+      ctx.addCondition(gby, new ComparisonTransform(
+          new IdentityTransform(new AggregateInfo(gby, -1, "count")),
+          new ConstantTransform(0)));
 
       return null;
     }
@@ -262,7 +292,7 @@ public class TraceProcFactory {
     // The dispatcher fires the processor corresponding to the closest matching rule
     // and passes the context along
     Dispatcher disp = new DefaultRuleDispatcher(getDefaultProc(), opRules, ctx);
-    GraphWalker walker = new PreOrderWalker(disp);
+    GraphWalker walker = new PostOrderPlanWalker(disp);
 
     // Start walking from the top ops
     ArrayList<Node> topNodes = new ArrayList<Node>(lctx.getParseContext().getTopOps().values());

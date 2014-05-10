@@ -1,10 +1,12 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
+import org.apache.hadoop.hive.ql.abm.algebra.Transform;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 
 public class ConditionAnnotation implements Comparator<GroupByOperator> {
@@ -14,6 +16,7 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
   private final HashMap<GroupByOperator, TreeSet<AggregateInfo>> aggregates =
       new HashMap<GroupByOperator, TreeSet<AggregateInfo>>();
   private final TreeSet<GroupByOperator> topLevel = new TreeSet<GroupByOperator>(this);
+  private final ArrayList<Transform> transforms = new ArrayList<Transform>();
   private final HashMap<GroupByOperator, GroupByOperator[]> dependencies =
       new HashMap<GroupByOperator, GroupByOperator[]>();
 
@@ -22,6 +25,10 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
       dependencies.put(gby, topLevel.toArray(new GroupByOperator[topLevel.size()]));
       topLevel.clear();
     }
+  }
+
+  public void addTransform(Transform trans) {
+    transforms.add(trans);
   }
 
   public void conditionOn(AggregateInfo aggr) {
@@ -49,6 +56,8 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     }
 
     topLevel.addAll(other.topLevel);
+
+    transforms.addAll(other.transforms);
 
     for (Map.Entry<GroupByOperator, GroupByOperator[]> entry : other.dependencies.entrySet()) {
       dependencies.put(entry.getKey(), entry.getValue().clone());
