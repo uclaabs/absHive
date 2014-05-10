@@ -11,14 +11,16 @@ import org.apache.hadoop.hive.ql.lib.Dispatcher;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
-public class PreOrderWalker extends DefaultGraphWalker {
+// Note: the plan is upside-down,
+// so walking the children first is actually walking the parents first.
+public class PostOrderPlanWalker extends DefaultGraphWalker {
 
   private final HashSet<Node> visited = new HashSet<Node>();
   private final HashMap<Node, ArrayList<Node>> child2parent =
       new HashMap<Node, ArrayList<Node>>();
   private final ArrayList<Node> leaves = new ArrayList<Node>();
 
-  public PreOrderWalker(Dispatcher disp) {
+  public PostOrderPlanWalker(Dispatcher disp) {
     super(disp);
   }
 

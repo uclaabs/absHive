@@ -7,13 +7,13 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 /**
  *
- * PostOrderWalker does post order traversal.
+ * PostOrderExprWalker does post order traversal.
  * Unlike DefaultGraphWalker, each node may be visited by PostOrder Walker multiple times.
  *
  */
-public class PostOrderWalker extends DefaultGraphWalker {
+public class PostOrderExprWalker extends DefaultGraphWalker {
 
-  public PostOrderWalker(Dispatcher disp) {
+  public PostOrderExprWalker(Dispatcher disp) {
     super(disp);
   }
 
