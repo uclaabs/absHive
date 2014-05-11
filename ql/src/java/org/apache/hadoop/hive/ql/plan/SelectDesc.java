@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.plan;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -39,7 +40,7 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   // ABM
   private boolean cache = false;
-  private ArrayList<Integer> toCache = null;
+  private final ArrayList<Integer> toCache = new ArrayList<Integer>();
 
   public SelectDesc() {
   }
@@ -143,7 +144,14 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   public void cache(ArrayList<Integer> colsToCache) {
     cache = true;
-    toCache = colsToCache;
+    toCache.addAll(colsToCache);
+    Collections.sort(toCache);
+  }
+
+  public void cache(int colToCache) {
+    cache = true;
+    toCache.add(colToCache);
+    Collections.sort(toCache);
   }
 
   public boolean toCache() {

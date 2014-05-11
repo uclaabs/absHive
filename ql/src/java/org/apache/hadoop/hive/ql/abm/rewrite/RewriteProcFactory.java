@@ -250,12 +250,9 @@ public class RewriteProcFactory {
     if (afterGby) {
       GroupByOperator gby = (GroupByOperator) op;
 
-      ArrayList<Integer> colsToCache = new ArrayList<Integer>();
-      colsToCache.addAll(keyCols);
-      colsToCache.addAll(valCols);
-      colsToCache.add(idColIndex);
-
-      desc.cache(colsToCache);
+      desc.cache(keyCols);
+      desc.cache(valCols);
+      desc.cache(idColIndex);
       ctx.putGroupByResult(gby, new GroupByResult(keyCols, valCols, idColIndex));
     }
   }
@@ -650,10 +647,8 @@ public class RewriteProcFactory {
       }
 
       // Cache it!
-      ArrayList<Integer> colsToCache = new ArrayList<Integer>();
-      colsToCache.addAll(keyCols);
-      colsToCache.addAll(valCols);
-      desc.cache(colsToCache);
+      desc.cache(keyCols);
+      desc.cache(valCols);
       GroupByOperator gby2 = (GroupByOperator) gby.getChildOperators().get(0).getChildOperators()
           .get(0);
       ctx.putGroupByLineage(gby2, new GroupByLineage(keyCols, valCols));
