@@ -2,10 +2,7 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
@@ -18,110 +15,35 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
-  private final HashMap<GroupByOperator, TreeSet<AggregateInfo>> condensed =
-      new HashMap<GroupByOperator, TreeSet<AggregateInfo>>();
-  private final HashMap<Operator<? extends OperatorDesc>, Integer> innerCovIndex =
-      new HashMap<Operator<? extends OperatorDesc>, Integer>();
-  private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> interCovIndex =
-      new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
+      new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
+
+  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> gbyIdIndex =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
 
-  private final HashSet<Operator<? extends OperatorDesc>> lineageReaders =
-      new HashSet<Operator<? extends OperatorDesc>>();
+  private final HashMap<GroupByOperator, GroupByLineage> lineages =
+      new HashMap<GroupByOperator, GroupByLineage>();
+  private final HashMap<GroupByOperator, GroupByResult> results =
+      new HashMap<GroupByOperator, GroupByResult>();
 
   private final TraceProcCtx tctx;
 
   public RewriteProcCtx(TraceProcCtx ctx) {
     tctx = ctx;
-
-    condenseConditions();
-  }
-
-  // 1. Group conditions by GroupByOperator;
-  // 2. Sort them by indexes.
-  private void condenseConditions() {
-    Set<AggregateInfo> allAggrs = tctx.getAllAggregatesAsConditions();
-
-    for (AggregateInfo aggr : allAggrs) {
-      GroupByOperator gby = aggr.getGroupByOperator();
-      TreeSet<AggregateInfo> aggrs = condensed.get(gby);
-      if (aggrs == null) {
-        aggrs = new TreeSet<AggregateInfo>();
-        condensed.put(gby, aggrs);
-      }
-      aggrs.add(aggr);
-    }
   }
 
   public AggregateInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
     return tctx.getLineage(op, internalName);
   }
 
-  public Set<AggregateInfo> getConditions(Operator<? extends OperatorDesc> op) {
-    return tctx.getConditions(op);
-  }
-
-  public AggregateInfo[] getInnerGroupAggrs(GroupByOperator gby) {
-    TreeSet<AggregateInfo> ret = condensed.get(gby);
-    return ret.toArray(new AggregateInfo[ret.size()]);
-  }
-
-  public List<AggregateInfo[]> getInterGroupAggrs(GroupByOperator gby) {
-    HashSet<GroupByOperator> gbys = new HashSet<GroupByOperator>();
-    for (AggregateInfo cond : tctx.getConditions(gby)) {
-      gbys.add(cond.getGroupByOperator());
-    }
-
-    ArrayList<AggregateInfo[]> ret = new ArrayList<AggregateInfo[]>();
-    for (GroupByOperator gbyOp : gbys) {
-      TreeSet<AggregateInfo> aggrs = condensed.get(gbyOp);
-      ret.add(aggrs.toArray(new AggregateInfo[aggrs.size()]));
-    }
-    return ret;
-  }
-
-  public Integer getInnerCovIndex(Operator<? extends OperatorDesc> op) {
-    return innerCovIndex.get(op);
-  }
-
-  public void putInnerCovIndex(Operator<? extends OperatorDesc> op, Integer index) {
-    innerCovIndex.put(op, index);
-  }
-
-  public Integer getInterCovIndex(Operator<? extends OperatorDesc> op, GroupByOperator other) {
-    HashMap<GroupByOperator, Integer> map = interCovIndex.get(op);
-    if (map == null) {
-      return null;
-    }
-    return map.get(other);
-  }
-
-  public void putInterCovIndex(Operator<? extends OperatorDesc> op, GroupByOperator other, Integer index) {
-    HashMap<GroupByOperator, Integer> map = interCovIndex.get(op);
-    if (map == null) {
-      map = new HashMap<GroupByOperator, Integer>();
-      interCovIndex.put(op, map);
-    }
-    map.put(other, index);
-  }
-
-  public Set<AggregateInfo> getAllLineagesToWrite() {
-    HashSet<AggregateInfo> ret = new HashSet<AggregateInfo>();
-    for (Operator<? extends OperatorDesc> reader : lineageReaders) {
-      ret.addAll(tctx.getConditions(reader));
-    }
-    return ret;
-  }
-
   public List<Integer> getCondColumnIndexes(Operator<? extends OperatorDesc> op) {
     return condIndex.get(op);
   }
 
-  public void putCondColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+  public void addCondColumnIndex(Operator<? extends OperatorDesc> op, int index) {
     ArrayList<Integer> indexes = condIndex.get(op);
     if (indexes == null) {
       indexes = new ArrayList<Integer>();
@@ -130,12 +52,33 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     indexes.add(index);
   }
 
-  public void addToLineageReaders(Operator<? extends OperatorDesc> op) {
-    lineageReaders.add(op);
+  public List<Integer> getGbyIdColumnIndexes(Operator<? extends OperatorDesc> op) {
+    return gbyIdIndex.get(op);
   }
 
-  public HashSet<Operator<? extends OperatorDesc>> getLineageReaders() {
-    return lineageReaders;
+  public void addGbyIdColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+    ArrayList<Integer> indexes = gbyIdIndex.get(op);
+    if (indexes == null) {
+      indexes = new ArrayList<Integer>();
+      gbyIdIndex.put(op, indexes);
+    }
+    indexes.add(index);
+  }
+
+  public void putGroupByLineage(GroupByOperator gby, GroupByLineage lineage) {
+    lineages.put(gby, lineage);
+  }
+
+  public GroupByLineage getGroupByLineage(GroupByOperator gby) {
+    return lineages.get(gby);
+  }
+
+  public void putGroupByResult(GroupByOperator gby, GroupByResult lineage) {
+    results.put(gby, lineage);
+  }
+
+  public GroupByResult getGroupByResult(GroupByOperator gby) {
+    return results.get(gby);
   }
 
   public ArrayList<ExprNodeDesc> getTransform(Operator<? extends OperatorDesc> filter) {

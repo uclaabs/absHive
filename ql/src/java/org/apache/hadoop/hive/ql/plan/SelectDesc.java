@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  *
- * ABM modified file -- add support for broadcast
+ * ABM modified file
  *
  * SelectDesc.
  *
@@ -38,7 +38,8 @@ public class SelectDesc extends AbstractOperatorDesc {
   private boolean selStarNoCompute;
 
   // ABM
-  private long[] lineageToLoad = null;
+  private boolean cache = false;
+  private ArrayList<Integer> toCache = null;
 
   public SelectDesc() {
   }
@@ -140,11 +141,13 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.selStarNoCompute = selStarNoCompute;
   }
 
-  public long[] getLineageToLoad() {
-    return lineageToLoad;
+  public void cache(ArrayList<Integer> colsToCache) {
+    cache = true;
+    toCache = colsToCache;
   }
 
-  public void setLineageToLoad(long[] lineageIds) {
-    lineageToLoad = lineageIds;
+  public boolean toCache() {
+    return cache;
   }
+
 }

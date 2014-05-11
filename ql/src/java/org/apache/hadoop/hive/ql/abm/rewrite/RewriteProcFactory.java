@@ -2,13 +2,12 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import org.apache.hadoop.hive.ql.abm.lib.PreOrderWalker;
+import org.apache.hadoop.hive.ql.abm.lib.PostOrderPlanWalker;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
@@ -37,7 +36,6 @@ import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.GenericUDAFInfo;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
@@ -54,7 +52,6 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 
 /**
  *
@@ -72,11 +69,11 @@ public class RewriteProcFactory {
   private static final String SRV_SUM = "srv_sum";
   private static final String SRV_AVG = "srv_avg";
   private static final String SRV_COUNT = "srv_count";
-  private static final String SRV_INNER_COV = "srv_inner_cov";
-  private static final String SRV_INTER_COV_1 = "srv_inter_cov_1";
 
+  private static final String COND_JOIN = "cond_join";
   private static final String COND_MERGE = "cond_merge";
-  private static final String COND_SUM = "cond_sum";
+
+  private static final String GEN_ID = "gen_id";
 
   public static GenericUDF getUdf(String udfName) {
     // Remember to register the functions:
@@ -88,9 +85,9 @@ public class RewriteProcFactory {
   }
 
   public static void createAndConnectSelectOperator(
-      Operator<? extends OperatorDesc> op, RewriteProcCtx ctx,
+      Operator<? extends OperatorDesc> op, RewriteProcCtx ctx, boolean afterGby,
       ExprNodeDesc... additionalConds) throws SemanticException {
-    GenericUDF srvMerge = getUdf(COND_MERGE);
+    GenericUDF condJoin = getUdf(COND_JOIN);
 
     ArrayList<ColumnInfo> colInfos = op.getSchema().getSignature();
     List<Integer> indexes = ctx.getCondColumnIndexes(op);
@@ -105,7 +102,7 @@ public class RewriteProcFactory {
         List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
         list.add(condColumn);
         list.add(cond);
-        condColumn = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
+        condColumn = ExprNodeGenericFuncDesc.newInstance(condJoin, list);
       }
     }
     for (ExprNodeDesc newCond : additionalConds) {
@@ -115,7 +112,7 @@ public class RewriteProcFactory {
         List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
         list.add(condColumn);
         list.add(newCond);
-        condColumn = ExprNodeGenericFuncDesc.newInstance(srvMerge, list);
+        condColumn = ExprNodeGenericFuncDesc.newInstance(condJoin, list);
       }
     }
 
@@ -143,13 +140,62 @@ public class RewriteProcFactory {
               colInfo.getType(), colInfo.getTabAlias(), colInfo.getIsVirtualCol()));
     }
 
+    ArrayList<Integer> keyCols = new ArrayList<Integer>();
+    ArrayList<Integer> valCols = new ArrayList<Integer>();
+    Integer idColIndex = null;
+
+    if (afterGby) {
+      GroupByOperator gby = (GroupByOperator) op;
+      GroupByDesc gbyDesc = gby.getConf();
+
+      int index = 0;
+      ArrayList<ExprNodeDesc> keys = gbyDesc.getKeys();
+      for (; index < keys.size(); ++index) {
+        keyCols.add(index);
+      }
+
+      ArrayList<AggregationDesc> aggrs = gbyDesc.getAggregators();
+      List<Integer> condIndexes = ctx.getCondColumnIndexes(gby);
+      for (int i = 0; i < aggrs.size(); ++i, ++index) {
+        if (condIndexes == null || !condIndexes.contains(index)) {
+          valCols.add(index);
+        }
+      }
+    }
+
+    // Add a group-by id column
+    if (afterGby) {
+      ExprNodeGenericFuncDesc idColumn =
+          ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>());
+      columns.add(idColumn);
+      idColIndex = columns.size() - 1;
+      String idColName = Utils.getColumnInternalName(idColIndex);
+      colName.add(idColName);
+      colExprMap.put(idColName, idColumn);
+      rowResolver.put("", idColName, new ColumnInfo(idColName, idColumn.getTypeInfo(), "", false));
+
+      ctx.addGbyIdColumnIndex(op, idColIndex);
+    }
+    // Add the original group-by id columns
+    List<Integer> idIndexes = ctx.getGbyIdColumnIndexes(op);
+    if (idIndexes != null) {
+      for (ExprNodeColumnDesc idColumn : Utils.generateColumnDescs(op, idIndexes)) {
+        columns.add(idColumn);
+        String idColName = Utils.getColumnInternalName(columns.size() - 1);
+        colName.add(idColName);
+        colExprMap.put(idColName, idColumn);
+        rowResolver
+            .put("", idColName, new ColumnInfo(idColName, idColumn.getTypeInfo(), "", false));
+      }
+    }
+
+    // Add the condition column
     columns.add(condColumn);
-    String condName = Utils.getColumnInternalName(columns.size() - 1);
+    int condColIndex = columns.size() - 1;
+    String condName = Utils.getColumnInternalName(condColIndex);
     colName.add(condName);
     colExprMap.put(condName, condColumn);
-    rowResolver.put("", condName,
-        new ColumnInfo(condName, condColumn.getTypeInfo(), null, false));
-
+    rowResolver.put("", condName, new ColumnInfo(condName, condColumn.getTypeInfo(), "", false));
 
     // Create SEL
     SelectDesc desc = new SelectDesc(columns, colName);
@@ -183,17 +229,18 @@ public class RewriteProcFactory {
     OpParseContext opParseContext = new OpParseContext(rowResolver);
     ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
 
-    ctx.putCondColumnIndex(sel, colName.size() - 1);
+    ctx.addCondColumnIndex(sel, condColIndex);
 
-    if (ctx.getConditions(sel) != null) {
-      // Tell ctx that this SEL needs to load the lineage
-      HashSet<GroupByOperator> sources = new HashSet<GroupByOperator>();
-      for (AggregateInfo li : ctx.getConditions(sel)) {
-        sources.add(li.getGroupByOperator());
-      }
-      if (sources.size() > 1) {
-        ctx.addToLineageReaders(sel);
-      }
+    if (afterGby) {
+      GroupByOperator gby = (GroupByOperator) op;
+
+      ArrayList<Integer> colsToCache = new ArrayList<Integer>();
+      colsToCache.addAll(keyCols);
+      colsToCache.addAll(valCols);
+      colsToCache.add(idColIndex);
+
+      desc.cache(colsToCache);
+      ctx.putGroupByResult(gby, new GroupByResult(keyCols, valCols, idColIndex));
     }
   }
 
@@ -248,7 +295,7 @@ public class RewriteProcFactory {
         return null;
       }
 
-      // For maintaining condition column, DO NOTHING!
+      // Implicitly forward the condition column
       // Note: we assume a single parent
       Operator<? extends OperatorDesc> parent = op.getParentOperators().get(0);
       List<Integer> indexes = ctx.getCondColumnIndexes(parent);
@@ -266,7 +313,7 @@ public class RewriteProcFactory {
         String[] name = parentRR.reverseLookup(ci.getInternalName());
         rowResolver.put(name[0], name[1], ci);
         // Maintain the condition column index
-        ctx.putCondColumnIndex(op, index);
+        ctx.addCondColumnIndex(op, index);
       }
 
       return null;
@@ -290,7 +337,6 @@ public class RewriteProcFactory {
       RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
 
       // Explicitly forward the condition column
-      // Note: we still maintain the row resolver
       Map<String, ExprNodeDesc> colExprMap = rs.getColumnExprMap();
       ReduceSinkDesc desc = rs.getConf();
       ArrayList<String> outputValColNames = desc.getOutputValueColumnNames();
@@ -308,7 +354,7 @@ public class RewriteProcFactory {
         rowResolver.put("", valName, new ColumnInfo(valName, cond.getTypeInfo(), null, false));
 
         ArrayList<ColumnInfo> colInfos = rs.getSchema().getSignature();
-        ctx.putCondColumnIndex(rs, colInfos.size() - 1);
+        ctx.addCondColumnIndex(rs, colInfos.size() - 1);
       }
 
       return null;
@@ -321,7 +367,7 @@ public class RewriteProcFactory {
    * SelectProcessor explicitly forwards the condition column if exists.
    *
    */
-  public static class SelectProcessor extends BaseProcessor {
+  public static class SelectProcessor extends DefaultProcessor {
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
@@ -330,16 +376,16 @@ public class RewriteProcFactory {
 
       SelectOperator sel = (SelectOperator) nd;
       RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
+      SelectDesc desc = sel.getConf();
 
-      // TODO: isSelStarNoCompute
+      if (desc.isSelStarNoCompute()) {
+        return super.process(nd, stack, procCtx, nodeOutputs);
+      }
 
       // Explicitly forward the condition column
-      // Note: we still maintain the row resolvers
       Map<String, ExprNodeDesc> colExprMap = sel.getColumnExprMap();
-      SelectDesc desc = sel.getConf();
       List<String> outputColNames = desc.getOutputColumnNames();
       List<ExprNodeDesc> cols = desc.getColList();
-      // ArrayList<ColumnInfo> colInfos = sel.getSchema().getSignature();
       RowResolver rowResolver = ctx.getOpParseContext(sel).getRowResolver();
 
       Operator<? extends OperatorDesc> parent = sel.getParentOperators().get(0);
@@ -349,12 +395,11 @@ public class RewriteProcFactory {
         String outputName = Utils.getColumnInternalName(cols.size() - 1);
         outputColNames.add(outputName);
         colExprMap.put(outputName, cond);
-        // colInfos.add(new ColumnInfo(outputName, cond.getTypeInfo(), null, false));
         rowResolver
             .put("", outputName, new ColumnInfo(outputName, cond.getTypeInfo(), null, false));
 
         ArrayList<ColumnInfo> colInfos = sel.getSchema().getSignature();
-        ctx.putCondColumnIndex(sel, colInfos.size() - 1);
+        ctx.addCondColumnIndex(sel, colInfos.size() - 1);
       }
 
       return null;
@@ -393,21 +438,151 @@ public class RewriteProcFactory {
         return null;
       }
 
+      // Insert Select as input and cache it
+      insertSelect(gby, ctx);
+
       // Rewrite AggregationDesc to:
       // (1) Use the ABM version of SUM/COUNT/AVERAGE
       // (2) Return the correct type
       rewriteAggrs(gby, ctx);
 
-      // Add columns to compute inner-group covariances
-      addInnerGroupCov(gby, ctx);
-
-      // Add columns to compute inter-group covariances
-      addInterGroupCov(gby, ctx);
-
       // Add a column to compute condition
       addCondColumn(gby, ctx);
 
+      // Add select to generate group id
+      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
+      boolean firstGby = !(parent instanceof ReduceSinkOperator);
+      if (!firstGby) {
+        createAndConnectSelectOperator(gby, ctx, true);
+      }
+
       return null;
+    }
+
+    // Insert Select as input and cache it
+    private void insertSelect(GroupByOperator gby, RewriteProcCtx ctx) {
+      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
+      boolean firstGby = !(parent instanceof ReduceSinkOperator);
+
+      if (!firstGby) {
+        return;
+      }
+
+      GroupByDesc gbyDesc = gby.getConf();
+
+      List<ExprNodeDesc> columns = new ArrayList<ExprNodeDesc>();
+      List<String> colName = new ArrayList<String>();
+      Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
+      RowResolver rowResolver = new RowResolver();
+
+      // Forward all columns
+      for (ExprNodeDesc key : gbyDesc.getKeys()) {
+        columns.add(key);
+        String internalName = Utils.getColumnInternalName(columns.size() - 1);
+        colName.add(internalName);
+        colExprMap.put(internalName, key);
+        rowResolver.put("", internalName,
+            new ColumnInfo(internalName, key.getWritableObjectInspector(), "", false));
+      }
+
+      for (AggregationDesc aggr : gbyDesc.getAggregators()) {
+        for (ExprNodeDesc param : aggr.getParameters()) {
+          columns.add(param);
+          String internalName = Utils.getColumnInternalName(columns.size() - 1);
+          colName.add(internalName);
+          colExprMap.put(internalName, param);
+          rowResolver.put("", internalName,
+              new ColumnInfo(internalName, param.getWritableObjectInspector(), "", false));
+        }
+      }
+
+      // Add the condition columns if exist
+      ArrayList<Integer> condIndexes = new ArrayList<Integer>();
+      for (ExprNodeColumnDesc condColumn : Utils.generateColumnDescs(parent,
+          ctx.getCondColumnIndexes(parent))) {
+        columns.add(condColumn);
+        String condName = Utils.getColumnInternalName(columns.size() - 1);
+        colName.add(condName);
+        colExprMap.put(condName, condColumn);
+        rowResolver.put("", condName,
+            new ColumnInfo(condName, condColumn.getTypeInfo(), "", false));
+
+        condIndexes.add(colName.size() - 1);
+      }
+
+      // Create SEL
+      SelectDesc desc = new SelectDesc(columns, colName);
+      @SuppressWarnings("unchecked")
+      Operator<SelectDesc> sel = OperatorFactory.get((Class<SelectDesc>) desc.getClass());
+      sel.setConf(desc);
+      sel.setSchema(rowResolver.getRowSchema());
+      sel.setColumnExprMap(colExprMap);
+
+      // Change group-by to use columns from this select
+      ArrayList<String> gbyColNames = gbyDesc.getOutputColumnNames();
+      Map<String, ExprNodeDesc> gbyColExprMap = gby.getColumnExprMap();
+
+      ArrayList<Integer> keyCols = new ArrayList<Integer>();
+      ArrayList<Integer> valCols = new ArrayList<Integer>();
+
+      int index = 0;
+      ArrayList<ExprNodeDesc> keys = gbyDesc.getKeys();
+      for (; index < keys.size(); ++index) {
+        ExprNodeDesc newKey = Utils.generateColumnDescs(sel, index).get(0);
+        keys.set(index, newKey);
+        gbyColExprMap.put(gbyColNames.get(index), newKey);
+
+        keyCols.add(index);
+      }
+
+      ArrayList<AggregationDesc> aggrs = gbyDesc.getAggregators();
+      for (int i = 0; i < aggrs.size(); ++i) {
+        AggregationDesc aggr = aggrs.get(i);
+        ArrayList<ExprNodeDesc> params = aggr.getParameters();
+        for (int j = 0; j < params.size(); ++j, ++index) {
+          ExprNodeDesc newParam = Utils.generateColumnDescs(sel, index).get(0);
+          params.set(j, newParam);
+
+          valCols.add(index);
+        }
+      }
+
+      // Change the connection
+      List<Operator<? extends OperatorDesc>> parents =
+          new ArrayList<Operator<? extends OperatorDesc>>(gby.getParentOperators());
+      sel.setParentOperators(parents);
+      List<Operator<? extends OperatorDesc>> children =
+          new ArrayList<Operator<? extends OperatorDesc>>();
+      children.add(gby);
+      sel.setChildOperators(children);
+
+      for (Operator<? extends OperatorDesc> par : gby.getParentOperators()) {
+        List<Operator<? extends OperatorDesc>> newChildren = par.getChildOperators();
+        newChildren.remove(gby);
+        newChildren.add(sel);
+        par.setChildOperators(newChildren);
+      }
+      List<Operator<? extends OperatorDesc>> newParents =
+          new ArrayList<Operator<? extends OperatorDesc>>();
+      newParents.add(sel);
+      gby.setChildOperators(newParents);
+
+      // Put SEL into ParseContext
+      OpParseContext opParseContext = new OpParseContext(rowResolver);
+      ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
+
+      for (int condIndex : condIndexes) {
+        ctx.addCondColumnIndex(sel, condIndex);
+      }
+
+      // Cache it!
+      ArrayList<Integer> colsToCache = new ArrayList<Integer>();
+      colsToCache.addAll(keyCols);
+      colsToCache.addAll(valCols);
+      desc.cache(colsToCache);
+      GroupByOperator gby2 = (GroupByOperator) gby.getChildOperators().get(0).getChildOperators()
+          .get(0);
+      ctx.putGroupByLineage(gby2, new GroupByLineage(keyCols, valCols));
     }
 
     private AggrColInfo createAggregate(String udafName,
@@ -458,38 +633,24 @@ public class RewriteProcFactory {
       }
     }
 
-    private ArrayList<ExprNodeDesc> getCovParameters(ArrayList<AggregationDesc> aggrs,
-        AggregateInfo[] infos) {
-      ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
-      for (AggregateInfo info : infos) {
-        if (info.getUdafType() != UdafType.COUNT) {
-          params.add(aggrs.get(info.getIndex()).getParameters().get(0));
-        }
-      }
-      params.add(new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, new Integer(0)));
-      return params;
-    }
+    // Add a column to compute condition
+    private void addCondColumn(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
+      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
 
-    // Add columns to compute inner-group covariances
-    private void addInnerGroupCov(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
       GroupByDesc desc = gby.getConf();
       ArrayList<AggregationDesc> aggrs = desc.getAggregators();
       int numKeys = desc.getKeys().size();
       RowResolver rowResovler = ctx.getOpParseContext(gby).getRowResolver();
       ArrayList<String> outputColNames = desc.getOutputColumnNames();
 
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-      boolean firstGby = !(parent instanceof ReduceSinkOperator);
-
-      AggregateInfo[] inners = ctx.getInnerGroupAggrs(gby);
-      ArrayList<ExprNodeDesc> params = (firstGby) ? getCovParameters(aggrs, inners) :
-          new ArrayList<ExprNodeDesc>(
-              Utils.generateColumnDescs(parent,
-                  ctx.getInnerCovIndex(parent)));
-      GroupByDesc.Mode amode = (firstGby) ? GroupByDesc.Mode.HASH : GroupByDesc.Mode.MERGEPARTIAL;
-      GenericUDAFEvaluator.Mode emode = SemanticAnalyzer.groupByDescModeToUDAFMode(amode, false);
-
-      AggrColInfo aggrInfo = createAggregate(SRV_INNER_COV, params, false, false, emode);
+      List<ExprNodeColumnDesc> condCols = Utils.generateColumnDescs(parent,
+          ctx.getCondColumnIndexes(parent));
+      assert condCols.size() < 2;
+      GroupByDesc.Mode amode = desc.getMode();
+      GenericUDAFEvaluator.Mode emode = SemanticAnalyzer.groupByDescModeToUDAFMode(
+          amode, false);
+      ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>(condCols);
+      AggrColInfo aggrInfo = createAggregate(COND_MERGE, params, false, false, emode);
       AggregationDesc aggrDesc = aggrInfo.aggregationDesc;
 
       // colExprMap only has keys in it, so don't add this aggregation
@@ -498,117 +659,7 @@ public class RewriteProcFactory {
       rowResovler.put("", colName, new ColumnInfo(colName, aggrInfo.returnType, "", false));
       outputColNames.add(colName);
 
-      ctx.putInnerCovIndex(gby, outputColNames.size() - 1);
-      // TODO: remember to tell srv_inner_cov the types of each aggregate
-    }
-
-    private boolean isRewritable(AggregateInfo[] from) {
-      return false;
-      // if (!from[0].isDeterministic()) {
-      // return false;
-      // }
-      //
-      // // Test the subplan is a chain
-      // Operator<? extends OperatorDesc> op = from[0].getGroupByOperator();
-      // while (op.getParentOperators() != null) {
-      // if (op.getParentOperators().size() > 1) {
-      // return false;
-      // }
-      // op = op.getParentOperators().get(0);
-      // }
-      //
-      // return true;
-    }
-
-    // Add columns to compute inter-group covariances
-    private void addInterGroupCov(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
-      GroupByDesc desc = gby.getConf();
-      ArrayList<AggregationDesc> aggrs = desc.getAggregators();
-      int numKeys = desc.getKeys().size();
-      RowResolver rowResovler = ctx.getOpParseContext(gby).getRowResolver();
-      ArrayList<String> outputColNames = desc.getOutputColumnNames();
-
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-      boolean firstGby = !(parent instanceof ReduceSinkOperator);
-
-      GroupByDesc.Mode amode = (firstGby) ? GroupByDesc.Mode.HASH : GroupByDesc.Mode.MERGEPARTIAL;
-      GenericUDAFEvaluator.Mode emode = SemanticAnalyzer.groupByDescModeToUDAFMode(amode, false);
-
-      AggregateInfo[] cur = ctx.getInnerGroupAggrs(gby);
-      List<AggregateInfo[]> inters = ctx.getInterGroupAggrs(gby);
-      for (AggregateInfo[] inter : inters) {
-        GroupByOperator other = inter[0].getGroupByOperator();
-        if (isRewritable(inter)) {
-          // TODO
-        } else {
-          ArrayList<ExprNodeDesc> params = (firstGby) ? getCovParameters(aggrs, cur) :
-              new ArrayList<ExprNodeDesc>(
-                  Utils.generateColumnDescs(parent,
-                      ctx.getInterCovIndex(parent, other)));
-          AggrColInfo aggrInfo = createAggregate(SRV_INTER_COV_1, params, false, false, emode);
-          AggregationDesc aggrDesc = aggrInfo.aggregationDesc;
-
-          // colExprMap only has keys in it, so don't add this aggregation
-          aggrs.add(aggrDesc);
-          String colName = Utils.getColumnInternalName(numKeys + aggrs.size() - 1);
-          rowResovler.put("", colName, new ColumnInfo(colName, aggrInfo.returnType, "", false));
-          outputColNames.add(colName);
-        }
-
-        ctx.putInterCovIndex(gby, other, outputColNames.size() - 1);
-        // TODO: remember to tell srv_inter_cov the types of each aggregate
-      }
-    }
-
-    // Add a column to compute condition
-    private void addCondColumn(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-      boolean firstGby = !(parent instanceof ReduceSinkOperator);
-
-      GroupByDesc desc = gby.getConf();
-      ArrayList<AggregationDesc> aggrs = desc.getAggregators();
-      int numKeys = desc.getKeys().size();
-      RowResolver rowResovler = ctx.getOpParseContext(gby).getRowResolver();
-      ArrayList<String> outputColNames = desc.getOutputColumnNames();
-
-      boolean withConditions = (ctx.getConditions(gby) != null);
-      boolean dedup = aggrs.isEmpty();
-
-      if (withConditions || dedup) {
-        // Add the condition column only if this group by has conditions or it is a deduplication.
-        List<ExprNodeColumnDesc> condCols = Utils.generateColumnDescs(parent,
-            ctx.getCondColumnIndexes(parent));
-        assert condCols.size() < 2;
-        GroupByDesc.Mode amode = desc.getMode();
-        GenericUDAFEvaluator.Mode emode = SemanticAnalyzer.groupByDescModeToUDAFMode(
-            amode, false);
-        ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>(condCols);
-        AggrColInfo aggrInfo = createAggregate(COND_SUM, params, false, false, emode);
-        AggregationDesc aggrDesc = aggrInfo.aggregationDesc;
-
-        // colExprMap only has keys in it, so don't add this aggregation
-        aggrs.add(aggrDesc);
-        String colName = Utils.getColumnInternalName(numKeys + aggrs.size() - 1);
-        rowResovler.put("", colName, new ColumnInfo(colName, aggrInfo.returnType, "", false));
-        outputColNames.add(colName);
-
-        ctx.putCondColumnIndex(gby, outputColNames.size() - 1);
-
-        if (firstGby) {
-          // If this is the first group-by and this has conditions, read lineage.
-          if (withConditions) {
-            ctx.addToLineageReaders(gby);
-          }
-        }
-        // else {
-        // // Add itself into condition lineages only if it is the second group-by and a
-        // // deduplication,
-        // // as COUNT>0 is implicitly implied by the aggregates.
-        // if (dedup) {
-        // ctx.addCondition(gby, new AggregateInfo(gby, -1, deterministic));
-        // }
-        // }
-      }
+      ctx.addCondColumnIndex(gby, outputColNames.size() - 1);
     }
 
   }
@@ -636,7 +687,8 @@ public class RewriteProcFactory {
 
       // Add a SEL after FIL to transform the condition column
       if (ctx.getTransform(fil) != null) {
-        createAndConnectSelectOperator(fil, ctx, ctx.getTransform(fil).toArray(new ExprNodeDesc[0]));
+        createAndConnectSelectOperator(fil, ctx, false,
+            ctx.getTransform(fil).toArray(new ExprNodeDesc[0]));
       }
 
       return null;
@@ -712,7 +764,7 @@ public class RewriteProcFactory {
     // Normalize the parameter list to move Srv to the left hand side
     private void normalizeParameters(List<ExprNodeDesc> children, int code) {
       // code 1: left is not a Srv, right is a Srv
-      // code 2: left is a Srv, right not is a Srv
+      // code 2: left is a Srv, right is not a Srv
       // code 3: both left and right are Srvs
       if (code == 1) {
         // Swap
@@ -724,7 +776,7 @@ public class RewriteProcFactory {
 
     private String getCondUdfName(GenericUDF udf, int code) {
       // code 1: left is not a Srv, right is a Srv
-      // code 2: left is a Srv, right not is a Srv
+      // code 2: left is a Srv, right is not a Srv
       // code 3: both left and right are Srvs
       switch (code) {
       case 1:
@@ -846,13 +898,13 @@ public class RewriteProcFactory {
               new ColumnInfo(colName, ci.getType(), names[0],
                   ci.getIsVirtualCol(), ci.isHiddenVirtualCol()));
 
-          ctx.putCondColumnIndex(join, outputColumnNames.size() - 1);
+          ctx.addCondColumnIndex(join, outputColumnNames.size() - 1);
           ++countOfCondCols;
         }
       }
 
       if (countOfCondCols > 1) {
-        createAndConnectSelectOperator(join, ctx);
+        createAndConnectSelectOperator(join, ctx, false);
       }
 
       return null;
@@ -902,7 +954,7 @@ public class RewriteProcFactory {
     // The dispatcher fires the processor corresponding to the closest matching rule
     // and passes the context along
     Dispatcher disp = new DefaultRuleDispatcher(getDefaultProc(), opRules, ctx);
-    GraphWalker walker = new PreOrderWalker(disp);
+    GraphWalker walker = new PostOrderPlanWalker(disp);
 
     // Start walking from the top ops
     ArrayList<Node> topNodes = new ArrayList<Node>(ctx.getParseContext().getTopOps().values());
