@@ -8,8 +8,13 @@ import java.util.TreeSet;
 
 import org.apache.hadoop.hive.ql.abm.algebra.Transform;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
+import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class ConditionAnnotation implements Comparator<GroupByOperator> {
+
+  private final static HashMap<GroupByOperator, Operator<? extends OperatorDesc>> lastUsedBy =
+      new HashMap<GroupByOperator, Operator<? extends OperatorDesc>>();
 
   private final HashMap<GroupByOperator, Integer> positions =
       new HashMap<GroupByOperator, Integer>();
@@ -42,6 +47,14 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
       topLevel.add(gby);
     }
     buf.add(aggr);
+  }
+
+  public void useAt(GroupByOperator gby, Operator<? extends OperatorDesc> op) {
+    lastUsedBy.put(gby, op);
+  }
+
+  public static Operator<? extends OperatorDesc> lastUsedBy(GroupByOperator gby) {
+    return lastUsedBy.get(gby);
   }
 
   @SuppressWarnings("unchecked")

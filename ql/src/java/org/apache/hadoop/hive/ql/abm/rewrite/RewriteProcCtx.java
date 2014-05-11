@@ -2,7 +2,9 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
@@ -17,9 +19,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
-
-  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> gbyIdIndex =
-      new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
+  private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
+      new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
@@ -52,17 +53,42 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     indexes.add(index);
   }
 
-  public List<Integer> getGbyIdColumnIndexes(Operator<? extends OperatorDesc> op) {
+  public Map<GroupByOperator, Integer> getGbyIdColumnIndexes(Operator<? extends OperatorDesc> op) {
     return gbyIdIndex.get(op);
   }
 
-  public void addGbyIdColumnIndex(Operator<? extends OperatorDesc> op, int index) {
-    ArrayList<Integer> indexes = gbyIdIndex.get(op);
-    if (indexes == null) {
-      indexes = new ArrayList<Integer>();
-      gbyIdIndex.put(op, indexes);
+  public Integer getGbyIdColumnIndex(Operator<? extends OperatorDesc> op, GroupByOperator gby) {
+    HashMap<GroupByOperator, Integer> map = gbyIdIndex.get(op);
+    if (map == null) {
+      return null;
     }
-    indexes.add(index);
+    return map.get(gby);
+  }
+
+  public void addGbyIdColumnIndex(Operator<? extends OperatorDesc> op, GroupByOperator gby, int index) {
+    HashMap<GroupByOperator, Integer> map = gbyIdIndex.get(op);
+    if (map == null) {
+      map = new HashMap<GroupByOperator, Integer>();
+      gbyIdIndex.put(op, map);
+    }
+    map.put(gby, index);
+  }
+
+  public HashSet<Integer> getSpecialColumnIndexes(Operator<? extends OperatorDesc> op) {
+    HashSet<Integer> ret = new HashSet<Integer>();
+
+    List<Integer> condIndexes = getCondColumnIndexes(op);
+    if (condIndexes != null) {
+      ret.addAll(condIndexes);
+    }
+
+    Map<GroupByOperator, Integer> idIndexMap = getGbyIdColumnIndexes(op);
+    if (idIndexMap != null) {
+      ret.addAll(idIndexMap.values());
+    }
+
+
+    return ret;
   }
 
   public void putGroupByLineage(GroupByOperator gby, GroupByLineage lineage) {

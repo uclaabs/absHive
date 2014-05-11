@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +85,7 @@ public class RewriteProcFactory {
     return fi.getGenericUDF();
   }
 
-  public static void createAndConnectSelectOperator(
+  public static void appendSelect(
       Operator<? extends OperatorDesc> op, RewriteProcCtx ctx, boolean afterGby,
       ExprNodeDesc... additionalConds) throws SemanticException {
     GenericUDF condJoin = getUdf(COND_JOIN);
@@ -122,8 +123,9 @@ public class RewriteProcFactory {
     RowResolver rowResolver = new RowResolver();
 
     // Forward original columns
+    HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(op);
     for (int i = 0; i < colInfos.size(); ++i) {
-      if (indexes != null && indexes.indexOf(i) != -1) {
+      if (toSkip.contains(i)) {
         continue;
       }
       ColumnInfo colInfo = colInfos.get(i);
@@ -165,6 +167,8 @@ public class RewriteProcFactory {
 
     // Add a group-by id column
     if (afterGby) {
+      GroupByOperator gby = (GroupByOperator) op;
+
       ExprNodeGenericFuncDesc idColumn =
           ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>());
       columns.add(idColumn);
@@ -174,18 +178,27 @@ public class RewriteProcFactory {
       colExprMap.put(idColName, idColumn);
       rowResolver.put("", idColName, new ColumnInfo(idColName, idColumn.getTypeInfo(), "", false));
 
-      ctx.addGbyIdColumnIndex(op, idColIndex);
+      ctx.addGbyIdColumnIndex(op, gby, idColIndex);
     }
     // Add the original group-by id columns
-    List<Integer> idIndexes = ctx.getGbyIdColumnIndexes(op);
-    if (idIndexes != null) {
-      for (ExprNodeColumnDesc idColumn : Utils.generateColumnDescs(op, idIndexes)) {
+    HashMap<GroupByOperator, Integer> idColMap = new HashMap<GroupByOperator, Integer>();
+    Map<GroupByOperator, Integer> oldIdColMap = ctx.getGbyIdColumnIndexes(op);
+    if (oldIdColMap != null) {
+      for (Map.Entry<GroupByOperator, Integer> entry : oldIdColMap.entrySet()) {
+        if (op.equals(ConditionAnnotation.lastUsedBy(entry.getKey()))) {
+          continue;
+        }
+
+        ExprNodeColumnDesc idColumn = Utils.generateColumnDescs(op, entry.getValue()).get(0);
         columns.add(idColumn);
-        String idColName = Utils.getColumnInternalName(columns.size() - 1);
+        int idIdx = columns.size() - 1;
+        String idColName = Utils.getColumnInternalName(idIdx);
         colName.add(idColName);
         colExprMap.put(idColName, idColumn);
         rowResolver
             .put("", idColName, new ColumnInfo(idColName, idColumn.getTypeInfo(), "", false));
+
+        idColMap.put(entry.getKey(), idIdx);
       }
     }
 
@@ -229,6 +242,9 @@ public class RewriteProcFactory {
     OpParseContext opParseContext = new OpParseContext(rowResolver);
     ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
 
+    for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
+      ctx.addGbyIdColumnIndex(op, entry.getKey(), entry.getValue());
+    }
     ctx.addCondColumnIndex(sel, condColIndex);
 
     if (afterGby) {
@@ -295,25 +311,38 @@ public class RewriteProcFactory {
         return null;
       }
 
-      // Implicitly forward the condition column
       // Note: we assume a single parent
       Operator<? extends OperatorDesc> parent = op.getParentOperators().get(0);
-      List<Integer> indexes = ctx.getCondColumnIndexes(parent);
-
-      if (indexes == null) {
-        return null;
-      }
-
       RowResolver rowResolver = ctx.getOpParseContext(op).getRowResolver();
       RowResolver parentRR = ctx.getOpParseContext(parent).getRowResolver();
       ArrayList<ColumnInfo> parentColInfos = parent.getSchema().getSignature();
 
-      for (Integer index : indexes) {
-        ColumnInfo ci = parentColInfos.get(index);
-        String[] name = parentRR.reverseLookup(ci.getInternalName());
-        rowResolver.put(name[0], name[1], ci);
-        // Maintain the condition column index
-        ctx.addCondColumnIndex(op, index);
+      // Implicitly forward the id columns
+      Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
+      if (idColMap != null) {
+        for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
+          if (parent.equals(ConditionAnnotation.lastUsedBy(entry.getKey()))) {
+            continue;
+          }
+
+          ColumnInfo ci = parentColInfos.get(entry.getValue());
+          String[] name = parentRR.reverseLookup(ci.getInternalName());
+          rowResolver.put(name[0], name[1], ci);
+          // Maintain the id column index
+          ctx.addGbyIdColumnIndex(op, entry.getKey(), entry.getValue());
+        }
+      }
+
+      // Implicitly forward the condition columns
+      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+      if (condIndexes != null) {
+        for (Integer index : condIndexes) {
+          ColumnInfo ci = parentColInfos.get(index);
+          String[] name = parentRR.reverseLookup(ci.getInternalName());
+          rowResolver.put(name[0], name[1], ci);
+          // Maintain the condition column index
+          ctx.addCondColumnIndex(op, index);
+        }
       }
 
       return null;
@@ -336,7 +365,6 @@ public class RewriteProcFactory {
       ReduceSinkOperator rs = (ReduceSinkOperator) nd;
       RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
 
-      // Explicitly forward the condition column
       Map<String, ExprNodeDesc> colExprMap = rs.getColumnExprMap();
       ReduceSinkDesc desc = rs.getConf();
       ArrayList<String> outputValColNames = desc.getOutputValueColumnNames();
@@ -344,6 +372,27 @@ public class RewriteProcFactory {
       RowResolver rowResolver = ctx.getOpParseContext(rs).getRowResolver();
 
       Operator<? extends OperatorDesc> parent = rs.getParentOperators().get(0);
+
+      // Explicitly forward the id columns
+      Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
+      for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
+        if (parent.equals(ConditionAnnotation.lastUsedBy(entry.getKey()))) {
+          continue;
+        }
+
+        ExprNodeColumnDesc idCol = Utils.generateColumnDescs(parent, entry.getValue()).get(0);
+        valCols.add(idCol);
+        String valOutputName = Utils.getColumnInternalName(valCols.size() - 1);
+        outputValColNames.add(valOutputName);
+        String valName = Utilities.ReduceField.VALUE.toString() + "." + valOutputName;
+        colExprMap.put(valName, idCol);
+        rowResolver.put("", valName, new ColumnInfo(valName, idCol.getTypeInfo(), null, false));
+
+        ArrayList<ColumnInfo> colInfos = rs.getSchema().getSignature();
+        ctx.addGbyIdColumnIndex(rs, entry.getKey(), colInfos.size() - 1);
+      }
+
+      // Explicitly forward the condition columns
       for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(parent,
           ctx.getCondColumnIndexes(parent))) {
         valCols.add(cond);
@@ -382,13 +431,33 @@ public class RewriteProcFactory {
         return super.process(nd, stack, procCtx, nodeOutputs);
       }
 
-      // Explicitly forward the condition column
       Map<String, ExprNodeDesc> colExprMap = sel.getColumnExprMap();
       List<String> outputColNames = desc.getOutputColumnNames();
       List<ExprNodeDesc> cols = desc.getColList();
       RowResolver rowResolver = ctx.getOpParseContext(sel).getRowResolver();
 
       Operator<? extends OperatorDesc> parent = sel.getParentOperators().get(0);
+
+      // Explicitly forward the id columns
+      Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
+      for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
+        if (parent.equals(ConditionAnnotation.lastUsedBy(entry.getKey()))) {
+          continue;
+        }
+
+        ExprNodeColumnDesc idCol = Utils.generateColumnDescs(parent, entry.getValue()).get(0);
+        cols.add(idCol);
+        String outputName = Utils.getColumnInternalName(cols.size() - 1);
+        outputColNames.add(outputName);
+        colExprMap.put(outputName, idCol);
+        rowResolver
+            .put("", outputName, new ColumnInfo(outputName, idCol.getTypeInfo(), null, false));
+
+        ArrayList<ColumnInfo> colInfos = sel.getSchema().getSignature();
+        ctx.addGbyIdColumnIndex(sel, entry.getKey(), colInfos.size() - 1);
+      }
+
+      // Explicitly forward the condition columns
       for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(parent,
           ctx.getCondColumnIndexes(parent))) {
         cols.add(cond);
@@ -453,7 +522,7 @@ public class RewriteProcFactory {
       Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
       boolean firstGby = !(parent instanceof ReduceSinkOperator);
       if (!firstGby) {
-        createAndConnectSelectOperator(gby, ctx, true);
+        appendSelect(gby, ctx, true);
       }
 
       return null;
@@ -485,15 +554,20 @@ public class RewriteProcFactory {
             new ColumnInfo(internalName, key.getWritableObjectInspector(), "", false));
       }
 
+      int idx = gbyDesc.getKeys().size();
+      HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(gby);
       for (AggregationDesc aggr : gbyDesc.getAggregators()) {
-        for (ExprNodeDesc param : aggr.getParameters()) {
-          columns.add(param);
-          String internalName = Utils.getColumnInternalName(columns.size() - 1);
-          colName.add(internalName);
-          colExprMap.put(internalName, param);
-          rowResolver.put("", internalName,
-              new ColumnInfo(internalName, param.getWritableObjectInspector(), "", false));
+        if (!toSkip.contains(idx)) {
+          for (ExprNodeDesc param : aggr.getParameters()) {
+            columns.add(param);
+            String internalName = Utils.getColumnInternalName(columns.size() - 1);
+            colName.add(internalName);
+            colExprMap.put(internalName, param);
+            rowResolver.put("", internalName,
+                new ColumnInfo(internalName, param.getWritableObjectInspector(), "", false));
+          }
         }
+        ++idx;
       }
 
       // Add the condition columns if exist
@@ -687,7 +761,7 @@ public class RewriteProcFactory {
 
       // Add a SEL after FIL to transform the condition column
       if (ctx.getTransform(fil) != null) {
-        createAndConnectSelectOperator(fil, ctx, false,
+        appendSelect(fil, ctx, false,
             ctx.getTransform(fil).toArray(new ExprNodeDesc[0]));
       }
 
@@ -752,8 +826,8 @@ public class RewriteProcFactory {
         ExprNodeColumnDesc column = (ExprNodeColumnDesc) expr;
         AggregateInfo aggr = ctx.getLineage(parent, column.getColumn());
         if (aggr != null) {
-          column.setTypeInfo(aggr.getTypeInfo());
-          return column;
+          int idx = ctx.getGbyIdColumnIndex(fil, aggr.getGroupByOperator());
+          return Utils.generateColumnDescs(fil, idx).get(0);
         }
         return null;
       }
@@ -872,7 +946,6 @@ public class RewriteProcFactory {
       RewriteProcCtx ctx = (RewriteProcCtx) procCtx;
       JoinDesc desc = join.getConf();
 
-      // Forward the condition columns
       List<String> outputColumnNames = desc.getOutputColumnNames();
       Map<String, Byte> reversedExprs = desc.getReversedExprs();
       Map<Byte, List<ExprNodeDesc>> exprMap = desc.getExprs();
@@ -884,6 +957,32 @@ public class RewriteProcFactory {
         ReduceSinkOperator rs = (ReduceSinkOperator) parent;
         RowResolver inputRR = ctx.getOpParseContext(rs).getRowResolver();
         Byte tag = (byte) rs.getConf().getTag();
+
+        // Forward the id columns
+        Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
+        for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
+          if (parent.equals(ConditionAnnotation.lastUsedBy(entry.getKey()))) {
+            continue;
+          }
+
+          ExprNodeColumnDesc idCol = Utils.generateColumnDescs(parent, entry.getValue()).get(0);
+          String colName = Utils.getColumnInternalName(outputColumnNames.size());
+          outputColumnNames.add(colName);
+          reversedExprs.put(colName, tag);
+          List<ExprNodeDesc> exprs = exprMap.get(tag);
+          exprs.add(idCol);
+          colExprMap.put(colName, idCol);
+
+          String[] names = inputRR.reverseLookup(idCol.getColumn());
+          ColumnInfo ci = inputRR.get(names[0], names[1]);
+          rowResolver.put(names[0], names[1],
+              new ColumnInfo(colName, ci.getType(), names[0],
+                  ci.getIsVirtualCol(), ci.isHiddenVirtualCol()));
+
+          ctx.addGbyIdColumnIndex(join, entry.getKey(), outputColumnNames.size() - 1);
+        }
+
+        // Forward the condition columns
         for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(rs, ctx.getCondColumnIndexes(rs))) {
           String colName = Utils.getColumnInternalName(outputColumnNames.size());
           outputColumnNames.add(colName);
@@ -904,7 +1003,7 @@ public class RewriteProcFactory {
       }
 
       if (countOfCondCols > 1) {
-        createAndConnectSelectOperator(join, ctx, false);
+        appendSelect(join, ctx, false);
       }
 
       return null;

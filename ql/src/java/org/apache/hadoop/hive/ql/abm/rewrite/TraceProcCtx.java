@@ -57,6 +57,7 @@ public class TraceProcCtx implements NodeProcessorCtx {
     ConditionAnnotation anno = getOrCreateCondAnno(op);
     for (AggregateInfo aggr : pred.getAggregatesInvolved()) {
       anno.conditionOn(aggr);
+      anno.useAt(aggr.getGroupByOperator(), op);
     }
     anno.addTransform(pred);
   }
