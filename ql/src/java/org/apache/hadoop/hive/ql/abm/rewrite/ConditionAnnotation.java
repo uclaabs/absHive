@@ -38,7 +38,7 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
   }
 
   public void conditionOn(AggregateInfo aggr) {
-    GroupByOperator gby =  aggr.getGroupByOperator();
+    GroupByOperator gby = aggr.getGroupByOperator();
     TreeSet<AggregateInfo> buf = aggregates.get(gby);
     if (buf == null) {
       buf = new TreeSet<AggregateInfo>();
@@ -76,6 +76,30 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     for (Map.Entry<GroupByOperator, GroupByOperator[]> entry : other.dependencies.entrySet()) {
       dependencies.put(entry.getKey(), entry.getValue().clone());
     }
+  }
+
+  public int getInputSize(GroupByOperator gby) {
+    int sz = gby.getConf().getKeys().size();
+    for (AggregateInfo ai : aggregates.get(gby)) {
+      if (!ai.getUdafType().equals(UdafType.COUNT)) {
+        ++sz;
+      }
+    }
+    // For tid
+    ++sz;
+    return sz;
+  }
+
+  public int getOutputSize(GroupByOperator gby) {
+    int sz = gby.getConf().getKeys().size();
+    for (AggregateInfo ai : aggregates.get(gby)) {
+      ++sz;
+    }
+    // For the mandatory count(*)
+    --sz;
+    // For condition, lineage, group-by-id
+    sz += 3;
+    return sz;
   }
 
   public Set<GroupByOperator> getAllGroupByOps() {

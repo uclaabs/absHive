@@ -9,6 +9,7 @@ import java.util.Map;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.OpParseContext;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
@@ -30,10 +31,10 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
 
-  private final HashMap<GroupByOperator, GroupByInput> inputs =
-      new HashMap<GroupByOperator, GroupByInput>();
-  private final HashMap<GroupByOperator, GroupByOutput> outputs =
-      new HashMap<GroupByOperator, GroupByOutput>();
+  private final HashMap<GroupByOperator, SelectOperator> inputs =
+      new HashMap<GroupByOperator, SelectOperator>();
+  private final HashMap<GroupByOperator, SelectOperator> outputs =
+      new HashMap<GroupByOperator, SelectOperator>();
 
   private final TraceProcCtx tctx;
 
@@ -143,19 +144,21 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return ret;
   }
 
-  public void putGroupByInput(GroupByOperator gby, GroupByInput lineage) {
-    inputs.put(gby, lineage);
+  public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
+    input.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getInputSize(gby));
+    inputs.put(gby, input);
   }
 
-  public GroupByInput getGroupByInput(GroupByOperator gby) {
+  public SelectOperator getGroupByInput(GroupByOperator gby) {
     return inputs.get(gby);
   }
 
-  public void putGroupByOutput(GroupByOperator gby, GroupByOutput lineage) {
-    outputs.put(gby, lineage);
+  public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
+    output.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getOutputSize(gby));
+    outputs.put(gby, output);
   }
 
-  public GroupByOutput getGroupByOutput(GroupByOperator gby) {
+  public SelectOperator getGroupByOutput(GroupByOperator gby) {
     return outputs.get(gby);
   }
 
