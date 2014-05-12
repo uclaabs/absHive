@@ -17,6 +17,11 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
+  private final HashSet<Operator<? extends OperatorDesc>> opsWithTid =
+      new HashSet<Operator<? extends OperatorDesc>>();
+
+  private final HashMap<Operator<? extends OperatorDesc>, Integer> tidIndex =
+      new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
@@ -34,10 +39,51 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   public RewriteProcCtx(TraceProcCtx ctx) {
     tctx = ctx;
+
+    // Find all operators with the tid column
+    for (GroupByOperator gby : tctx.getCondition(tctx.getSinkOp()).getAllGroupByOps()) {
+      backtrace(gby);
+    }
+  }
+
+  private boolean backtrace(Operator<? extends OperatorDesc> op) {
+    boolean addTid = false;
+
+    List<Operator<? extends OperatorDesc>> parents = op.getParentOperators();
+    if (parents != null) {
+      for (Operator<? extends OperatorDesc> parent : parents) {
+        boolean branchAddTid = backtrace(parent);
+        addTid = (branchAddTid || addTid);
+      }
+      if (op instanceof GroupByOperator) {
+        addTid = false;
+      }
+    } else {
+      if (isSampled(op)) {
+        addTid = true;
+      }
+    }
+
+    if (addTid) {
+      opsWithTid.add(op);
+    }
+    return addTid;
   }
 
   public AggregateInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
     return tctx.getLineage(op, internalName);
+  }
+
+  public boolean withTid(Operator<? extends OperatorDesc> op) {
+    return opsWithTid.contains(op);
+  }
+
+  public Integer getTidColumnIndex(Operator<? extends OperatorDesc> op) {
+    return tidIndex.get(op);
+  }
+
+  public void putTidColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+    tidIndex.put(op, index);
   }
 
   public List<Integer> getCondColumnIndexes(Operator<? extends OperatorDesc> op) {
@@ -65,7 +111,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return map.get(gby);
   }
 
-  public void addGbyIdColumnIndex(Operator<? extends OperatorDesc> op, GroupByOperator gby, int index) {
+  public void addGbyIdColumnIndex(Operator<? extends OperatorDesc> op, GroupByOperator gby,
+      int index) {
     HashMap<GroupByOperator, Integer> map = gbyIdIndex.get(op);
     if (map == null) {
       map = new HashMap<GroupByOperator, Integer>();
@@ -76,6 +123,11 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   public HashSet<Integer> getSpecialColumnIndexes(Operator<? extends OperatorDesc> op) {
     HashSet<Integer> ret = new HashSet<Integer>();
+
+    Integer tidIndex = getTidColumnIndex(op);
+    if (tidIndex != null) {
+      ret.add(tidIndex);
+    }
 
     List<Integer> condIndexes = getCondColumnIndexes(op);
     if (condIndexes != null) {

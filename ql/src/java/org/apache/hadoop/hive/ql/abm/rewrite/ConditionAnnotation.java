@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.hadoop.hive.ql.abm.algebra.Transform;
@@ -75,6 +76,10 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     for (Map.Entry<GroupByOperator, GroupByOperator[]> entry : other.dependencies.entrySet()) {
       dependencies.put(entry.getKey(), entry.getValue().clone());
     }
+  }
+
+  public Set<GroupByOperator> getAllGroupByOps() {
+    return positions.keySet();
   }
 
   public void check() {

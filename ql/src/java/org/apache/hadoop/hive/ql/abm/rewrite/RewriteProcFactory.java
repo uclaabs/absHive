@@ -165,6 +165,19 @@ public class RewriteProcFactory {
       }
     }
 
+    // Forward the tid column
+    Integer tidIdx = null;
+    if (ctx.withTid(op)) {
+      ExprNodeColumnDesc col = Utils.generateColumnDescs(op, ctx.getTidColumnIndex(op)).get(0);
+      columns.add(col);
+      tidIdx = columns.size() - 1;
+      String idColName = Utils.getColumnInternalName(tidIdx);
+      colName.add(idColName);
+      colExprMap.put(idColName, col);
+      rowResolver
+          .put("", idColName, new ColumnInfo(idColName, col.getTypeInfo(), "", false));
+    }
+
     // Add a group-by id column
     if (afterGby) {
       GroupByOperator gby = (GroupByOperator) op;
@@ -180,7 +193,7 @@ public class RewriteProcFactory {
 
       ctx.addGbyIdColumnIndex(op, gby, idColIndex);
     }
-    // Add the original group-by id columns
+    // Forward the original group-by id columns
     HashMap<GroupByOperator, Integer> idColMap = new HashMap<GroupByOperator, Integer>();
     Map<GroupByOperator, Integer> oldIdColMap = ctx.getGbyIdColumnIndexes(op);
     if (oldIdColMap != null) {
@@ -242,6 +255,9 @@ public class RewriteProcFactory {
     OpParseContext opParseContext = new OpParseContext(rowResolver);
     ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
 
+    if (tidIdx != null) {
+      ctx.putTidColumnIndex(sel, tidIdx);
+    }
     for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
       ctx.addGbyIdColumnIndex(op, entry.getKey(), entry.getValue());
     }
@@ -314,6 +330,16 @@ public class RewriteProcFactory {
       RowResolver parentRR = ctx.getOpParseContext(parent).getRowResolver();
       ArrayList<ColumnInfo> parentColInfos = parent.getSchema().getSignature();
 
+      // Implicitly forward the tid column
+      if (ctx.withTid(op)) {
+        Integer index = ctx.getTidColumnIndex(parent);
+        ColumnInfo ci = parentColInfos.get(index);
+        String[] name = parentRR.reverseLookup(ci.getInternalName());
+        rowResolver.put(name[0], name[1], ci);
+        // Maintain the tid column index
+        ctx.putTidColumnIndex(op, index);
+      }
+
       // Implicitly forward the id columns
       Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
       if (idColMap != null) {
@@ -369,6 +395,21 @@ public class RewriteProcFactory {
       RowResolver rowResolver = ctx.getOpParseContext(rs).getRowResolver();
 
       Operator<? extends OperatorDesc> parent = rs.getParentOperators().get(0);
+
+      // Explicitly forward the tid columns
+      if (ctx.withTid(rs)) {
+        ExprNodeColumnDesc col = Utils.generateColumnDescs(parent, ctx.getTidColumnIndex(parent))
+            .get(0);
+        valCols.add(col);
+        String valOutputName = Utils.getColumnInternalName(valCols.size() - 1);
+        outputValColNames.add(valOutputName);
+        String valName = Utilities.ReduceField.VALUE.toString() + "." + valOutputName;
+        colExprMap.put(valName, col);
+        rowResolver.put("", valName, new ColumnInfo(valName, col.getTypeInfo(), null, false));
+
+        ArrayList<ColumnInfo> colInfos = rs.getSchema().getSignature();
+        ctx.putTidColumnIndex(rs, colInfos.size() - 1);
+      }
 
       // Explicitly forward the id columns
       Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
@@ -434,6 +475,21 @@ public class RewriteProcFactory {
       RowResolver rowResolver = ctx.getOpParseContext(sel).getRowResolver();
 
       Operator<? extends OperatorDesc> parent = sel.getParentOperators().get(0);
+
+      // Explicitly forward the tid column
+      if (ctx.withTid(sel)) {
+        ExprNodeColumnDesc col = Utils.generateColumnDescs(parent, ctx.getTidColumnIndex(parent))
+            .get(0);
+        cols.add(col);
+        String outputName = Utils.getColumnInternalName(cols.size() - 1);
+        outputColNames.add(outputName);
+        colExprMap.put(outputName, col);
+        rowResolver
+            .put("", outputName, new ColumnInfo(outputName, col.getTypeInfo(), null, false));
+
+        ArrayList<ColumnInfo> colInfos = sel.getSchema().getSignature();
+        ctx.putTidColumnIndex(sel, colInfos.size() - 1);
+      }
 
       // Explicitly forward the id columns
       Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
@@ -512,8 +568,10 @@ public class RewriteProcFactory {
       // (2) Return the correct type
       rewriteAggrs(gby, ctx);
 
-      // Add a column to compute condition
-      addCondColumn(gby, ctx);
+      // Add columns
+      // (1) to compute condition
+      // (2) to compute lineage
+      addColumns(gby, ctx);
 
       // Add select to generate group id
       Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
@@ -567,7 +625,23 @@ public class RewriteProcFactory {
         ++idx;
       }
 
-      // Add the condition columns if exist
+      // Forward the tid column
+      assert ctx.withTid(parent);
+      Integer tidIdx = null;
+      if (ctx.withTid(parent)) {
+        ExprNodeColumnDesc col = Utils.generateColumnDescs(parent,
+            ctx.getTidColumnIndex(parent)).get(0);
+        columns.add(col);
+        String internalName = Utils.getColumnInternalName(columns.size() - 1);
+        colName.add(internalName);
+        colExprMap.put(internalName, col);
+        rowResolver.put("", internalName,
+            new ColumnInfo(internalName, col.getTypeInfo(), "", false));
+
+        tidIdx = colName.size() - 1;
+      }
+
+      // Forward the condition columns if exist
       ArrayList<Integer> condIndexes = new ArrayList<Integer>();
       for (ExprNodeColumnDesc condColumn : Utils.generateColumnDescs(parent,
           ctx.getCondColumnIndexes(parent))) {
@@ -642,6 +716,7 @@ public class RewriteProcFactory {
       OpParseContext opParseContext = new OpParseContext(rowResolver);
       ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
 
+      ctx.putTidColumnIndex(sel, tidIdx);
       for (int condIndex : condIndexes) {
         ctx.addCondColumnIndex(sel, condIndex);
       }
@@ -702,8 +777,10 @@ public class RewriteProcFactory {
       }
     }
 
-    // Add a column to compute condition
-    private void addCondColumn(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
+    // Add columns
+    // (1) to compute condition
+    // (2) to compute lineage
+    private void addColumns(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
       Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
 
       GroupByDesc desc = gby.getConf();
@@ -953,6 +1030,26 @@ public class RewriteProcFactory {
         RowResolver inputRR = ctx.getOpParseContext(rs).getRowResolver();
         Byte tag = (byte) rs.getConf().getTag();
 
+        // Forward the tid column
+        if (ctx.withTid(join) && ctx.getTidColumnIndex(rs) != null) {
+          ExprNodeColumnDesc col = Utils.generateColumnDescs(parent, ctx.getTidColumnIndex(rs))
+              .get(0);
+          String colName = Utils.getColumnInternalName(outputColumnNames.size());
+          outputColumnNames.add(colName);
+          reversedExprs.put(colName, tag);
+          List<ExprNodeDesc> exprs = exprMap.get(tag);
+          exprs.add(col);
+          colExprMap.put(colName, col);
+
+          String[] names = inputRR.reverseLookup(col.getColumn());
+          ColumnInfo ci = inputRR.get(names[0], names[1]);
+          rowResolver.put(names[0], names[1],
+              new ColumnInfo(colName, ci.getType(), names[0],
+                  ci.getIsVirtualCol(), ci.isHiddenVirtualCol()));
+
+          ctx.putTidColumnIndex(join, outputColumnNames.size() - 1);
+        }
+
         // Forward the id columns
         Map<GroupByOperator, Integer> idColMap = ctx.getGbyIdColumnIndexes(parent);
         for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
@@ -1010,10 +1107,6 @@ public class RewriteProcFactory {
     return new DefaultProcessor();
   }
 
-  public static NodeProcessor getFilterProc() {
-    return new FilterProcessor();
-  }
-
   public static NodeProcessor getReduceSinkProc() {
     return new ReduceSinkProcessor();
   }
@@ -1024,6 +1117,10 @@ public class RewriteProcFactory {
 
   public static NodeProcessor getGroupByProc() {
     return new GroupByProcessor();
+  }
+
+  public static NodeProcessor getFilterProc() {
+    return new FilterProcessor();
   }
 
   public static NodeProcessor getJoinProc() {

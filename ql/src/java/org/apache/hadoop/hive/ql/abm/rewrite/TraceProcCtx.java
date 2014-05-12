@@ -15,6 +15,8 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class TraceProcCtx implements NodeProcessorCtx {
 
+  private Operator<? extends OperatorDesc> sinkOp = null;
+
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<String, AggregateInfo>> lineages =
       new HashMap<Operator<? extends OperatorDesc>, HashMap<String, AggregateInfo>>();
 
@@ -72,14 +74,18 @@ public class TraceProcCtx implements NodeProcessorCtx {
     if (anno == null) {
       anno = new ConditionAnnotation();
       conditions.put(op, anno);
+
+      sinkOp = op;
     }
     return anno;
   }
 
   public void check() {
-    for (ConditionAnnotation cond : conditions.values()) {
-      cond.check();
-    }
+    conditions.get(sinkOp).check();
+  }
+
+  public Operator<? extends OperatorDesc> getSinkOp() {
+    return sinkOp;
   }
 
   public LineageCtx getLineageCtx() {
