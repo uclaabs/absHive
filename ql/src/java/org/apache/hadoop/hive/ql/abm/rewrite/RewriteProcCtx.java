@@ -30,10 +30,10 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
 
-  private final HashMap<GroupByOperator, GroupByLineage> lineages =
-      new HashMap<GroupByOperator, GroupByLineage>();
-  private final HashMap<GroupByOperator, GroupByResult> results =
-      new HashMap<GroupByOperator, GroupByResult>();
+  private final HashMap<GroupByOperator, GroupByInput> inputs =
+      new HashMap<GroupByOperator, GroupByInput>();
+  private final HashMap<GroupByOperator, GroupByOutput> outputs =
+      new HashMap<GroupByOperator, GroupByOutput>();
 
   private final TraceProcCtx tctx;
 
@@ -143,20 +143,20 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return ret;
   }
 
-  public void putGroupByLineage(GroupByOperator gby, GroupByLineage lineage) {
-    lineages.put(gby, lineage);
+  public void putGroupByInput(GroupByOperator gby, GroupByInput lineage) {
+    inputs.put(gby, lineage);
   }
 
-  public GroupByLineage getGroupByLineage(GroupByOperator gby) {
-    return lineages.get(gby);
+  public GroupByInput getGroupByInput(GroupByOperator gby) {
+    return inputs.get(gby);
   }
 
-  public void putGroupByResult(GroupByOperator gby, GroupByResult lineage) {
-    results.put(gby, lineage);
+  public void putGroupByOutput(GroupByOperator gby, GroupByOutput lineage) {
+    outputs.put(gby, lineage);
   }
 
-  public GroupByResult getGroupByResult(GroupByOperator gby) {
-    return results.get(gby);
+  public GroupByOutput getGroupByOutput(GroupByOperator gby) {
+    return outputs.get(gby);
   }
 
   public ArrayList<ExprNodeDesc> getTransform(Operator<? extends OperatorDesc> filter) {

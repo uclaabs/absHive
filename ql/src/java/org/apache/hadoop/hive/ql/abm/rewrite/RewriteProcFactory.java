@@ -52,7 +52,6 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 /**
  *
@@ -83,6 +82,61 @@ public class RewriteProcFactory {
     assert fi != null;
     // getGenericUDF() actually clones the UDF. Just call it once and reuse.
     return fi.getGenericUDF();
+  }
+
+  public static class SelectFactory {
+
+    private final RewriteProcCtx ctx;
+
+    private final List<ExprNodeDesc> colList = new ArrayList<ExprNodeDesc>();
+    private final List<String> outputColumnNames = new ArrayList<String>();
+    private final HashMap<String, ExprNodeDesc> columnExprMap = new HashMap<String, ExprNodeDesc>();
+    private final RowResolver rowResolver = new RowResolver();
+
+    public SelectFactory(RewriteProcCtx ctx) {
+      this.ctx = ctx;
+    }
+
+    public int forwardColumn(Operator<? extends OperatorDesc> op, int index, boolean keepName) {
+      ExprNodeColumnDesc column = Utils.generateColumnDescs(op, index).get(0);
+      String outputName = keepName ?
+          op.getSchema().getSignature().get(index).getInternalName()
+          : Utils.getColumnInternalName(colList.size());
+      colList.add(column);
+      outputColumnNames.add(outputName);
+      columnExprMap.put(outputName, column);
+      rowResolver.put("", outputName, new ColumnInfo(outputName, column.getTypeInfo(), "", false));
+
+      return outputColumnNames.size() - 1;
+    }
+
+    public int addColumn(ExprNodeDesc column) {
+      String outputName = Utils.getColumnInternalName(colList.size());
+      colList.add(column);
+      outputColumnNames.add(outputName);
+      columnExprMap.put(outputName, column);
+      rowResolver.put("", outputName, new ColumnInfo(outputName, column.getTypeInfo(), "", false));
+
+      return outputColumnNames.size() - 1;
+    }
+
+    @SuppressWarnings("unchecked")
+    public SelectOperator getSelectOperator() {
+      // Create SEL
+      SelectDesc desc = new SelectDesc(colList, outputColumnNames);
+      SelectOperator sel = (SelectOperator) OperatorFactory
+          .get((Class<SelectDesc>) desc.getClass());
+      sel.setConf(desc);
+      sel.setSchema(rowResolver.getRowSchema());
+      sel.setColumnExprMap(columnExprMap);
+
+      // Put SEL into ParseContext
+      OpParseContext opParseContext = new OpParseContext(rowResolver);
+      ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
+
+      return sel;
+    }
+
   }
 
   public static void appendSelect(
@@ -117,29 +171,14 @@ public class RewriteProcFactory {
       }
     }
 
-    List<ExprNodeDesc> columns = new ArrayList<ExprNodeDesc>();
-    List<String> colName = new ArrayList<String>();
-    Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
-    RowResolver rowResolver = new RowResolver();
+    SelectFactory selFactory = new SelectFactory(ctx);
 
     // Forward original columns
     HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(op);
     for (int i = 0; i < signature.size(); ++i) {
-      if (toSkip.contains(i)) {
-        continue;
+      if (!toSkip.contains(i)) {
+        selFactory.forwardColumn(op, i, true);
       }
-      ColumnInfo colInfo = signature.get(i);
-      ExprNodeColumnDesc column = new ExprNodeColumnDesc(colInfo.getType(),
-          colInfo.getInternalName(),
-          colInfo.getTabAlias(), colInfo.getIsVirtualCol(), colInfo.isSkewedCol());
-      columns.add(column);
-      // Here we are different from SemanticAnalyzer,
-      // as we want to keep the names the same as Fil.
-      colName.add(colInfo.getInternalName());
-      colExprMap.put(colInfo.getInternalName(), column);
-      rowResolver.put("", colInfo.getInternalName(),
-          new ColumnInfo(colInfo.getInternalName(),
-              colInfo.getType(), colInfo.getTabAlias(), colInfo.getIsVirtualCol()));
     }
 
     ArrayList<Integer> keyCols = new ArrayList<Integer>();
@@ -168,68 +207,39 @@ public class RewriteProcFactory {
     // Forward the tid column
     Integer tidIdx = null;
     if (ctx.withTid(op)) {
-      ExprNodeColumnDesc col = Utils.generateColumnDescs(op, ctx.getTidColumnIndex(op)).get(0);
-      columns.add(col);
-      tidIdx = columns.size() - 1;
-      String idColName = Utils.getColumnInternalName(tidIdx);
-      colName.add(idColName);
-      colExprMap.put(idColName, col);
-      rowResolver
-          .put("", idColName, new ColumnInfo(idColName, col.getTypeInfo(), "", false));
+      tidIdx = selFactory.forwardColumn(op, ctx.getTidColumnIndex(op), false);
     }
 
     // Add a group-by id column
+    HashMap<GroupByOperator, Integer> idColMap = new HashMap<GroupByOperator, Integer>();
     if (afterGby) {
       GroupByOperator gby = (GroupByOperator) op;
 
       ExprNodeGenericFuncDesc idColumn =
           ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>());
-      columns.add(idColumn);
-      idColIndex = columns.size() - 1;
-      String idColName = Utils.getColumnInternalName(idColIndex);
-      colName.add(idColName);
-      colExprMap.put(idColName, idColumn);
-      rowResolver.put("", idColName, new ColumnInfo(idColName, idColumn.getTypeInfo(), "", false));
-
-      ctx.addGbyIdColumnIndex(op, gby, idColIndex);
+      idColIndex = selFactory.addColumn(idColumn);
+      idColMap.put(gby, idColIndex);
     }
     // Forward the original group-by id columns
-    HashMap<GroupByOperator, Integer> idColMap = new HashMap<GroupByOperator, Integer>();
     Map<GroupByOperator, Integer> oldIdColMap = ctx.getGbyIdColumnIndexes(op);
     if (oldIdColMap != null) {
       for (Map.Entry<GroupByOperator, Integer> entry : oldIdColMap.entrySet()) {
-        if (op.equals(ConditionAnnotation.lastUsedBy(entry.getKey()))) {
+        GroupByOperator gby = entry.getKey();
+        if (op.equals(ConditionAnnotation.lastUsedBy(gby))) {
           continue;
         }
-
-        ExprNodeColumnDesc idColumn = Utils.generateColumnDescs(op, entry.getValue()).get(0);
-        columns.add(idColumn);
-        int idIdx = columns.size() - 1;
-        String idColName = Utils.getColumnInternalName(idIdx);
-        colName.add(idColName);
-        colExprMap.put(idColName, idColumn);
-        rowResolver
-            .put("", idColName, new ColumnInfo(idColName, idColumn.getTypeInfo(), "", false));
-
-        idColMap.put(entry.getKey(), idIdx);
+        int index = entry.getValue();
+        int idIdx = selFactory.forwardColumn(op, index, false);
+        idColMap.put(gby, idIdx);
       }
     }
 
     // Add the condition column
-    columns.add(condColumn);
-    int condColIndex = columns.size() - 1;
-    String condName = Utils.getColumnInternalName(condColIndex);
-    colName.add(condName);
-    colExprMap.put(condName, condColumn);
-    rowResolver.put("", condName, new ColumnInfo(condName, condColumn.getTypeInfo(), "", false));
+    int condColIndex = selFactory.addColumn(condColumn);
 
     // Create SEL
-    SelectDesc desc = new SelectDesc(columns, colName);
-    @SuppressWarnings("unchecked")
-    Operator<SelectDesc> sel = OperatorFactory.get((Class<SelectDesc>) desc.getClass());
-    sel.setConf(desc);
-    sel.setSchema(rowResolver.getRowSchema());
-    sel.setColumnExprMap(colExprMap);
+    SelectOperator sel = selFactory.getSelectOperator();
+    SelectDesc desc = sel.getConf();
 
     // Change the connection
     List<Operator<? extends OperatorDesc>> parents =
@@ -251,15 +261,11 @@ public class RewriteProcFactory {
     newChildren.add(sel);
     op.setChildOperators(newChildren);
 
-    // Put SEL into ParseContext
-    OpParseContext opParseContext = new OpParseContext(rowResolver);
-    ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
-
     if (tidIdx != null) {
       ctx.putTidColumnIndex(sel, tidIdx);
     }
     for (Map.Entry<GroupByOperator, Integer> entry : idColMap.entrySet()) {
-      ctx.addGbyIdColumnIndex(op, entry.getKey(), entry.getValue());
+      ctx.addGbyIdColumnIndex(sel, entry.getKey(), entry.getValue());
     }
     ctx.addCondColumnIndex(sel, condColIndex);
 
@@ -269,7 +275,7 @@ public class RewriteProcFactory {
       desc.cache(keyCols);
       desc.cache(valCols);
       desc.cache(idColIndex);
-      ctx.putGroupByResult(gby, new GroupByResult(keyCols, valCols, idColIndex));
+      ctx.putGroupByOutput(gby, new GroupByOutput(keyCols, valCols, idColIndex));
     }
   }
 
@@ -439,7 +445,7 @@ public class RewriteProcFactory {
       outputValueColumnNames.add(columnInternalName);
       String valName = Utilities.ReduceField.VALUE.toString() + "." + columnInternalName;
       columnExprMap.put(valName, column);
-      rowResolver.put("", valName, new ColumnInfo(valName, column.getTypeInfo(), null, false));
+      rowResolver.put("", valName, new ColumnInfo(valName, column.getTypeInfo(), "", false));
     }
 
   }
@@ -481,7 +487,7 @@ public class RewriteProcFactory {
       outputColumnNames.add(outputName);
       columnExprMap.put(outputName, column);
       rowResolver
-          .put("", outputName, new ColumnInfo(outputName, column.getTypeInfo(), null, false));
+          .put("", outputName, new ColumnInfo(outputName, column.getTypeInfo(), "", false));
     }
 
   }
@@ -496,18 +502,17 @@ public class RewriteProcFactory {
    */
   public static class GroupByProcessor extends RewriteProcessor {
 
-    class AggrColInfo {
-      public AggregationDesc aggregationDesc;
-      public TypeInfo returnType;
-
-      public AggrColInfo(AggregationDesc aggrDesc, TypeInfo type) {
-        aggregationDesc = aggrDesc;
-        returnType = type;
-      }
-    }
-
     private GroupByOperator gby = null;
+    private GroupByDesc desc = null;
     private ArrayList<ColumnInfo> signature = null;
+    private ArrayList<AggregationDesc> aggregators = null;
+    private RowResolver rowResovler = null;
+    private ArrayList<String> outputColNames = null;
+
+    private Operator<? extends OperatorDesc> parent = null;
+    private boolean firstGby = false;
+    private int numKeys = 0;
+    private GenericUDAFEvaluator.Mode evaluatorMode = null;
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
@@ -519,21 +524,24 @@ public class RewriteProcFactory {
       }
 
       // Insert Select as input and cache it
-      insertSelect(gby, ctx);
+      if (firstGby) {
+        insertSelect();
+      }
 
-      // Rewrite AggregationDesc to:
-      // (1) Use the ABM version of SUM/COUNT/AVERAGE
-      // (2) Return the correct type
-      rewriteAggrs(gby, ctx);
+      // Rewrite AggregationDesc
+      for (int i = 0; i < aggregators.size(); ++i) {
+        modifyAggregator(i);
+      }
 
-      // Add columns
-      // (1) to compute condition
-      // (2) to compute lineage
-      addColumns(gby, ctx);
+      // Add the column to compute condition
+      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+      assert (condIndexes == null || condIndexes.size() < 2);
+      addAggregator(COND_MERGE, parent, condIndexes);
+      ctx.addCondColumnIndex(gby, signature.size() - 1);
+
+      // TODO: Add the column to compute lineage
 
       // Add select to generate group id
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-      boolean firstGby = !(parent instanceof ReduceSinkOperator);
       if (!firstGby) {
         appendSelect(gby, ctx, true);
       }
@@ -545,46 +553,33 @@ public class RewriteProcFactory {
     protected void initialize(Node nd, NodeProcessorCtx procCtx) {
       super.initialize(nd, procCtx);
       gby = (GroupByOperator) nd;
+      desc = gby.getConf();
       signature = gby.getSchema().getSignature();
+      aggregators = desc.getAggregators();
+      rowResovler = ctx.getOpParseContext(gby).getRowResolver();
+      outputColNames = desc.getOutputColumnNames();
+
+      parent = gby.getParentOperators().get(0);
+      firstGby = !(parent instanceof ReduceSinkOperator);
+      numKeys = desc.getKeys().size();
+      evaluatorMode = SemanticAnalyzer.groupByDescModeToUDAFMode(desc.getMode(), false);
     }
 
     // Insert Select as input and cache it
-    private void insertSelect(GroupByOperator gby, RewriteProcCtx ctx) {
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-      boolean firstGby = !(parent instanceof ReduceSinkOperator);
-
-      if (!firstGby) {
-        return;
-      }
-
-      GroupByDesc gbyDesc = gby.getConf();
-
-      List<ExprNodeDesc> columns = new ArrayList<ExprNodeDesc>();
-      List<String> colName = new ArrayList<String>();
-      Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
-      RowResolver rowResolver = new RowResolver();
+    private void insertSelect() {
+      SelectFactory selFactory = new SelectFactory(ctx);
 
       // Forward all columns
-      for (ExprNodeDesc key : gbyDesc.getKeys()) {
-        columns.add(key);
-        String internalName = Utils.getColumnInternalName(columns.size() - 1);
-        colName.add(internalName);
-        colExprMap.put(internalName, key);
-        rowResolver.put("", internalName,
-            new ColumnInfo(internalName, key.getWritableObjectInspector(), "", false));
+      for (ExprNodeDesc key : desc.getKeys()) {
+        selFactory.addColumn(key);
       }
 
-      int idx = gbyDesc.getKeys().size();
+      int idx = numKeys;
       HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(gby);
-      for (AggregationDesc aggr : gbyDesc.getAggregators()) {
+      for (AggregationDesc aggr : desc.getAggregators()) {
         if (!toSkip.contains(idx)) {
           for (ExprNodeDesc param : aggr.getParameters()) {
-            columns.add(param);
-            String internalName = Utils.getColumnInternalName(columns.size() - 1);
-            colName.add(internalName);
-            colExprMap.put(internalName, param);
-            rowResolver.put("", internalName,
-                new ColumnInfo(internalName, param.getWritableObjectInspector(), "", false));
+            selFactory.addColumn(param);
           }
         }
         ++idx;
@@ -594,49 +589,31 @@ public class RewriteProcFactory {
       assert ctx.withTid(parent);
       Integer tidIdx = null;
       if (ctx.withTid(parent)) {
-        ExprNodeColumnDesc col = Utils.generateColumnDescs(parent,
-            ctx.getTidColumnIndex(parent)).get(0);
-        columns.add(col);
-        String internalName = Utils.getColumnInternalName(columns.size() - 1);
-        colName.add(internalName);
-        colExprMap.put(internalName, col);
-        rowResolver.put("", internalName,
-            new ColumnInfo(internalName, col.getTypeInfo(), "", false));
-
-        tidIdx = colName.size() - 1;
+        tidIdx = selFactory.forwardColumn(parent, ctx.getTidColumnIndex(parent), false);
       }
 
       // Forward the condition columns if exist
       ArrayList<Integer> condIndexes = new ArrayList<Integer>();
-      for (ExprNodeColumnDesc condColumn : Utils.generateColumnDescs(parent,
-          ctx.getCondColumnIndexes(parent))) {
-        columns.add(condColumn);
-        String condName = Utils.getColumnInternalName(columns.size() - 1);
-        colName.add(condName);
-        colExprMap.put(condName, condColumn);
-        rowResolver.put("", condName,
-            new ColumnInfo(condName, condColumn.getTypeInfo(), "", false));
-
-        condIndexes.add(colName.size() - 1);
+      if (ctx.getCondColumnIndexes(parent) != null) {
+        for (int index : ctx.getCondColumnIndexes(parent)) {
+          int condIdx = selFactory.forwardColumn(parent, index, false);
+          condIndexes.add(condIdx);
+        }
       }
 
       // Create SEL
-      SelectDesc desc = new SelectDesc(columns, colName);
-      @SuppressWarnings("unchecked")
-      Operator<SelectDesc> sel = OperatorFactory.get((Class<SelectDesc>) desc.getClass());
-      sel.setConf(desc);
-      sel.setSchema(rowResolver.getRowSchema());
-      sel.setColumnExprMap(colExprMap);
+      SelectOperator sel = selFactory.getSelectOperator();
+      SelectDesc selDesc = sel.getConf();
 
       // Change group-by to use columns from this select
-      ArrayList<String> gbyColNames = gbyDesc.getOutputColumnNames();
+      ArrayList<String> gbyColNames = desc.getOutputColumnNames();
       Map<String, ExprNodeDesc> gbyColExprMap = gby.getColumnExprMap();
 
       ArrayList<Integer> keyCols = new ArrayList<Integer>();
       ArrayList<Integer> valCols = new ArrayList<Integer>();
 
       int index = 0;
-      ArrayList<ExprNodeDesc> keys = gbyDesc.getKeys();
+      ArrayList<ExprNodeDesc> keys = desc.getKeys();
       for (; index < keys.size(); ++index) {
         ExprNodeDesc newKey = Utils.generateColumnDescs(sel, index).get(0);
         keys.set(index, newKey);
@@ -645,7 +622,7 @@ public class RewriteProcFactory {
         keyCols.add(index);
       }
 
-      ArrayList<AggregationDesc> aggrs = gbyDesc.getAggregators();
+      ArrayList<AggregationDesc> aggrs = desc.getAggregators();
       for (int i = 0; i < aggrs.size(); ++i) {
         AggregationDesc aggr = aggrs.get(i);
         ArrayList<ExprNodeDesc> params = aggr.getParameters();
@@ -677,35 +654,43 @@ public class RewriteProcFactory {
       newParents.add(sel);
       gby.setChildOperators(newParents);
 
-      // Put SEL into ParseContext
-      OpParseContext opParseContext = new OpParseContext(rowResolver);
-      ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
-
       ctx.putTidColumnIndex(sel, tidIdx);
       for (int condIndex : condIndexes) {
         ctx.addCondColumnIndex(sel, condIndex);
       }
 
       // Cache it!
-      desc.cache(keyCols);
-      desc.cache(valCols);
+      selDesc.cache(keyCols);
+      selDesc.cache(valCols);
       GroupByOperator gby2 = (GroupByOperator) gby.getChildOperators().get(0).getChildOperators()
           .get(0);
-      ctx.putGroupByLineage(gby2, new GroupByLineage(keyCols, valCols));
+      ctx.putGroupByInput(gby2, new GroupByInput(keyCols, valCols));
     }
 
-    private AggrColInfo createAggregate(String udafName,
-        ArrayList<ExprNodeDesc> params, boolean distinct, boolean allCols,
-        GenericUDAFEvaluator.Mode emode) throws SemanticException {
+    // Rewrite AggregationDesc to:
+    // (1) Use the ABM version of SUM/COUNT/AVERAGE
+    // (2) Return the correct type
+    private void modifyAggregator(int index) throws SemanticException {
+      // (1)
+      AggregationDesc aggregator = aggregators.get(index);
+      String oldUdafName = aggregator.getGenericUDAFName();
+      String udafName = convertUdafName(oldUdafName);
+      ArrayList<ExprNodeDesc> parameters = aggregator.getParameters();
+      boolean distinct = aggregator.getDistinct();
+      boolean isAllCols = oldUdafName.equalsIgnoreCase("count") ? true : false;
       GenericUDAFEvaluator udafEvaluator =
           SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
-              params, null, distinct, allCols);
+              parameters, null, distinct, isAllCols);
       assert (udafEvaluator != null);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
-          udafEvaluator, emode, params);
-      AggregationDesc aggrDesc = new AggregationDesc(udafName,
-          udaf.genericUDAFEvaluator, udaf.convertedParameters, distinct, emode);
-      return new AggrColInfo(aggrDesc, udaf.returnType);
+          udafEvaluator, evaluatorMode, parameters);
+      AggregationDesc aggregationDesc = new AggregationDesc(udafName,
+          udaf.genericUDAFEvaluator, udaf.convertedParameters, distinct, evaluatorMode);
+
+      aggregators.set(index, aggregationDesc);
+      // (2): We only need to change the ColumnInfo in the schema
+      // as other places (e.g., RowResolver) reference to the same ColumnInfo
+      signature.get(numKeys + index).setType(udaf.returnType);
     }
 
     private String convertUdafName(String udaf) {
@@ -719,57 +704,25 @@ public class RewriteProcFactory {
       }
     }
 
-    // Rewrite AggregationDesc to:
-    // (1) Use the ABM version of SUM/COUNT/AVERAGE
-    // (2) Return the correct type
-    private void rewriteAggrs(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
-      GroupByDesc desc = gby.getConf();
-      ArrayList<AggregationDesc> aggrs = desc.getAggregators();
-      int numKeys = desc.getKeys().size();
-
-      for (int i = 0; i < aggrs.size(); ++i) {
-        // (1)
-        AggregationDesc aggr = aggrs.get(i);
-        String udafName = convertUdafName(aggr.getGenericUDAFName());
-        boolean isAllCols = aggr.getGenericUDAFName().equalsIgnoreCase("count") ? true : false;
-        AggrColInfo aggrInfo = createAggregate(udafName, aggr.getParameters(),
-            aggr.getDistinct(), isAllCols, aggr.getMode());
-        aggrs.set(i, aggrInfo.aggregationDesc);
-        // (2): We only need to change the ColumnInfo in the schema
-        // as other places (e.g., RowResolver) reference to the same ColumnInfo
-        signature.get(numKeys + i).setType(aggrInfo.returnType);
-      }
-    }
-
-    // Add columns
-    // (1) to compute condition
-    // (2) to compute lineage
-    private void addColumns(GroupByOperator gby, RewriteProcCtx ctx) throws SemanticException {
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-
-      GroupByDesc desc = gby.getConf();
-      ArrayList<AggregationDesc> aggrs = desc.getAggregators();
-      int numKeys = desc.getKeys().size();
-      RowResolver rowResovler = ctx.getOpParseContext(gby).getRowResolver();
-      ArrayList<String> outputColNames = desc.getOutputColumnNames();
-
-      List<ExprNodeColumnDesc> condCols = Utils.generateColumnDescs(parent,
-          ctx.getCondColumnIndexes(parent));
-      assert condCols.size() < 2;
-      GroupByDesc.Mode amode = desc.getMode();
-      GenericUDAFEvaluator.Mode emode = SemanticAnalyzer.groupByDescModeToUDAFMode(
-          amode, false);
-      ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>(condCols);
-      AggrColInfo aggrInfo = createAggregate(COND_MERGE, params, false, false, emode);
-      AggregationDesc aggrDesc = aggrInfo.aggregationDesc;
+    private void addAggregator(String udafName, Operator<? extends OperatorDesc> op,
+        List<Integer> indexes) throws SemanticException {
+      ArrayList<ExprNodeDesc> parameters = new ArrayList<ExprNodeDesc>(
+          Utils.generateColumnDescs(parent, indexes));
+      GenericUDAFEvaluator udafEvaluator =
+          SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
+              parameters, null, false, false);
+      assert (udafEvaluator != null);
+      GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
+          udafEvaluator, evaluatorMode, parameters);
+      AggregationDesc aggregationDesc = new AggregationDesc(udafName,
+          udaf.genericUDAFEvaluator, udaf.convertedParameters, false, evaluatorMode);
 
       // colExprMap only has keys in it, so don't add this aggregation
-      aggrs.add(aggrDesc);
-      String colName = Utils.getColumnInternalName(numKeys + aggrs.size() - 1);
-      rowResovler.put("", colName, new ColumnInfo(colName, aggrInfo.returnType, "", false));
-      outputColNames.add(colName);
-
-      ctx.addCondColumnIndex(gby, outputColNames.size() - 1);
+      String columnInternalName = Utils.getColumnInternalName(numKeys + aggregators.size());
+      aggregators.add(aggregationDesc);
+      rowResovler.put("", columnInternalName, new ColumnInfo(columnInternalName, udaf.returnType,
+          "", false));
+      outputColNames.add(columnInternalName);
     }
 
   }
