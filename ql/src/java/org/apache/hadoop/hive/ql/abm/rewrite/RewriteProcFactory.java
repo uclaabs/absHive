@@ -303,7 +303,7 @@ public class RewriteProcFactory {
 
   }
 
-  public static class TableScanRewriter extends RewriteProcessor {
+  public static class TableScanProcessor extends RewriteProcessor {
 
     protected Operator<? extends OperatorDesc> ts = null;
     protected ArrayList<ColumnInfo> signature = null;
@@ -1003,6 +1003,10 @@ public class RewriteProcFactory {
 
   }
 
+  public static NodeProcessor getTableScanProc() {
+    return new TableScanProcessor();
+  }
+
   public static NodeProcessor getDefaultProc() {
     return new DefaultProcessor();
   }
@@ -1041,6 +1045,8 @@ public class RewriteProcFactory {
         getGroupByProc());
     opRules.put(new RuleRegExp("R5", CommonJoinOperator.getOperatorName() + "%"),
         getJoinProc());
+    opRules.put(new RuleRegExp("R6", TableScanOperator.getOperatorName() + "%"),
+        getTableScanProc());
 
     // The dispatcher fires the processor corresponding to the closest matching rule
     // and passes the context along
@@ -1050,8 +1056,6 @@ public class RewriteProcFactory {
     // Start walking from the top ops
     ArrayList<Node> topNodes = new ArrayList<Node>(ctx.getParseContext().getTopOps().values());
     walker.startWalking(topNodes, null);
-
-    LineageIOProcFactory.setUpLineageIO(ctx);
 
     return ctx.getParseContext();
   }
