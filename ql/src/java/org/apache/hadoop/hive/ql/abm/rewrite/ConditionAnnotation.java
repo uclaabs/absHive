@@ -91,10 +91,7 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
   }
 
   public int getOutputSize(GroupByOperator gby) {
-    int sz = gby.getConf().getKeys().size();
-    for (AggregateInfo ai : aggregates.get(gby)) {
-      ++sz;
-    }
+    int sz = gby.getConf().getKeys().size() + aggregates.get(gby).size();
     // For the mandatory count(*)
     --sz;
     // For lineage, group-by-id
