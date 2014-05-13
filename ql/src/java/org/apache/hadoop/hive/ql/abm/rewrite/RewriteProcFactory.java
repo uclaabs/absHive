@@ -21,6 +21,7 @@ import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
+import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
@@ -76,6 +77,8 @@ public class RewriteProcFactory {
 
   private static final String COND_JOIN = "cond_join";
   private static final String COND_MERGE = "cond_merge";
+
+  private static final String LIN_SUM = "lin_sum";
 
   private static final String GEN_ID = "gen_id";
 
@@ -300,22 +303,32 @@ public class RewriteProcFactory {
 
   }
 
-  public static class TableScanRewriter extends BaseProcessor {
+  public static class TableScanRewriter extends RewriteProcessor {
+
+    protected Operator<? extends OperatorDesc> ts = null;
+    protected ArrayList<ColumnInfo> signature = null;
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
 
-      if (ctx.withTid(op)) {
+      if (ctx.withTid(ts)) {
         for (int i = 0; i < signature.size(); ++i) {
           if (signature.get(i).getInternalName().equals(TID)) {
-            ctx.putTidColumnIndex(op, i);
+            ctx.putTidColumnIndex(ts, i);
           }
         }
       }
 
       return null;
+    }
+
+    @Override
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      ts = (TableScanOperator) nd;
+      signature = ts.getSchema().getSignature();
     }
 
   }
@@ -342,9 +355,25 @@ public class RewriteProcFactory {
       // Forward the tid column
       if (ctx.withTid(op)) {
         int index = ctx.getTidColumnIndex(parent);
-        forwardColumn(index);
         // Maintain the tid column index
-        ctx.putTidColumnIndex(op, signature.size() - 1);
+        ctx.putTidColumnIndex(op, forwardColumn(index));
+      }
+
+      // Forward the condition columns
+      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+      if (condIndexes != null) {
+        for (int index : condIndexes) {
+          // Maintain the condition column index
+          ctx.addCondColumnIndex(op, forwardColumn(index));
+        }
+      }
+
+      // Forward the lineage column
+      // Actually it can only happens to ReduceSink
+      Integer lineageIndex = ctx.getLineageColumnIndex(parent);
+      if (lineageIndex != null) {
+        assert (nd instanceof ReduceSinkOperator);
+        ctx.putLineageColumnIndex(op, forwardColumn(lineageIndex));
       }
 
       // Forward the gbyId columns
@@ -356,19 +385,8 @@ public class RewriteProcFactory {
             continue;
           }
           int index = entry.getValue();
-          forwardColumn(index);
           // Maintain the id column index
-          ctx.addGbyIdColumnIndex(op, gby, signature.size() - 1);
-        }
-      }
-
-      // Forward the condition columns
-      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
-      if (condIndexes != null) {
-        for (int index : condIndexes) {
-          forwardColumn(index);
-          // Maintain the condition column index
-          ctx.addCondColumnIndex(op, signature.size() - 1);
+          ctx.addGbyIdColumnIndex(op, gby, forwardColumn(index));
         }
       }
 
@@ -385,10 +403,12 @@ public class RewriteProcFactory {
     }
 
     // Implicitly forward the column
-    protected void forwardColumn(int index) {
+    protected int forwardColumn(int index) {
       ColumnInfo ci = parentSignature.get(index);
       String[] name = parentRR.reverseLookup(ci.getInternalName());
       rowResolver.put(name[0], name[1], ci);
+
+      return signature.size() - 1;
     }
 
   }
@@ -418,7 +438,7 @@ public class RewriteProcFactory {
 
     // Explicitly forward the column
     @Override
-    protected void forwardColumn(int index) {
+    protected int forwardColumn(int index) {
       ExprNodeColumnDesc column = Utils.generateColumnDescs(parent, index).get(0);
       String columnInternalName = Utils.getColumnInternalName(valueCols.size());
       valueCols.add(column);
@@ -426,6 +446,8 @@ public class RewriteProcFactory {
       String valName = Utilities.ReduceField.VALUE.toString() + "." + columnInternalName;
       columnExprMap.put(valName, column);
       rowResolver.put("", valName, new ColumnInfo(valName, column.getTypeInfo(), "", false));
+
+      return signature.size() - 1;
     }
 
   }
@@ -455,10 +477,9 @@ public class RewriteProcFactory {
 
     // Explicitly or implicitly forward the column
     @Override
-    protected void forwardColumn(int index) {
+    protected int forwardColumn(int index) {
       if (desc.isSelStarNoCompute()) {
-        super.forwardColumn(index);
-        return;
+        return super.forwardColumn(index);
       }
 
       ExprNodeColumnDesc column = Utils.generateColumnDescs(parent, index).get(0);
@@ -468,6 +489,8 @@ public class RewriteProcFactory {
       columnExprMap.put(outputName, column);
       rowResolver
           .put("", outputName, new ColumnInfo(outputName, column.getTypeInfo(), "", false));
+
+      return signature.size() - 1;
     }
 
   }
@@ -508,6 +531,7 @@ public class RewriteProcFactory {
       // Insert Select as input and cache it
       if (firstGby) {
         insertSelect();
+        initialize(nd, procCtx);
       }
 
       // Rewrite AggregationDesc
@@ -518,10 +542,15 @@ public class RewriteProcFactory {
       // Add the column to compute condition
       List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
       assert (condIndexes == null || condIndexes.size() < 2);
-      addAggregator(COND_MERGE, parent, condIndexes);
-      ctx.addCondColumnIndex(gby, signature.size() - 1);
+      ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, parent, condIndexes));
 
-      // TODO: Add the column to compute lineage
+      // Add the column to compute lineage
+      if (firstGby) {
+        ctx.putLineageColumnIndex(gby,
+            addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getTidColumnIndex(parent))));
+      } else {
+        addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getLineageColumnIndex(parent)));
+      }
 
       // Add select to generate group id
       if (!firstGby) {
@@ -581,7 +610,8 @@ public class RewriteProcFactory {
       SelectOperator sel = selFactory.getSelectOperator();
 
       // Change the connection
-      sel.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(gby.getParentOperators()));
+      sel.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(gby
+          .getParentOperators()));
       sel.setChildOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(gby)));
       for (Operator<? extends OperatorDesc> par : gby.getParentOperators()) {
         List<Operator<? extends OperatorDesc>> children = par.getChildOperators();
@@ -646,10 +676,10 @@ public class RewriteProcFactory {
       }
     }
 
-    private void addAggregator(String udafName, Operator<? extends OperatorDesc> op,
-        List<Integer> indexes) throws SemanticException {
+    private int addAggregator(String udafName, Operator<? extends OperatorDesc> op,
+        List<Integer> parameterIndexes) throws SemanticException {
       ArrayList<ExprNodeDesc> parameters = new ArrayList<ExprNodeDesc>(
-          Utils.generateColumnDescs(parent, indexes));
+          Utils.generateColumnDescs(parent, parameterIndexes));
       GenericUDAFEvaluator udafEvaluator =
           SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
               parameters, null, false, false);
@@ -665,6 +695,8 @@ public class RewriteProcFactory {
       rowResovler.put("", columnInternalName, new ColumnInfo(columnInternalName, udaf.returnType,
           "", false));
       outputColumnNames.add(columnInternalName);
+
+      return signature.size() - 1;
     }
 
   }
@@ -890,6 +922,8 @@ public class RewriteProcFactory {
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
 
+      int countofTidCols = 0;
+      int countOfCondCols = 0;
       for (Operator<? extends OperatorDesc> parent : join.getParentOperators()) {
         parentRS = (ReduceSinkOperator) parent;
         parentRR = ctx.getOpParseContext(parentRS).getRowResolver();
@@ -899,10 +933,22 @@ public class RewriteProcFactory {
         if (ctx.withTid(join)) {
           Integer index = ctx.getTidColumnIndex(parentRS);
           if (index != null) {
-            forwardColumn(index);
-            ctx.putTidColumnIndex(join, signature.size() - 1);
+            ++countofTidCols;
+            ctx.putTidColumnIndex(join, forwardColumn(index));
           }
         }
+
+        // Forward the condition columns
+        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+        if (condIndexes != null) {
+          for (int index : condIndexes) {
+            // Maintain the condition column index
+            ctx.addCondColumnIndex(op, forwardColumn(index));
+            ++countOfCondCols;
+          }
+        }
+
+        // There is no lineage column to forward
 
         // Forward the gbyId columns
         Map<GroupByOperator, Integer> gbyIdIndexes = ctx.getGbyIdColumnIndexes(parent);
@@ -913,27 +959,14 @@ public class RewriteProcFactory {
               continue;
             }
             int index = entry.getValue();
-            forwardColumn(index);
-            ctx.addGbyIdColumnIndex(join, gby, signature.size() - 1);
+            ctx.addGbyIdColumnIndex(join, gby, forwardColumn(index));
           }
         }
+      }
 
-        // Forward the condition columns
-        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
-        if (condIndexes != null) {
-          int countOfCondCols = 0;
-
-          for (int index : condIndexes) {
-            forwardColumn(index);
-            // Maintain the condition column index
-            ctx.addCondColumnIndex(op, signature.size() - 1);
-            ++countOfCondCols;
-          }
-
-          if (countOfCondCols > 1) {
-            appendSelect(join, ctx, false);
-          }
-        }
+      assert countofTidCols <= 1;
+      if (countOfCondCols > 1) {
+        appendSelect(join, ctx, false);
       }
 
       return null;
@@ -950,7 +983,7 @@ public class RewriteProcFactory {
       columnExprMap = join.getColumnExprMap();
     }
 
-    protected void forwardColumn(int index) throws SemanticException {
+    protected int forwardColumn(int index) throws SemanticException {
       ExprNodeColumnDesc column = Utils.generateColumnDescs(parentRS, index).get(0);
       String columnInternalName = Utils.getColumnInternalName(outputColumnNames.size());
       outputColumnNames.add(columnInternalName);
@@ -964,6 +997,8 @@ public class RewriteProcFactory {
       rowResolver.put(names[0], names[1],
           new ColumnInfo(columnInternalName, ci.getType(), names[0],
               ci.getIsVirtualCol(), ci.isHiddenVirtualCol()));
+
+      return signature.size() - 1;
     }
 
   }

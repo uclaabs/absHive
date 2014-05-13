@@ -102,6 +102,14 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     indexes.add(index);
   }
 
+  public Integer getLineageColumnIndex(Operator<? extends OperatorDesc> op) {
+    return lineageIndex.get(op);
+  }
+
+  public void putLineageColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+    lineageIndex.put(op, index);
+  }
+
   public Map<GroupByOperator, Integer> getGbyIdColumnIndexes(Operator<? extends OperatorDesc> op) {
     return gbyIdIndex.get(op);
   }
