@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -20,6 +21,7 @@ import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
+import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
 import org.apache.hadoop.hive.ql.lib.Dispatcher;
@@ -65,6 +67,8 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
  *
  */
 public class RewriteProcFactory {
+
+  private static final String TID = "_tid";
 
   private static final String SRV_SUM = "srv_sum";
   private static final String SRV_AVG = "srv_avg";
@@ -161,6 +165,7 @@ public class RewriteProcFactory {
 
   }
 
+  @SuppressWarnings("unchecked")
   public static void appendSelect(
       Operator<? extends OperatorDesc> op, RewriteProcCtx ctx, boolean afterGby,
       ExprNodeDesc... additionalConds) throws SemanticException {
@@ -182,46 +187,21 @@ public class RewriteProcFactory {
     }
 
     // Add the condition column
-    List<Integer> indexes = ctx.getCondColumnIndexes(op);
-    ExprNodeDesc condColumn = null;
-    GenericUDF condJoin = getUdf(COND_JOIN);
-    // Note: use Arrays.asList will cause bugs
-    for (ExprNodeColumnDesc cond : Utils.generateColumnDescs(op, indexes)) {
-      if (condColumn == null) {
-        condColumn = cond;
-      } else {
-        List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
-        list.add(condColumn);
-        list.add(cond);
-        condColumn = ExprNodeGenericFuncDesc.newInstance(condJoin, list);
-      }
-    }
-    for (ExprNodeDesc newCond : additionalConds) {
-      if (condColumn == null) {
-        condColumn = newCond;
-      } else {
-        List<ExprNodeDesc> list = new ArrayList<ExprNodeDesc>();
-        list.add(condColumn);
-        list.add(newCond);
-        condColumn = ExprNodeGenericFuncDesc.newInstance(condJoin, list);
-      }
-    }
-    selFactory.addCondIndex(selFactory.addColumn(condColumn));
+    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>(
+        Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
+    conds.addAll(Arrays.asList(additionalConds));
+    selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
 
-    // Add a group-by id column
-    Integer idColIndex = null;
     if (afterGby) {
-      GroupByOperator gby = (GroupByOperator) op;
-
-      ExprNodeGenericFuncDesc idColumn =
-          ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>());
-      idColIndex = selFactory.addColumn(idColumn);
-      selFactory.addGbyIdIndex(gby, idColIndex);
+      // Add the group-by-id column for this group-by
+      selFactory.addGbyIdIndex((GroupByOperator) op,
+          selFactory.addColumn(
+              ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>())));
     }
-    // Forward the original group-by id columns
-    Map<GroupByOperator, Integer> oldIdColMap = ctx.getGbyIdColumnIndexes(op);
-    if (oldIdColMap != null) {
-      for (Map.Entry<GroupByOperator, Integer> entry : oldIdColMap.entrySet()) {
+    // Forward the original group-by-id columns
+    Map<GroupByOperator, Integer> gbyIdIndexes = ctx.getGbyIdColumnIndexes(op);
+    if (gbyIdIndexes != null) {
+      for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndexes.entrySet()) {
         GroupByOperator gby = entry.getKey();
         if (op.equals(ConditionAnnotation.lastUsedBy(gby))) {
           continue;
@@ -235,28 +215,33 @@ public class RewriteProcFactory {
     SelectOperator sel = selFactory.getSelectOperator();
 
     // Change the connection
-    List<Operator<? extends OperatorDesc>> parents =
-        new ArrayList<Operator<? extends OperatorDesc>>();
-    parents.add(op);
-    sel.setParentOperators(parents);
-    List<Operator<? extends OperatorDesc>> children =
-        new ArrayList<Operator<? extends OperatorDesc>>(op.getChildOperators());
-    sel.setChildOperators(children);
-
+    sel.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(op)));
+    sel.setChildOperators(new ArrayList<Operator<? extends OperatorDesc>>(op.getChildOperators()));
     for (Operator<? extends OperatorDesc> child : op.getChildOperators()) {
-      List<Operator<? extends OperatorDesc>> newParents = child.getParentOperators();
-      newParents.remove(op);
-      newParents.add(sel);
-      child.setParentOperators(newParents);
+      List<Operator<? extends OperatorDesc>> parents = child.getParentOperators();
+      parents.set(parents.indexOf(op), sel);
     }
-    List<Operator<? extends OperatorDesc>> newChildren =
-        new ArrayList<Operator<? extends OperatorDesc>>();
-    newChildren.add(sel);
-    op.setChildOperators(newChildren);
+    op.setChildOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
 
     if (afterGby) {
       ctx.putGroupByOutput((GroupByOperator) op, sel);
     }
+  }
+
+  private static ExprNodeDesc joinConditions(List<ExprNodeDesc> conditions)
+      throws UDFArgumentException {
+    ExprNodeDesc column = null;
+    GenericUDF condJoin = getUdf(COND_JOIN);
+    for (ExprNodeDesc condition : conditions) {
+      if (column == null) {
+        column = condition;
+      } else {
+        // Note: use Arrays.asList will cause bugs
+        column = ExprNodeGenericFuncDesc.newInstance(
+            condJoin, new ArrayList<ExprNodeDesc>(Arrays.asList(column, condition)));
+      }
+    }
+    return column;
   }
 
   public static abstract class RewriteProcessor implements NodeProcessor {
@@ -315,6 +300,26 @@ public class RewriteProcFactory {
 
   }
 
+  public static class TableScanRewriter extends BaseProcessor {
+
+    @Override
+    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
+        Object... nodeOutputs) throws SemanticException {
+      super.process(nd, stack, procCtx, nodeOutputs);
+
+      if (ctx.withTid(op)) {
+        for (int i = 0; i < signature.size(); ++i) {
+          if (signature.get(i).getInternalName().equals(TID)) {
+            ctx.putTidColumnIndex(op, i);
+          }
+        }
+      }
+
+      return null;
+    }
+
+  }
+
   /**
    *
    * DefaultProcessor implicitly forwards the condition column if exists,
@@ -333,11 +338,6 @@ public class RewriteProcFactory {
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
-
-      // TODO: to fix
-      if (op.getParentOperators() == null) {
-        return null;
-      }
 
       // Forward the tid column
       if (ctx.withTid(op)) {
@@ -581,24 +581,13 @@ public class RewriteProcFactory {
       SelectOperator sel = selFactory.getSelectOperator();
 
       // Change the connection
-      List<Operator<? extends OperatorDesc>> parents =
-          new ArrayList<Operator<? extends OperatorDesc>>(gby.getParentOperators());
-      sel.setParentOperators(parents);
-      List<Operator<? extends OperatorDesc>> children =
-          new ArrayList<Operator<? extends OperatorDesc>>();
-      children.add(gby);
-      sel.setChildOperators(children);
-
+      sel.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(gby.getParentOperators()));
+      sel.setChildOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(gby)));
       for (Operator<? extends OperatorDesc> par : gby.getParentOperators()) {
-        List<Operator<? extends OperatorDesc>> newChildren = par.getChildOperators();
-        newChildren.remove(gby);
-        newChildren.add(sel);
-        par.setChildOperators(newChildren);
+        List<Operator<? extends OperatorDesc>> children = par.getChildOperators();
+        children.set(children.indexOf(gby), sel);
       }
-      List<Operator<? extends OperatorDesc>> newParents =
-          new ArrayList<Operator<? extends OperatorDesc>>();
-      newParents.add(sel);
-      gby.setChildOperators(newParents);
+      gby.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
 
       // Change group-by to use columns from this select
       int index = 0;
@@ -607,12 +596,11 @@ public class RewriteProcFactory {
         keys.set(index, newKey);
         columnExprMap.put(outputColumnNames.get(index), newKey);
       }
-
       for (int i = 0; i < aggregators.size(); ++i) {
-        ArrayList<ExprNodeDesc> params = aggregators.get(i).getParameters();
-        for (int j = 0; j < params.size(); ++j, ++index) {
+        ArrayList<ExprNodeDesc> parameters = aggregators.get(i).getParameters();
+        for (int j = 0; j < parameters.size(); ++j, ++index) {
           ExprNodeDesc newParam = Utils.generateColumnDescs(sel, index).get(0);
-          params.set(j, newParam);
+          parameters.set(j, newParam);
         }
       }
 

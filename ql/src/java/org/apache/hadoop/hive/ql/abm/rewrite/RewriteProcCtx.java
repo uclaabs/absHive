@@ -25,6 +25,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
       new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
+  private final HashMap<Operator<? extends OperatorDesc>, Integer> lineageIndex =
+      new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
       new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
 
