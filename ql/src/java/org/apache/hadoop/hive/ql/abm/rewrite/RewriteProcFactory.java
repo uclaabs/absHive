@@ -189,12 +189,6 @@ public class RewriteProcFactory {
       selFactory.setTidIndex(selFactory.forwardColumn(op, ctx.getTidColumnIndex(op), false));
     }
 
-    // Add the condition column
-    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>(
-        Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
-    conds.addAll(Arrays.asList(additionalConds));
-    selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
-
     if (afterGby) {
       // Add the group-by-id column for this group-by
       selFactory.addGbyIdIndex((GroupByOperator) op,
@@ -213,6 +207,12 @@ public class RewriteProcFactory {
         selFactory.addGbyIdIndex(gby, selFactory.forwardColumn(op, index, false));
       }
     }
+
+    // Add the condition column
+    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>(
+        Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
+    conds.addAll(Arrays.asList(additionalConds));
+    selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
 
     // Create SEL
     SelectOperator sel = selFactory.getSelectOperator();
@@ -359,15 +359,6 @@ public class RewriteProcFactory {
         ctx.putTidColumnIndex(op, forwardColumn(index));
       }
 
-      // Forward the condition columns
-      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
-      if (condIndexes != null) {
-        for (int index : condIndexes) {
-          // Maintain the condition column index
-          ctx.addCondColumnIndex(op, forwardColumn(index));
-        }
-      }
-
       // Forward the lineage column
       // Actually it can only happens to ReduceSink
       Integer lineageIndex = ctx.getLineageColumnIndex(parent);
@@ -387,6 +378,15 @@ public class RewriteProcFactory {
           int index = entry.getValue();
           // Maintain the id column index
           ctx.addGbyIdColumnIndex(op, gby, forwardColumn(index));
+        }
+      }
+
+      // Forward the condition columns
+      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+      if (condIndexes != null) {
+        for (int index : condIndexes) {
+          // Maintain the condition column index
+          ctx.addCondColumnIndex(op, forwardColumn(index));
         }
       }
 
@@ -938,16 +938,6 @@ public class RewriteProcFactory {
           }
         }
 
-        // Forward the condition columns
-        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
-        if (condIndexes != null) {
-          for (int index : condIndexes) {
-            // Maintain the condition column index
-            ctx.addCondColumnIndex(op, forwardColumn(index));
-            ++countOfCondCols;
-          }
-        }
-
         // There is no lineage column to forward
 
         // Forward the gbyId columns
@@ -960,6 +950,16 @@ public class RewriteProcFactory {
             }
             int index = entry.getValue();
             ctx.addGbyIdColumnIndex(join, gby, forwardColumn(index));
+          }
+        }
+
+        // Forward the condition columns
+        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+        if (condIndexes != null) {
+          for (int index : condIndexes) {
+            // Maintain the condition column index
+            ctx.addCondColumnIndex(op, forwardColumn(index));
+            ++countOfCondCols;
           }
         }
       }

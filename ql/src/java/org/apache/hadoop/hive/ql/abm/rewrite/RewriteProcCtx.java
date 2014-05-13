@@ -23,12 +23,13 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   private final HashMap<Operator<? extends OperatorDesc>, Integer> tidIndex =
       new HashMap<Operator<? extends OperatorDesc>, Integer>();
-  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
-      new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
   private final HashMap<Operator<? extends OperatorDesc>, Integer> lineageIndex =
       new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
       new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
+
+  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
+  new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();

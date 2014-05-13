@@ -97,8 +97,8 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     }
     // For the mandatory count(*)
     --sz;
-    // For condition, lineage, group-by-id
-    sz += 3;
+    // For lineage, group-by-id
+    sz += 2;
     return sz;
   }
 
