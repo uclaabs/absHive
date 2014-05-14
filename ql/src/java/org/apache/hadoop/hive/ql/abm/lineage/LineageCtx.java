@@ -52,7 +52,7 @@ public class LineageCtx implements NodeProcessorCtx {
   }
 
   public boolean isSampled(Operator<? extends OperatorDesc> op) {
-    return annoSrc.containsKey(op) && condSrc.containsKey(op);
+    return annoSrc.containsKey(op) || condSrc.containsKey(op);
   }
 
   public void addAnnoSrc(Operator<? extends OperatorDesc> op, Operator<? extends OperatorDesc> src) {

@@ -69,7 +69,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
  */
 public class RewriteProcFactory {
 
-  private static final String TID = "_tid";
+  private static final String TID = "tid";
 
   private static final String SRV_SUM = "srv_sum";
   private static final String SRV_AVG = "srv_avg";
@@ -649,10 +649,9 @@ public class RewriteProcFactory {
       String udafName = convertUdafName(oldUdafName);
       ArrayList<ExprNodeDesc> parameters = aggregator.getParameters();
       boolean distinct = aggregator.getDistinct();
-      boolean isAllCols = oldUdafName.equalsIgnoreCase("count") ? true : false;
       GenericUDAFEvaluator udafEvaluator =
           SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
-              parameters, null, distinct, isAllCols);
+              parameters, null, distinct, false);
       assert (udafEvaluator != null);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
           udafEvaluator, evaluatorMode, parameters);

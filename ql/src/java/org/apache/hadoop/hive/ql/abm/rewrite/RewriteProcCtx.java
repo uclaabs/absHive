@@ -29,7 +29,7 @@ public class RewriteProcCtx implements NodeProcessorCtx {
       new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
-  new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
+      new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
@@ -45,8 +45,11 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     tctx = ctx;
 
     // Find all operators with the tid column
-    for (GroupByOperator gby : tctx.getCondition(tctx.getSinkOp()).getAllGroupByOps()) {
-      backtrace(gby);
+    ConditionAnnotation anno = tctx.getCondition(tctx.getSinkOp());
+    if (anno != null) {
+      for (GroupByOperator gby : anno.getAllGroupByOps()) {
+        backtrace(gby);
+      }
     }
   }
 

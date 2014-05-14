@@ -55,7 +55,7 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryProperties;
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.cs.ExplainTaskHelper;
+import org.apache.hadoop.hive.ql.cs.AbmTestHelper;
 import org.apache.hadoop.hive.ql.exec.AbstractMapJoinOperator;
 import org.apache.hadoop.hive.ql.exec.ArchiveUtils;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
@@ -8750,8 +8750,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
      * victor: only for showing modified plan, can be commented out in the release
      */
     try {
-      //ExplainTaskHelper.analyze(sinkOp, opParseCtx);
-      ExplainTaskHelper.test(sinkOp, pCtx);
+      //AbmTestHelper.analyze(sinkOp, opParseCtx);
+      AbmTestHelper.test(sinkOp, pCtx);
     }
     catch (Exception e){
       e.printStackTrace();

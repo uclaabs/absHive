@@ -7,7 +7,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 
-public class SrvReduce extends GenericUDF {
+public class CondJoin extends GenericUDF {
 
 //  private StructObjectInspector structOI = null;
   private Object obj;
@@ -40,7 +40,7 @@ public class SrvReduce extends GenericUDF {
 
 	@Override
   public String getDisplayString(String[] arg0) {
-	  return "Test Function Srv Reduce";
+	  return "Test Function Srv Merge";
   }
 
 }

@@ -37,7 +37,8 @@ public class TraceProcCtx implements NodeProcessorCtx {
     return lineage.get(internalName);
   }
 
-  public void putLineage(Operator<? extends OperatorDesc> op, String internalName, AggregateInfo linfo) {
+  public void putLineage(Operator<? extends OperatorDesc> op, String internalName,
+      AggregateInfo linfo) {
     HashMap<String, AggregateInfo> lineage = lineages.get(op);
     if (lineage == null) {
       lineage = new HashMap<String, AggregateInfo>();
@@ -81,7 +82,10 @@ public class TraceProcCtx implements NodeProcessorCtx {
   }
 
   public void check() {
-    conditions.get(sinkOp).check();
+    ConditionAnnotation anno = conditions.get(sinkOp);
+    if (anno != null) {
+      anno.check();
+    }
   }
 
   public Operator<? extends OperatorDesc> getSinkOp() {

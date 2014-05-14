@@ -7,7 +7,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 
-public class TestCount  extends AbstractGenericUDAFResolver {
+public class SrvAvg  extends AbstractGenericUDAFResolver {
 
 
 	@Override
@@ -15,7 +15,7 @@ public class TestCount  extends AbstractGenericUDAFResolver {
 			throws SemanticException {
 
     if (parameters.length > 3) {
-      throw new UDFArgumentException("count_srv takes at most three arguments!");
+      throw new UDFArgumentException("avg_srv takes at most three arguments!");
     }
 
     return new GenericEvaluator();
