@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.GenericUDAFInfo;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
@@ -169,7 +170,7 @@ public class RewriteProcFactory {
   }
 
   @SuppressWarnings("unchecked")
-  public static void appendSelect(
+  public static SelectOperator appendSelect(
       Operator<? extends OperatorDesc> op, RewriteProcCtx ctx, boolean afterGby,
       ExprNodeDesc... additionalConds) throws SemanticException {
     SelectFactory selFactory = new SelectFactory(ctx);
@@ -235,6 +236,8 @@ public class RewriteProcFactory {
     if (afterGby) {
       ctx.putGroupByOutput((GroupByOperator) op, sel);
     }
+
+    return sel;
   }
 
   private static ExprNodeDesc joinConditions(List<ExprNodeDesc> conditions)
@@ -561,7 +564,12 @@ public class RewriteProcFactory {
 
       // Add select to generate group id
       if (!firstGby) {
-        appendSelect(gby, ctx, true);
+        SelectOperator sel = appendSelect(gby, ctx, true);
+        appendSelect(sel, ctx, false, ExprNodeGenericFuncDesc.newInstance(
+            getUdf("srv_greater_than"),
+            Arrays.asList(Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0),
+                new ExprNodeConstantDesc(new Double(0)))
+            ));
       }
 
       return null;
