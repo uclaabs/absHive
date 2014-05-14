@@ -205,7 +205,7 @@ public class TraceProcFactory {
         if (aggr != null) {
           return new IdentityTransform(aggr);
         }
-        return null;
+        return new ConstantTransform(null);
       }
 
       if (expr instanceof ExprNodeConstantDesc) {
