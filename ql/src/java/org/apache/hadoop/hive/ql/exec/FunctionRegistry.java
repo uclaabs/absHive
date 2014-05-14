@@ -413,7 +413,7 @@ public final class FunctionRegistry {
     registerGenericUDAF("cond_merge" , new CondMerge());
 
     //UDFs
-    registerUDF("gen_id", GenRowID.class, true);
+    registerUDF("gen_id", GenRowID.class, false);
     registerGenericUDF("cond_join" , CondJoin.class);
 
 

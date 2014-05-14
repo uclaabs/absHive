@@ -80,7 +80,8 @@ public class AbmTestHelper {
       }
     }
 
-    if (printExprMap) {
+    //we do not print Column Expr Map for SelectOperator
+    if (printExprMap && !(sinkOp instanceof SelectOperator)) {
       println(level, "Column Expr Map: ");
       Map<String, ExprNodeDesc> map = sinkOp.getColumnExprMap();
       if (map != null && map.entrySet() != null) {
