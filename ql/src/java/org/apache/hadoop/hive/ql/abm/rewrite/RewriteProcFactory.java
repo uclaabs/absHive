@@ -189,8 +189,14 @@ public class RewriteProcFactory {
       selFactory.setTidIndex(selFactory.forwardColumn(op, ctx.getTidColumnIndex(op), false));
     }
 
+    // Forward the lineage column
+    Integer lineageIndex = ctx.getLineageColumnIndex(op);
+    if (lineageIndex != null) {
+      selFactory.forwardColumn(op, lineageIndex, false);
+    }
+
+    // Add the group-by-id column for this group-by
     if (afterGby) {
-      // Add the group-by-id column for this group-by
       selFactory.addGbyIdIndex((GroupByOperator) op,
           selFactory.addColumn(
               ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>())));
@@ -549,7 +555,8 @@ public class RewriteProcFactory {
         ctx.putLineageColumnIndex(gby,
             addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getTidColumnIndex(parent))));
       } else {
-        addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getLineageColumnIndex(parent)));
+        ctx.putLineageColumnIndex(gby,
+            addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getLineageColumnIndex(parent))));
       }
 
       // Add select to generate group id

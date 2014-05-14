@@ -81,13 +81,6 @@ public class TraceProcCtx implements NodeProcessorCtx {
     return anno;
   }
 
-  public void check() {
-    ConditionAnnotation anno = conditions.get(sinkOp);
-    if (anno != null) {
-      anno.check();
-    }
-  }
-
   public Operator<? extends OperatorDesc> getSinkOp() {
     return sinkOp;
   }

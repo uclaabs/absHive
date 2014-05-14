@@ -298,8 +298,6 @@ public class TraceProcFactory {
     ArrayList<Node> topNodes = new ArrayList<Node>(lctx.getParseContext().getTopOps().values());
     walker.startWalking(topNodes, null);
 
-    ctx.check();
-
     return ctx;
   }
 

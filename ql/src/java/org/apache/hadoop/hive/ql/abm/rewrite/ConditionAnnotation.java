@@ -103,14 +103,6 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     return positions.keySet();
   }
 
-  public void check() {
-    for (Map.Entry<GroupByOperator, TreeSet<AggregateInfo>> entry : aggregates.entrySet()) {
-      GroupByOperator gby = entry.getKey();
-      TreeSet<AggregateInfo> aggrs = entry.getValue();
-      assert gby.getConf().getAggregators().size() + 1 == aggrs.size();
-    }
-  }
-
   @Override
   public int compare(GroupByOperator o1, GroupByOperator o2) {
     return positions.get(o1) - positions.get(o2);

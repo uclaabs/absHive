@@ -144,16 +144,20 @@ public class RewriteProcCtx implements NodeProcessorCtx {
       ret.add(tidIndex);
     }
 
+    Integer lineageIndex = getLineageColumnIndex(op);
+    if (lineageIndex != null) {
+      ret.add(lineageIndex);
+    }
+
+    Map<GroupByOperator, Integer> gbyIdIndexMap = getGbyIdColumnIndexes(op);
+    if (gbyIdIndexMap != null) {
+      ret.addAll(gbyIdIndexMap.values());
+    }
+
     List<Integer> condIndexes = getCondColumnIndexes(op);
     if (condIndexes != null) {
       ret.addAll(condIndexes);
     }
-
-    Map<GroupByOperator, Integer> idIndexMap = getGbyIdColumnIndexes(op);
-    if (idIndexMap != null) {
-      ret.addAll(idIndexMap.values());
-    }
-
 
     return ret;
   }
