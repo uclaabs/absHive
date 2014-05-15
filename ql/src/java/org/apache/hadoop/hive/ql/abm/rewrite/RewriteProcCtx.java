@@ -18,18 +18,14 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
-  private final HashSet<Operator<? extends OperatorDesc>> opsWithTid =
-      new HashSet<Operator<? extends OperatorDesc>>();
-
   private final HashMap<Operator<? extends OperatorDesc>, Integer> tidIndex =
       new HashMap<Operator<? extends OperatorDesc>, Integer>();
-  private final HashMap<Operator<? extends OperatorDesc>, Integer> lineageIndex =
-      new HashMap<Operator<? extends OperatorDesc>, Integer>();
+  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
+  new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
       new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
-
-  private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
-      new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
+  private final HashMap<Operator<? extends OperatorDesc>, Integer> lineageIndex =
+  new HashMap<Operator<? extends OperatorDesc>, Integer>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
@@ -43,38 +39,6 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   public RewriteProcCtx(TraceProcCtx ctx) {
     tctx = ctx;
-
-    // Find all operators with the tid column
-    ConditionAnnotation anno = tctx.getCondition(tctx.getSinkOp());
-    if (anno != null) {
-      for (GroupByOperator gby : anno.getAllGroupByOps()) {
-        backtrace(gby);
-      }
-    }
-  }
-
-  private boolean backtrace(Operator<? extends OperatorDesc> op) {
-    boolean addTid = false;
-
-    List<Operator<? extends OperatorDesc>> parents = op.getParentOperators();
-    if (parents != null) {
-      for (Operator<? extends OperatorDesc> parent : parents) {
-        boolean branchAddTid = backtrace(parent);
-        addTid = (branchAddTid || addTid);
-      }
-      if (op instanceof GroupByOperator) {
-        addTid = false;
-      }
-    } else {
-      if (isSampled(op)) {
-        addTid = true;
-      }
-    }
-
-    if (addTid) {
-      opsWithTid.add(op);
-    }
-    return addTid;
   }
 
   public AggregateInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
@@ -82,7 +46,7 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public boolean withTid(Operator<? extends OperatorDesc> op) {
-    return opsWithTid.contains(op);
+    return isAnnotatedWithSrv(op);
   }
 
   public Integer getTidColumnIndex(Operator<? extends OperatorDesc> op) {
@@ -197,8 +161,12 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return tctx.getLineageCtx();
   }
 
-  public boolean isSampled(Operator<? extends OperatorDesc> op) {
-    return tctx.isSampled(op);
+  public boolean isUncertain(Operator<? extends OperatorDesc> op) {
+    return tctx.isUncertain(op);
+  }
+
+  public boolean isAnnotatedWithSrv(Operator<? extends OperatorDesc> op) {
+    return tctx.isAnnotatedWithSrv(op);
   }
 
   public ParseContext getParseContext() {

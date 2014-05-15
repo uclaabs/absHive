@@ -51,8 +51,12 @@ public class LineageCtx implements NodeProcessorCtx {
     return lineage.get(op);
   }
 
-  public boolean isSampled(Operator<? extends OperatorDesc> op) {
+  public boolean isUncertain(Operator<? extends OperatorDesc> op) {
     return annoSrc.containsKey(op) || condSrc.containsKey(op);
+  }
+
+  public boolean isAnnotatedWithSrv(Operator<? extends OperatorDesc> op) {
+    return annoSrc.containsKey(op);
   }
 
   public void addAnnoSrc(Operator<? extends OperatorDesc> op, Operator<? extends OperatorDesc> src) {

@@ -287,7 +287,7 @@ public class LineageProcFactory {
       // 2. GRY --> RS --> GRY
       // We only need to check in the first aggregate.
       boolean toCheckAggr = !(parent instanceof ReduceSinkOperator);
-      boolean sampled = ctx.isSampled(gby);
+      boolean sampled = ctx.isUncertain(gby);
 
       // In aggregates
       for (AggregationDesc agg : gby.getConf().getAggregators()) {

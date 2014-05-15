@@ -59,13 +59,12 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 
 /**
  *
- * RewriteProcFactory maintains the following information:
- * (1) Use GroupByOperator identity to identify the tuple lineage,
- * and use the index in ArrayList\<AggregationDesc\> to identify
- * the value lineage within the tuple lineage.
- * (2) Map columns generated from aggregates to the corresponding
- * AggregationDesc id (GroupByOperator identity + index).
- * (3) Map each predicate/aggregate to its correlated AggregationDesc's.
+ * RewriteProcFactory
+ * (1) adds "tid" to the trace from TS to GBY.
+ * (2) adds conditions columns to the operator tree: esp. FILTER/JOIN/GBY.
+ * (3) adds lineage column to GBY.
+ * (4) adds gen_id for GBY.
+ * (5) adds select before and after GBY in order to cache.
  *
  */
 public class RewriteProcFactory {
@@ -75,6 +74,9 @@ public class RewriteProcFactory {
   private static final String SRV_SUM = "srv_sum";
   private static final String SRV_AVG = "srv_avg";
   private static final String SRV_COUNT = "srv_count";
+  private static final String CASE_SUM = "case_sum";
+  private static final String CASE_AVG = "case_avg";
+  private static final String CASE_COUNT = "case_count";
 
   private static final String COND_JOIN = "cond_join";
   private static final String COND_MERGE = "cond_merge";
@@ -190,10 +192,13 @@ public class RewriteProcFactory {
       selFactory.setTidIndex(selFactory.forwardColumn(op, ctx.getTidColumnIndex(op), false));
     }
 
-    // Forward the lineage column
-    Integer lineageIndex = ctx.getLineageColumnIndex(op);
-    if (lineageIndex != null) {
-      selFactory.forwardColumn(op, lineageIndex, false);
+    // Add the condition column
+    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>(
+        Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
+    conds.addAll(Arrays.asList(additionalConds));
+    int condIndex = selFactory.addColumn(joinConditions(conds));
+    if (!afterGby) {
+      selFactory.addCondIndex(condIndex);
     }
 
     // Add the group-by-id column for this group-by
@@ -215,11 +220,11 @@ public class RewriteProcFactory {
       }
     }
 
-    // Add the condition column
-    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>(
-        Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
-    conds.addAll(Arrays.asList(additionalConds));
-    selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
+    // Forward the lineage column
+    Integer lineageIndex = ctx.getLineageColumnIndex(op);
+    if (lineageIndex != null) {
+      selFactory.forwardColumn(op, lineageIndex, false);
+    }
 
     // Create SEL
     SelectOperator sel = selFactory.getSelectOperator();
@@ -368,12 +373,13 @@ public class RewriteProcFactory {
         ctx.putTidColumnIndex(op, forwardColumn(index));
       }
 
-      // Forward the lineage column
-      // Actually it can only happens to ReduceSink
-      Integer lineageIndex = ctx.getLineageColumnIndex(parent);
-      if (lineageIndex != null) {
-        assert (nd instanceof ReduceSinkOperator);
-        ctx.putLineageColumnIndex(op, forwardColumn(lineageIndex));
+      // Forward the condition columns
+      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+      if (condIndexes != null) {
+        for (int index : condIndexes) {
+          // Maintain the condition column index
+          ctx.addCondColumnIndex(op, forwardColumn(index));
+        }
       }
 
       // Forward the gbyId columns
@@ -390,13 +396,12 @@ public class RewriteProcFactory {
         }
       }
 
-      // Forward the condition columns
-      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
-      if (condIndexes != null) {
-        for (int index : condIndexes) {
-          // Maintain the condition column index
-          ctx.addCondColumnIndex(op, forwardColumn(index));
-        }
+      // Forward the lineage column
+      // Actually it can only happens to ReduceSink
+      Integer lineageIndex = ctx.getLineageColumnIndex(parent);
+      if (lineageIndex != null) {
+        assert (nd instanceof ReduceSinkOperator);
+        ctx.putLineageColumnIndex(op, forwardColumn(lineageIndex));
       }
 
       return null;
@@ -533,19 +538,21 @@ public class RewriteProcFactory {
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
 
-      if (!ctx.isSampled(gby)) {
+      if (!ctx.isUncertain(gby)) {
         return null;
       }
 
+      boolean continuous = ctx.isAnnotatedWithSrv(parent);
+
       // Insert Select as input and cache it
-      if (firstGby) {
+      if (firstGby && continuous) {
         insertSelect();
         initialize(nd, procCtx);
       }
 
       // Rewrite AggregationDesc
       for (int i = 0; i < aggregators.size(); ++i) {
-        modifyAggregator(i);
+        modifyAggregator(i, continuous);
       }
 
       // Add the column to compute condition
@@ -554,10 +561,10 @@ public class RewriteProcFactory {
       ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, parent, condIndexes));
 
       // Add the column to compute lineage
-      if (firstGby) {
+      if (firstGby && continuous) {
         ctx.putLineageColumnIndex(gby,
             addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getTidColumnIndex(parent))));
-      } else {
+      } else if (ctx.getLineageColumnIndex(parent) != null) {
         ctx.putLineageColumnIndex(gby,
             addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getLineageColumnIndex(parent))));
       }
@@ -657,11 +664,11 @@ public class RewriteProcFactory {
     // Rewrite AggregationDesc to:
     // (1) Use the ABM version of SUM/COUNT/AVERAGE
     // (2) Return the correct type
-    private void modifyAggregator(int index) throws SemanticException {
+    private void modifyAggregator(int index, boolean continuous) throws SemanticException {
       // (1)
       AggregationDesc aggregator = aggregators.get(index);
       String oldUdafName = aggregator.getGenericUDAFName();
-      String udafName = convertUdafName(oldUdafName);
+      String udafName = convertUdafName(oldUdafName, continuous);
       ArrayList<ExprNodeDesc> parameters = aggregator.getParameters();
       boolean distinct = aggregator.getDistinct();
       GenericUDAFEvaluator udafEvaluator =
@@ -679,14 +686,14 @@ public class RewriteProcFactory {
       signature.get(numKeys + index).setType(udaf.returnType);
     }
 
-    private String convertUdafName(String udaf) {
+    private String convertUdafName(String udaf, boolean continuous) {
       if (udaf.equalsIgnoreCase("sum")) {
-        return SRV_SUM;
+        return continuous ? SRV_SUM : CASE_SUM;
       } else if (udaf.equalsIgnoreCase("avg")) {
-        return SRV_AVG;
+        return continuous ? SRV_AVG : CASE_AVG;
       } else {
         assert udaf.equalsIgnoreCase("count");
-        return SRV_COUNT;
+        return continuous ? SRV_COUNT : CASE_COUNT;
       }
     }
 
@@ -952,7 +959,15 @@ public class RewriteProcFactory {
           }
         }
 
-        // There is no lineage column to forward
+        // Forward the condition columns
+        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+        if (condIndexes != null) {
+          for (int index : condIndexes) {
+            // Maintain the condition column index
+            ctx.addCondColumnIndex(op, forwardColumn(index));
+            ++countOfCondCols;
+          }
+        }
 
         // Forward the gbyId columns
         Map<GroupByOperator, Integer> gbyIdIndexes = ctx.getGbyIdColumnIndexes(parent);
@@ -967,15 +982,7 @@ public class RewriteProcFactory {
           }
         }
 
-        // Forward the condition columns
-        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
-        if (condIndexes != null) {
-          for (int index : condIndexes) {
-            // Maintain the condition column index
-            ctx.addCondColumnIndex(op, forwardColumn(index));
-            ++countOfCondCols;
-          }
-        }
+        // There is no lineage column to forward
       }
 
       assert countofTidCols <= 1;

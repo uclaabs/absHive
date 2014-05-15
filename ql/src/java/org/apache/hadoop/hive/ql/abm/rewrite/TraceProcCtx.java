@@ -67,7 +67,7 @@ public class TraceProcCtx implements NodeProcessorCtx {
 
   public void groupByAt(GroupByOperator gby) {
     ConditionAnnotation anno = getOrCreateCondAnno(gby);
-    anno.groupByAt(gby);
+    anno.groupByAt(gby, isAnnotatedWithSrv(gby));
   }
 
   private ConditionAnnotation getOrCreateCondAnno(Operator<? extends OperatorDesc> op) {
@@ -101,8 +101,12 @@ public class TraceProcCtx implements NodeProcessorCtx {
     return lctx.getParseContext().getOpParseCtx().get(op);
   }
 
-  public boolean isSampled(Operator<? extends OperatorDesc> op) {
-    return lctx.isSampled(op);
+  public boolean isUncertain(Operator<? extends OperatorDesc> op) {
+    return lctx.isUncertain(op);
+  }
+
+  public boolean isAnnotatedWithSrv(Operator<? extends OperatorDesc> op) {
+    return lctx.isAnnotatedWithSrv(op);
   }
 
 }

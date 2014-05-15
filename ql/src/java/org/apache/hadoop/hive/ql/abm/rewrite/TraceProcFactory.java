@@ -234,7 +234,7 @@ public class TraceProcFactory {
       GroupByOperator gby = (GroupByOperator) nd;
       TraceProcCtx ctx = (TraceProcCtx) procCtx;
 
-      if (!ctx.isSampled(gby)) {
+      if (!ctx.isUncertain(gby)) {
         return null;
       }
 

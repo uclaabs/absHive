@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -25,11 +26,15 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
   private final ArrayList<Transform> transforms = new ArrayList<Transform>();
   private final HashMap<GroupByOperator, GroupByOperator[]> dependencies =
       new HashMap<GroupByOperator, GroupByOperator[]>();
+  private final HashSet<GroupByOperator> continuousGbys = new HashSet<GroupByOperator>();
 
-  public void groupByAt(GroupByOperator gby) {
+  public void groupByAt(GroupByOperator gby, boolean continuous) {
     if (!topLevel.isEmpty()) {
       dependencies.put(gby, topLevel.toArray(new GroupByOperator[topLevel.size()]));
       topLevel.clear();
+    }
+    if (continuous) {
+      continuousGbys.add(gby);
     }
   }
 
@@ -76,6 +81,8 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     for (Map.Entry<GroupByOperator, GroupByOperator[]> entry : other.dependencies.entrySet()) {
       dependencies.put(entry.getKey(), entry.getValue().clone());
     }
+
+    continuousGbys.addAll(other.continuousGbys);
   }
 
   public int getInputSize(GroupByOperator gby) {
@@ -94,8 +101,13 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     int sz = gby.getConf().getKeys().size() + aggregates.get(gby).size();
     // For the mandatory count(*)
     --sz;
-    // For lineage, group-by-id
-    sz += 2;
+    if (continuousGbys.contains(gby)) {
+      // For condition, group-by-id and lineage
+      sz += 3;
+    } else {
+      // For condition, group-by-id
+      sz += 2;
+    }
     return sz;
   }
 
