@@ -227,9 +227,6 @@ public class RewriteProcFactory {
       GroupByOperator gby = (GroupByOperator) op;
       selFactory.addGbyIdIndex(gby, selFactory.addColumn(
               ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>())));
-      if (ctx.lastUsedBy(gby, op)) {
-        ctx.usedAt(gby, op);
-      }
     }
     // Forward the original group-by-id columns
     Map<GroupByOperator, Integer> gbyIdIndexes = ctx.getGbyIdColumnIndexes(op);
@@ -596,6 +593,9 @@ public class RewriteProcFactory {
       // Add select to generate group id
       if (!firstGby) {
         SelectOperator sel = appendSelect(gby, ctx, true, true);
+        if (ctx.lastUsedBy(gby, gby)) {
+          ctx.usedAt(gby, sel);
+        }
         appendSelect(sel, ctx, false, false, ExprNodeGenericFuncDesc.newInstance(
             getUdf("srv_greater_than"),
             Arrays.asList(Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0),
