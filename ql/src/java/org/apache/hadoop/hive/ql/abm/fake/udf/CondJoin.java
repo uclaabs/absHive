@@ -11,6 +11,7 @@ public class CondJoin extends GenericUDF {
 
 //  private StructObjectInspector structOI = null;
   private Object obj;
+  private static final String opDisplayName = "Test Function Cond Join";
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -38,9 +39,10 @@ public class CondJoin extends GenericUDF {
   	return obj;
   }
 
-	@Override
-  public String getDisplayString(String[] arg0) {
-	  return "Test Function Srv Merge";
+  @Override
+  public String getDisplayString(String[] children) {
+    assert (children.length == 2);
+    return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
   }
 
 }
