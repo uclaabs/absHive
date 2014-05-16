@@ -43,7 +43,8 @@ public final class AbmUtilities {
       conf.setBoolVar(HiveConf.ConfVars.HIVEOPTGBYUSINGINDEX, false);
 
       // Turn off map join hints
-      conf.setBoolVar(HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, true);
+      // BUT no one is using this!
+      conf.setBoolVar(HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false);
 
       // No correlation optimizer support in hive 0.11
       // Turn off correlation optimizer.

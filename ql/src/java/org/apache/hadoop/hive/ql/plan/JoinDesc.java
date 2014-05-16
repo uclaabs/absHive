@@ -85,6 +85,9 @@ public class JoinDesc extends AbstractOperatorDesc {
   // it's resulted from RS-dedup optimization, which removes following RS under some condition
   private boolean fixedAsSorted;
 
+  // ABM
+  private int toPinWhenMapJoin = -1;
+
   public JoinDesc() {
   }
 
@@ -537,4 +540,13 @@ public class JoinDesc extends AbstractOperatorDesc {
   public void setFixedAsSorted(boolean fixedAsSorted) {
     this.fixedAsSorted = fixedAsSorted;
   }
+
+  public int getToPin() {
+    return toPinWhenMapJoin;
+  }
+
+  public void setToPin(int position) {
+    toPinWhenMapJoin = position;
+  }
+
 }

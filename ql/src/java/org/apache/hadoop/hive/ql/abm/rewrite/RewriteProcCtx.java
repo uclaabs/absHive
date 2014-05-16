@@ -45,6 +45,11 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return tctx.getLineage(op, internalName);
   }
 
+  public void putLineage(Operator<? extends OperatorDesc> op, String internalName,
+      AggregateInfo linfo) {
+    tctx.putLineage(op, internalName, linfo);
+  }
+
   public boolean withTid(Operator<? extends OperatorDesc> op) {
     return isAnnotatedWithSrv(op);
   }

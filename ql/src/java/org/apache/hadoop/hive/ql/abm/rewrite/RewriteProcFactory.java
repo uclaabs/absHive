@@ -108,6 +108,8 @@ public class RewriteProcFactory {
     private final HashMap<GroupByOperator, Integer> gbyIdIndex = new HashMap<GroupByOperator, Integer>();
     private Integer lineageIndex = null;
 
+    private final HashMap<String, AggregateInfo> lineage = new HashMap<String, AggregateInfo>();
+
     public SelectFactory(RewriteProcCtx ctx) {
       this.ctx = ctx;
     }
@@ -147,6 +149,10 @@ public class RewriteProcFactory {
       lineageIndex = index;
     }
 
+    public void putLineage(int index, AggregateInfo linfo) {
+      lineage.put(outputColumnNames.get(index), linfo);
+    }
+
     @SuppressWarnings("unchecked")
     public SelectOperator getSelectOperator() {
       // Create SEL
@@ -174,6 +180,10 @@ public class RewriteProcFactory {
         ctx.putLineageColumnIndex(sel, lineageIndex);
       }
 
+      for (Map.Entry<String, AggregateInfo> entry : lineage.entrySet()) {
+        ctx.putLineage(sel, entry.getKey(), entry.getValue());
+      }
+
       return sel;
     }
 
@@ -190,7 +200,11 @@ public class RewriteProcFactory {
     HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(op);
     for (int i = 0; i < signature.size(); ++i) {
       if (!toSkip.contains(i)) {
-        selFactory.forwardColumn(op, i, true);
+        int index = selFactory.forwardColumn(op, i, true);
+        AggregateInfo linfo = ctx.getLineage(op, signature.get(i).getInternalName());
+        if (linfo != null) {
+          selFactory.putLineage(index, linfo);
+        }
       }
     }
 
@@ -966,6 +980,8 @@ public class RewriteProcFactory {
           if (index != null) {
             ++countofTidCols;
             ctx.putTidColumnIndex(join, forwardColumn(index));
+            // This is the table we must not shuffle during mapjoin
+            desc.setToPin(join.getParentOperators().indexOf(parent));
           }
         }
 
