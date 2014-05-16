@@ -23,6 +23,9 @@ public class TraceProcCtx implements NodeProcessorCtx {
   private final HashMap<Operator<? extends OperatorDesc>, ConditionAnnotation> conditions =
       new HashMap<Operator<? extends OperatorDesc>, ConditionAnnotation>();
 
+  private final HashMap<GroupByOperator, Operator<? extends OperatorDesc>> lastUsedBy =
+      new HashMap<GroupByOperator, Operator<? extends OperatorDesc>>();
+
   private final LineageCtx lctx;
 
   public TraceProcCtx(LineageCtx ctx) {
@@ -60,7 +63,7 @@ public class TraceProcCtx implements NodeProcessorCtx {
     ConditionAnnotation anno = getOrCreateCondAnno(op);
     for (AggregateInfo aggr : pred.getAggregatesInvolved()) {
       anno.conditionOn(aggr);
-      anno.useAt(aggr.getGroupByOperator(), op);
+      usedAt(aggr.getGroupByOperator(), op);
     }
     anno.addTransform(pred);
   }
@@ -79,6 +82,14 @@ public class TraceProcCtx implements NodeProcessorCtx {
       sinkOp = op;
     }
     return anno;
+  }
+
+  public boolean lastUsedBy(GroupByOperator gby, Operator<? extends OperatorDesc> op) {
+    return op.equals(lastUsedBy.get(gby));
+  }
+
+  public void usedAt(GroupByOperator gby, Operator<? extends OperatorDesc> op) {
+    lastUsedBy.put(gby, op);
   }
 
   public Operator<? extends OperatorDesc> getSinkOp() {

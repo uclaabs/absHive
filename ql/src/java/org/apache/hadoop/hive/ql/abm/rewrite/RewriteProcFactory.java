@@ -224,20 +224,22 @@ public class RewriteProcFactory {
 
     // Add the group-by-id column for this group-by
     if (afterGby) {
-      selFactory.addGbyIdIndex((GroupByOperator) op,
-          selFactory.addColumn(
+      GroupByOperator gby = (GroupByOperator) op;
+      selFactory.addGbyIdIndex(gby, selFactory.addColumn(
               ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>())));
+      if (ctx.lastUsedBy(gby, op)) {
+        ctx.usedAt(gby, op);
+      }
     }
     // Forward the original group-by-id columns
     Map<GroupByOperator, Integer> gbyIdIndexes = ctx.getGbyIdColumnIndexes(op);
     if (gbyIdIndexes != null) {
       for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndexes.entrySet()) {
         GroupByOperator gby = entry.getKey();
-        if (ConditionAnnotation.stillInUse(op, gby)) {
-          continue;
+        if (!ctx.lastUsedBy(gby, op)) {
+          int index = entry.getValue();
+          selFactory.addGbyIdIndex(gby, selFactory.forwardColumn(op, index, false));
         }
-        int index = entry.getValue();
-        selFactory.addGbyIdIndex(gby, selFactory.forwardColumn(op, index, false));
       }
     }
 
@@ -410,12 +412,11 @@ public class RewriteProcFactory {
       if (gbyIdIndexes != null) {
         for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndexes.entrySet()) {
           GroupByOperator gby = entry.getKey();
-          if (ConditionAnnotation.stillInUse(parent, gby)) {
-            continue;
+          if (!ctx.lastUsedBy(gby, parent)) {
+            int index = entry.getValue();
+            // Maintain the id column index
+            ctx.addGbyIdColumnIndex(op, gby, forwardColumn(index));
           }
-          int index = entry.getValue();
-          // Maintain the id column index
-          ctx.addGbyIdColumnIndex(op, gby, forwardColumn(index));
         }
       }
 
@@ -1000,11 +1001,10 @@ public class RewriteProcFactory {
         if (gbyIdIndexes != null) {
           for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndexes.entrySet()) {
             GroupByOperator gby = entry.getKey();
-            if (ConditionAnnotation.stillInUse(parent, gby)) {
-              continue;
+            if (!ctx.lastUsedBy(gby, parent)) {
+              int index = entry.getValue();
+              ctx.addGbyIdColumnIndex(join, gby, forwardColumn(index));
             }
-            int index = entry.getValue();
-            ctx.addGbyIdColumnIndex(join, gby, forwardColumn(index));
           }
         }
 

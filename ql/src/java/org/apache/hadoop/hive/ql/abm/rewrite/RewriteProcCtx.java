@@ -153,6 +153,14 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return transform.get(filter);
   }
 
+  public boolean lastUsedBy(GroupByOperator gby, Operator<? extends OperatorDesc> op) {
+    return tctx.lastUsedBy(gby, op);
+  }
+
+  public void usedAt(GroupByOperator gby, Operator<? extends OperatorDesc> op) {
+    tctx.usedAt(gby, op);
+  }
+
   public void addTransform(Operator<? extends OperatorDesc> filter, ExprNodeDesc func) {
     ArrayList<ExprNodeDesc> funcs = transform.get(filter);
     if (funcs == null) {
