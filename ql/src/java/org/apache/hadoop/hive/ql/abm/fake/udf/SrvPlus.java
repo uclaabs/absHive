@@ -13,15 +13,16 @@ public class SrvPlus extends GenericUDF {
 
   private StructObjectInspector structOI = null;
   private Object obj;
+  private static final String opDisplayName = "Test Function Srv Plus";
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
 
-	  if (arguments.length != 2) {
+    if (arguments.length != 2) {
       throw new UDFArgumentException("This function takes exactly two arguments.");
     }
 
-	  if (arguments[0].getCategory() == ObjectInspector.Category.STRUCT) {
+    if (arguments[0].getCategory() == ObjectInspector.Category.STRUCT) {
       structOI = (StructObjectInspector) arguments[0];
     } else if(arguments[1].getCategory() == ObjectInspector.Category.STRUCT) {
       structOI = (StructObjectInspector) arguments[1];
@@ -29,7 +30,7 @@ public class SrvPlus extends GenericUDF {
       throw new UDFArgumentException("One of parameters must be Srv Struct!");
     }
 
-	  obj = (new SrvAno()).toArray();
+    obj = (new SrvAno()).toArray();
 
     return ObjectInspectorFactory.getStandardStructObjectInspector(SrvAno.columnName, SrvAno.objectInspectorType);
   }
@@ -37,12 +38,13 @@ public class SrvPlus extends GenericUDF {
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
 
-  	return obj;
+    return obj;
   }
 
-	@Override
-  public String getDisplayString(String[] arg0) {
-	  return "Test Function Srv Plus";
+  @Override
+  public String getDisplayString(String[] children) {
+    assert (children.length == 2);
+    return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
   }
 
 }

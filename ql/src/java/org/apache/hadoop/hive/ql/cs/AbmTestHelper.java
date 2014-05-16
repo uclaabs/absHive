@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.cs;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -27,7 +28,6 @@ import org.apache.hadoop.hive.ql.exec.RowSchema;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
-import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
@@ -43,24 +43,40 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
  */
 public class AbmTestHelper {
 
+  private static final String exceptionFile = "exceptions.txt";
+  private static final String planFile = "plan.txt";
+
   static LineageCtx ctx;
   static ParseContext pCtx;
   static boolean printExprMap = true;
+  static boolean needLogToFile = false;
+  static int rootOpId = 0;
+
+  private static String getOpBriefInfo(Operator<? extends OperatorDesc> op) {
+    int id = Integer.parseInt(op.getIdentifier());
+    if (id <= rootOpId || op.getName().equals("FIL")) {
+      return op.toString();
+    }
+    else {
+      //newly added operators
+      return "**" + op.toString();
+    }
+  }
 
   /**
    * a small tree with minimal info
-   * @param sinkOp
+   * @param op
    * @param level
    */
-  private static void printTree(Operator<? extends OperatorDesc> sinkOp, int level) {
-    if (sinkOp instanceof TableScanOperator) {
-      String name = pCtx.getTopToTable().get(sinkOp).getTableName();
-      println(level, sinkOp + " " +  name.toLowerCase().equals(AbmUtilities.getSampledTable()));
+  private static void printTree(Operator<? extends OperatorDesc> op, int level) {
+    if (op instanceof TableScanOperator) {
+      String name = pCtx.getTopToTable().get(op).getTableName();
+      println(level, getOpBriefInfo(op) + " " +  name.toLowerCase().equals(AbmUtilities.getSampledTable()));
     } else {
-      println(level, sinkOp);
+      println(level, getOpBriefInfo(op));
     }
 
-    List<Operator<? extends OperatorDesc>> lst = sinkOp.getParentOperators();
+    List<Operator<? extends OperatorDesc>> lst = op.getParentOperators();
     if (lst != null) {
       for (Operator<? extends OperatorDesc> l: lst) {
         printTree(l, level + 1);
@@ -68,24 +84,112 @@ public class AbmTestHelper {
     }
   }
 
-  private static void visit(Operator<? extends OperatorDesc> sinkOp, int level) {
-    println(level, sinkOp.toString());
-    println(level, "Schema: ");
-    RowSchema schema = sinkOp.getSchema();
-    if (schema != null) {
-      if (schema.getSignature() != null) {
-        for (ColumnInfo info: schema.getSignature()) {
-          println(level, info.getInternalName());
-        }
+  private static void asserts(Operator<? extends OperatorDesc> op) {
+    RowSchema schema = op.getSchema();
+    Map<String, ExprNodeDesc> columnExprMap = op.getColumnExprMap();
+
+    assert(schema != null);
+
+    if (op instanceof GroupByOperator) {
+      GroupByOperator gby = (GroupByOperator) op;
+      int keySize = gby.getConf().getKeys().size();
+      int aggrSize = gby.getConf().getAggregators().size();
+      assert(keySize == columnExprMap.keySet().size());
+      assert(keySize + aggrSize == schema.getSignature().size());
+    }
+    else if (op instanceof SelectOperator) {
+      assert(schema.getSignature().size() == ((SelectOperator) op).getConf().getColList().size());
+    }
+    else if (op instanceof FilterOperator) {
+    }
+    else if (op instanceof JoinOperator) {
+    }
+    else if (op instanceof TableScanOperator) {
+    }
+    else {
+    }
+  }
+
+  static class PrintSchema {
+    static List<ColumnInfo> columnInfos = null;
+    static int level;
+
+    public static void process(int level, Operator<? extends OperatorDesc> op) {
+      PrintSchema.level = level;
+      if ((columnInfos = op.getSchema().getSignature()) == null) {
+        return;
+      }
+
+      println(level, "Schema: ");
+      if (op instanceof GroupByOperator) {
+        perform((GroupByOperator) op);
+      } else if (op instanceof SelectOperator) {
+        perform((SelectOperator) op);
+      } else {
+        perform(op);
       }
     }
 
-    //we do not print Column Expr Map for SelectOperator
-    if (printExprMap && !(sinkOp instanceof SelectOperator)) {
-      println(level, "Column Expr Map: ");
-      Map<String, ExprNodeDesc> map = sinkOp.getColumnExprMap();
-      if (map != null && map.entrySet() != null) {
-        for (Entry<String, ExprNodeDesc> entry: map.entrySet()) {
+    private static void perform(GroupByOperator gby) {
+      ArrayList<ExprNodeDesc> keys = gby.getConf().getKeys();
+      ArrayList<AggregationDesc> aggrs = gby.getConf().getAggregators();
+
+      boolean isDistinct = false;
+      if (aggrs != null) {
+        for (AggregationDesc desc : aggrs) {
+          isDistinct = isDistinct || desc.getDistinct();
+        }
+      }
+
+      if (isDistinct) {
+        println(level, "Distinct as Group By");
+        return;
+      }
+
+      //keys
+      for (int i=0; i<keys.size(); i++) {
+        println(level, columnInfos.get(i).getInternalName() + " <- " + keys.get(i).getExprString() + " (key)");
+      }
+
+      //aggrs
+      for (int i=keys.size(); i<columnInfos.size(); i++) {
+        println(level, columnInfos.get(i).getInternalName() + " <- " + aggrs.get(i-keys.size()).getExprString());
+      }
+    }
+
+    private static void perform(SelectOperator sel) {
+      int i = 0;
+      for (ColumnInfo info: columnInfos) {
+        println(level, info.getInternalName() + " <- " + sel.getConf().getColList().get(i).getExprString());
+        i += 1;
+      }
+    }
+
+    private static void perform(Operator<? extends OperatorDesc> op) {
+      for (ColumnInfo info: columnInfos) {
+        println(level, info.getInternalName());
+      }
+    }
+
+  }
+
+  private static void visit(Operator<? extends OperatorDesc> op, int level) {
+    //asserts
+    asserts(op);
+
+    //print Op info
+    println(level, getOpBriefInfo(op));
+
+    //print Schema
+    PrintSchema.process(level, op);
+
+    //print Column Expr Map
+    //not for Select, GroupBy
+    if (printExprMap && !(op instanceof SelectOperator) && !(op instanceof GroupByOperator)) {
+      Map<String, ExprNodeDesc> columnExprMap = op.getColumnExprMap();
+      if (columnExprMap != null && columnExprMap.entrySet() != null) {
+        println(level, "Column Expr Map: ");
+        for (Entry<String, ExprNodeDesc> entry: columnExprMap.entrySet()) {
           if (entry.getValue() instanceof ExprNodeColumnDesc) {
             //ExprNodeColumnDesc expr = (ExprNodeColumnDesc) entry.getValue();
             //String[] names = expr.getColumn().split("\\.");
@@ -104,40 +208,24 @@ public class AbmTestHelper {
       }
     }
 
-    if (sinkOp instanceof TableScanOperator) {
-      String name = pCtx.getTopToTable().get(sinkOp).getTableName();
+    //print additional info
+    if (op instanceof TableScanOperator) {
+      String name = pCtx.getTopToTable().get(op).getTableName();
       println(level, "[TableScan] TabName: " + name + " isSampleTable: " + name.toLowerCase().equals(AbmUtilities.getSampledTable().toLowerCase()));
     }
-    else if (sinkOp instanceof GroupByOperator) {
-      println(level, "[GroupBy] Aggregators:");
-      ArrayList<AggregationDesc> aggrs =
-          ((GroupByOperator)sinkOp).getConf().getAggregators();
-      if (aggrs != null) {
-        for (AggregationDesc desc : aggrs) {
-          println(level, "isDistinct: " + " " + desc.getDistinct() + " ExprString: " + desc.getExprString());
-        }
-      }
-    }
-    else if (sinkOp instanceof FilterOperator) {
+    else if (op instanceof FilterOperator) {
       println(level, "[Filter] Predicate:");
-      println(level, ((FilterOperator)sinkOp).getConf().getPredicate().getExprString());
+      println(level, ((FilterOperator)op).getConf().getPredicate().getExprString());
     }
-    else if (sinkOp instanceof JoinOperator) {
+    else if (op instanceof JoinOperator) {
       println(level, "[Join]");
     }
-    else if (sinkOp instanceof SelectOperator) {
-      println(level, "[Select ExprNodeDesc]");
-      for (ExprNodeDesc exprNodeDesc: ((SelectOperator) sinkOp).getConf().getColList()) {
-          println(level, exprNodeDesc.getExprString());
-      }
-    }
-
 
     //print lineage info
     //println(level, ctx.get(sinkOp));
     println();
 
-    List<Operator<? extends OperatorDesc>> lst = sinkOp.getParentOperators();
+    List<Operator<? extends OperatorDesc>> lst = op.getParentOperators();
     if (lst != null) {
       for (Operator<? extends OperatorDesc> l: lst) {
         visit(l, level + 1);
@@ -147,14 +235,19 @@ public class AbmTestHelper {
 
   /**
    * Main Test Entry Point
-   * @param sinkOp
+   * @param op
    * @param pCtx
    */
-  public static void test(Operator<? extends OperatorDesc> sinkOp, ParseContext pCtx) {
+  public static void test(Operator<? extends OperatorDesc> op, ParseContext pCtx) {
     try {
+      new File(planFile).delete();
+      new File(planFile).createNewFile();
+      rootOpId = Integer.parseInt(op.getIdentifier());
+
+      needLogToFile = false;
       if (pCtx.getFetchTask() == null) {
         println(0, "####### Before Rewrite #########");
-        analyzeHelper(sinkOp, 0);
+        analyzeHelper(op, 0);
       } else {
         println(0, "FileSink Operator has been changed into ListSinkOperator!");
       }
@@ -166,7 +259,7 @@ public class AbmTestHelper {
         FuncDepProcFactory.checkFuncDep(ctx);
       }
       catch (Exception e) {
-        logExceptions("exceptions.txt", e.getMessage());
+        logExceptions(exceptionFile, e.getMessage());
         e.printStackTrace();
       }
 
@@ -174,27 +267,40 @@ public class AbmTestHelper {
         RewriteProcFactory.rewritePlan(TraceProcFactory.trace(ctx));
       }
       catch (Exception e) {
-        logExceptions("exceptions.txt", e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());
+        logExceptions(exceptionFile, e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());
         e.printStackTrace();
       }
 
-      if (pCtx.getFetchTask() == null) {
-        println(0, "####### After Rewrite #########");
-        visit(sinkOp, 0);
-      } else {
-        println(0, "FileSink Operator has been changed into ListSinkOperator!");
-        //println(0, ctx);
+      needLogToFile = true;
+      try {
+        if (pCtx.getFetchTask() == null) {
+          println(0, "####### After Rewrite #########");
+          visit(op, 0);
+        } else {
+          println(0, "FileSink Operator has been changed into ListSinkOperator!");
+          //println(0, ctx);
+        }
+      }
+      catch (Exception e) {
+        logExceptions(exceptionFile, e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());
+        e.printStackTrace();
       }
 
       println(0, "####### Tree #########");
-      printTree(sinkOp, 0);
+      printTree(op, 0);
 
+      /*
+      println(0, "####### Start Test #########");
+      new AbmTestCases(sinkOp).test(sinkOp, 0);
+      println(0, "####### Test Passed #########");
+       */
     }
     catch (Exception e) {
       e.printStackTrace();
     }
   }
 
+  @Deprecated
   public static void analyzeHelper(Operator<? extends OperatorDesc> sinkOp, int level) {
 
     println(level, sinkOp.getClass() + " " + sinkOp.toString());
@@ -233,13 +339,13 @@ public class AbmTestHelper {
     }
 
     if (sinkOp instanceof TableScanOperator) {
-      //System.out.println("=========== " + opParseCtx.get(sinkOp).getRowResolver().tableOriginalName);
+      //println("=========== " + opParseCtx.get(sinkOp).getRowResolver().tableOriginalName);
 
-      //System.out.println("========= " + ((TableScanOperator)(sinkOp)).getNeededColumnIDs());
-      //System.out.println("========= " + ((TableScanOperator)(sinkOp)).getNeededColumns());
-      //System.out.println("======Table Desc " + ((TableScanOperator)(sinkOp)).getTableDesc());
-      //System.out.println(qb.getTabNameForAlias("a"));
-      //System.out.println(qb.getTabNameForAlias("b"));
+      //println("========= " + ((TableScanOperator)(sinkOp)).getNeededColumnIDs());
+      //println("========= " + ((TableScanOperator)(sinkOp)).getNeededColumns());
+      //println("======Table Desc " + ((TableScanOperator)(sinkOp)).getTableDesc());
+      //println(qb.getTabNameForAlias("a"));
+      //println(qb.getTabNameForAlias("b"));
 
       //TableScanDesc desc = ((TableScanOperator)sinkOp).getConf();
       //println(level, desc.getAlias());
@@ -315,9 +421,9 @@ public class AbmTestHelper {
       }
        */
       //ReduceSinkOperator op = (ReduceSinkOperator) sinkOp;
-      //System.out.println("@@@@@@@@@@@@@" + op.toString() +  " " + op.getConf().getKeyCols().size() + " " + op.getConf().getValueCols().size());
-      //System.out.println("@@@@@@@@@@@" + op.getConf().getNumDistributionKeys() + " " + op.getConf().getKeyCols().toString());
-      //System.out.println("@@@@@@@@@@@" + op.getConf().getValueCols().toString());
+      //out.println("@@@@@@@@@@@@@" + op.toString() +  " " + op.getConf().getKeyCols().size() + " " + op.getConf().getValueCols().size());
+      //out.println("@@@@@@@@@@@" + op.getConf().getNumDistributionKeys() + " " + op.getConf().getKeyCols().toString());
+      //out.println("@@@@@@@@@@@" + op.getConf().getValueCols().toString());
 
     }
 
@@ -372,25 +478,50 @@ public class AbmTestHelper {
   public static void println(int level, Object content) {
     for (int i=0; i< level; i++) {
       System.out.print("  ");
+      if (needLogToFile) {
+        logToFile(planFile, "  ");
+      }
     }
     System.out.println(content);
+    if (needLogToFile) {
+      logToFile(planFile, content + "\n");
+    }
   }
 
   public static void println() {
     System.out.println();
+    if (needLogToFile) {
+      logToFile(planFile, "\n");
+    }
   }
 
   public static void printLevel(int level) {
     for (int i=0; i< level; i++) {
       System.out.print("  ");
+      if (needLogToFile) {
+        logToFile(planFile, "  ");
+      }
     }
   }
 
   public static void print(Object content) {
     System.out.print(content + " ");
+    if (needLogToFile) {
+      logToFile(planFile, content + " ");
+    }
   }
 
-  private static void logExceptions(String path, String msg) throws SemanticException {
+  private static void logToFile(String path, String msg) {
+    try {
+      PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(path, true)));
+      out.print(msg);
+      out.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private static void logExceptions(String path, String msg) {
     try {
       PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(path, true)));
       out.println("q" + AbmUtilities.getLabel() + ":");

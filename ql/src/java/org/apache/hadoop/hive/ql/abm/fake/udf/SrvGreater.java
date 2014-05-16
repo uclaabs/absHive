@@ -11,6 +11,7 @@ public class SrvGreater extends GenericUDF {
 
 //  private final StructObjectInspector structOI = null;
   private Object obj;
+  private static final String opDisplayName = "Test Function Srv Greater";
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -31,8 +32,9 @@ public class SrvGreater extends GenericUDF {
   }
 
 	@Override
-  public String getDisplayString(String[] arg0) {
-	  return "Test Function Srv Greater";
+  public String getDisplayString(String[] children) {
+	  assert (children.length == 2);
+    return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
   }
 
 }

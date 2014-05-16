@@ -39,17 +39,20 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.ql.abm.fake.CaseAvg;
+import org.apache.hadoop.hive.ql.abm.fake.CaseCount;
+import org.apache.hadoop.hive.ql.abm.fake.CaseSum;
 import org.apache.hadoop.hive.ql.abm.fake.CondMerge;
 import org.apache.hadoop.hive.ql.abm.fake.LinSum;
 import org.apache.hadoop.hive.ql.abm.fake.SrvAvg;
 import org.apache.hadoop.hive.ql.abm.fake.SrvCount;
 import org.apache.hadoop.hive.ql.abm.fake.SrvSum;
 import org.apache.hadoop.hive.ql.abm.fake.udf.CondJoin;
+import org.apache.hadoop.hive.ql.abm.fake.udf.GenRowID;
 import org.apache.hadoop.hive.ql.abm.fake.udf.SrvGreater;
 import org.apache.hadoop.hive.ql.abm.fake.udf.SrvGreaterEqual;
 import org.apache.hadoop.hive.ql.abm.fake.udf.SrvLess;
 import org.apache.hadoop.hive.ql.abm.fake.udf.SrvLessEqual;
-import org.apache.hadoop.hive.ql.abm.udf.GenRowID;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
@@ -411,6 +414,11 @@ public final class FunctionRegistry {
 
     registerGenericUDAF("lin_sum", new LinSum());
     registerGenericUDAF("cond_merge" , new CondMerge());
+
+    registerGenericUDAF("case_sum", new CaseSum());
+    registerGenericUDAF("case_avg", new CaseAvg());
+    registerGenericUDAF("case_count", new CaseCount());
+
 
     //UDFs
     registerUDF("gen_id", GenRowID.class, false);

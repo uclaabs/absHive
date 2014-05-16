@@ -106,6 +106,7 @@ public class RewriteProcFactory {
     private Integer tidIndex = null;
     private final ArrayList<Integer> condIndex = new ArrayList<Integer>();
     private final HashMap<GroupByOperator, Integer> gbyIdIndex = new HashMap<GroupByOperator, Integer>();
+    private Integer lineageIndex = null;
 
     public SelectFactory(RewriteProcCtx ctx) {
       this.ctx = ctx;
@@ -142,6 +143,10 @@ public class RewriteProcFactory {
       gbyIdIndex.put(gby, index);
     }
 
+    public void setLineageIndex(int index) {
+      lineageIndex = index;
+    }
+
     @SuppressWarnings("unchecked")
     public SelectOperator getSelectOperator() {
       // Create SEL
@@ -164,6 +169,9 @@ public class RewriteProcFactory {
       }
       for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndex.entrySet()) {
         ctx.addGbyIdColumnIndex(sel, entry.getKey(), entry.getValue());
+      }
+      if (lineageIndex != null) {
+        ctx.putLineageColumnIndex(sel, lineageIndex);
       }
 
       return sel;
@@ -221,9 +229,11 @@ public class RewriteProcFactory {
     }
 
     // Forward the lineage column
-    Integer lineageIndex = ctx.getLineageColumnIndex(op);
-    if (lineageIndex != null) {
-      selFactory.forwardColumn(op, lineageIndex, false);
+    if (afterGby) {
+      Integer lineageIndex = ctx.getLineageColumnIndex(op);
+      if (lineageIndex != null) {
+        selFactory.setLineageIndex(selFactory.forwardColumn(op, lineageIndex, false));
+      }
     }
 
     // Create SEL

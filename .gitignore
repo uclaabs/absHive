@@ -16,3 +16,4 @@ common/src/gen
 *.asc
 derby.log
 exceptions.txt
+plan.txt

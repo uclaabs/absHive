@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.ql.abm.udf;
+package org.apache.hadoop.hive.ql.abm.fake.udf;
 
 import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.UDF;
