@@ -192,7 +192,7 @@ public class RewriteProcFactory {
   @SuppressWarnings("unchecked")
   public static SelectOperator appendSelect(
       Operator<? extends OperatorDesc> op, RewriteProcCtx ctx, boolean afterGby,
-      ExprNodeDesc... additionalConds) throws SemanticException {
+      boolean forwardCondition, ExprNodeDesc... additionalConds) throws SemanticException {
     SelectFactory selFactory = new SelectFactory(ctx);
 
     // Forward original columns
@@ -215,13 +215,12 @@ public class RewriteProcFactory {
     }
 
     // Add the condition column
-    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>(
-        Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
-    conds.addAll(Arrays.asList(additionalConds));
-    int condIndex = selFactory.addColumn(joinConditions(conds));
-    if (!afterGby) {
-      selFactory.addCondIndex(condIndex);
+    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>();
+    if (forwardCondition) {
+      conds.addAll(Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
     }
+    conds.addAll(Arrays.asList(additionalConds));
+    selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
 
     // Add the group-by-id column for this group-by
     if (afterGby) {
@@ -234,7 +233,7 @@ public class RewriteProcFactory {
     if (gbyIdIndexes != null) {
       for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndexes.entrySet()) {
         GroupByOperator gby = entry.getKey();
-        if (op.equals(ConditionAnnotation.lastUsedBy(gby))) {
+        if (ConditionAnnotation.stillInUse(op, gby)) {
           continue;
         }
         int index = entry.getValue();
@@ -411,7 +410,7 @@ public class RewriteProcFactory {
       if (gbyIdIndexes != null) {
         for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndexes.entrySet()) {
           GroupByOperator gby = entry.getKey();
-          if (parent.equals(ConditionAnnotation.lastUsedBy(gby))) {
+          if (ConditionAnnotation.stillInUse(parent, gby)) {
             continue;
           }
           int index = entry.getValue();
@@ -595,8 +594,8 @@ public class RewriteProcFactory {
 
       // Add select to generate group id
       if (!firstGby) {
-        SelectOperator sel = appendSelect(gby, ctx, true);
-        appendSelect(sel, ctx, false, ExprNodeGenericFuncDesc.newInstance(
+        SelectOperator sel = appendSelect(gby, ctx, true, true);
+        appendSelect(sel, ctx, false, false, ExprNodeGenericFuncDesc.newInstance(
             getUdf("srv_greater_than"),
             Arrays.asList(Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0),
                 new ExprNodeConstantDesc(new Double(0)))
@@ -768,7 +767,7 @@ public class RewriteProcFactory {
 
       // Add a SEL after FIL to transform the condition column
       if (ctx.getTransform(fil) != null) {
-        appendSelect(fil, ctx, false,
+        appendSelect(fil, ctx, false, true,
             ctx.getTransform(fil).toArray(new ExprNodeDesc[0]));
       }
 
@@ -811,8 +810,9 @@ public class RewriteProcFactory {
           assert children.size() == 2;
           for (int i = 0; i < children.size(); ++i) {
             ExprNodeDesc ret = rewrite(children.get(i), fil, ctx);
+            changeCode = changeCode << 1;
             if (ret != null) {
-              changeCode = ((changeCode << 1) | 1);
+              changeCode = (changeCode | 1);
               children.set(i, ret);
             }
           }
@@ -1000,7 +1000,7 @@ public class RewriteProcFactory {
         if (gbyIdIndexes != null) {
           for (Map.Entry<GroupByOperator, Integer> entry : gbyIdIndexes.entrySet()) {
             GroupByOperator gby = entry.getKey();
-            if (parent.equals(ConditionAnnotation.lastUsedBy(gby))) {
+            if (ConditionAnnotation.stillInUse(parent, gby)) {
               continue;
             }
             int index = entry.getValue();
@@ -1013,7 +1013,7 @@ public class RewriteProcFactory {
 
       assert countofTidCols <= 1;
       if (countOfCondCols > 1) {
-        appendSelect(join, ctx, false);
+        appendSelect(join, ctx, false, true);
       }
 
       return null;

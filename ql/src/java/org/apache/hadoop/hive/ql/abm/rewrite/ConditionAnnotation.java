@@ -55,12 +55,16 @@ public class ConditionAnnotation implements Comparator<GroupByOperator> {
     buf.add(aggr);
   }
 
-  public void useAt(GroupByOperator gby, Operator<? extends OperatorDesc> op) {
+  public static void useAt(GroupByOperator gby, Operator<? extends OperatorDesc> op) {
     lastUsedBy.put(gby, op);
   }
 
-  public static Operator<? extends OperatorDesc> lastUsedBy(GroupByOperator gby) {
-    return lastUsedBy.get(gby);
+  public static boolean stillInUse(Operator<? extends OperatorDesc> op, GroupByOperator gby) {
+    Operator<? extends OperatorDesc> last = lastUsedBy.get(gby);
+    if (last == null) {
+      return false;
+    }
+    return last.equals(op);
   }
 
   @SuppressWarnings("unchecked")
