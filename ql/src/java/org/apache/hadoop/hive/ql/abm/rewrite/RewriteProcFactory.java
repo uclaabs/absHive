@@ -761,7 +761,7 @@ public class RewriteProcFactory {
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
 
-      ExprNodeDesc ret = rewrite(desc.getPredicate(), fil, ctx);
+      ExprNodeDesc ret = rewrite(desc.getPredicate(), fil, ctx, null);
       if (ret != null) {
         desc.setPredicate(ret);
       }
@@ -783,7 +783,7 @@ public class RewriteProcFactory {
     }
 
     private ExprNodeDesc rewrite(ExprNodeDesc expr, FilterOperator fil,
-        RewriteProcCtx ctx) throws SemanticException {
+        RewriteProcCtx ctx, List<ExprNodeDesc> extra) throws SemanticException {
       if (expr instanceof ExprNodeGenericFuncDesc) {
         ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) expr;
         GenericUDF udf = func.getGenericUDF();
@@ -791,7 +791,7 @@ public class RewriteProcFactory {
         if (udf instanceof GenericUDFOPAnd) {
           List<ExprNodeDesc> children = func.getChildExprs();
           for (int i = 0; i < children.size(); ++i) {
-            ExprNodeDesc ret = rewrite(children.get(i), fil, ctx);
+            ExprNodeDesc ret = rewrite(children.get(i), fil, ctx, null);
             if (ret != null) {
               children.set(i, ret);
             }
@@ -808,9 +808,10 @@ public class RewriteProcFactory {
           int changeCode = 0;
 
           List<ExprNodeDesc> children = func.getChildExprs();
+          ArrayList<ExprNodeDesc> gbyIds = new ArrayList<ExprNodeDesc>();
           assert children.size() == 2;
           for (int i = 0; i < children.size(); ++i) {
-            ExprNodeDesc ret = rewrite(children.get(i), fil, ctx);
+            ExprNodeDesc ret = rewrite(children.get(i), fil, ctx, gbyIds);
             changeCode = changeCode << 1;
             if (ret != null) {
               changeCode = (changeCode | 1);
@@ -823,8 +824,10 @@ public class RewriteProcFactory {
             normalizeParameters(children, changeCode);
 
             // Add to ctx: filter transforms the condition set of the annotation
+            ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>(children);
+            params.addAll(gbyIds);
             ctx.addTransform(fil, ExprNodeGenericFuncDesc.newInstance(
-                getUdf(getCondUdfName(udf, changeCode)), children));
+                getUdf(getCondUdfName(udf, changeCode)), gbyIds));
 
             // Rewrite the predicate.
             return ExprNodeGenericFuncDesc.newInstance(
@@ -837,12 +840,13 @@ public class RewriteProcFactory {
       }
 
       if (expr instanceof ExprNodeColumnDesc) {
-        Operator<? extends OperatorDesc> parent = fil.getParentOperators().get(0);
         ExprNodeColumnDesc column = (ExprNodeColumnDesc) expr;
         AggregateInfo aggr = ctx.getLineage(parent, column.getColumn());
         if (aggr != null) {
+          column.setTypeInfo(aggr.getTypeInfo());
           int idx = ctx.getGbyIdColumnIndex(fil, aggr.getGroupByOperator());
-          return Utils.generateColumnDescs(fil, idx).get(0);
+          extra.add(Utils.generateColumnDescs(fil, idx).get(0));
+          return column;
         }
         return null;
       }
