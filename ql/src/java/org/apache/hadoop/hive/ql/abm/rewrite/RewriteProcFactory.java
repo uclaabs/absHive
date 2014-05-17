@@ -216,18 +216,25 @@ public class RewriteProcFactory {
       }
     }
 
-    // Forward the count column
-    if (afterGby) {
-      Integer countIndex = ctx.getCountColumnIndex(op);
-      if (countIndex != null) {
-        selFactory.forwardColumn(op, countIndex, false);
-      }
-    }
-
     // Forward the tid column
     if (ctx.withTid(op)) {
       assert !afterGby;
       selFactory.setTidIndex(selFactory.forwardColumn(op, ctx.getTidColumnIndex(op), false));
+    }
+
+
+    if (afterGby) {
+      // Forward the count column
+      Integer countIndex = ctx.getCountColumnIndex(op);
+      if (countIndex != null) {
+        selFactory.forwardColumn(op, countIndex, false);
+      }
+
+      // Forward the lineage column
+      Integer lineageIndex = ctx.getLineageColumnIndex(op);
+      if (lineageIndex != null) {
+        selFactory.setLineageIndex(selFactory.forwardColumn(op, lineageIndex, false));
+      }
     }
 
     // Add the condition column
@@ -253,14 +260,6 @@ public class RewriteProcFactory {
           int index = entry.getValue();
           selFactory.addGbyIdIndex(gby, selFactory.forwardColumn(op, index, false));
         }
-      }
-    }
-
-    // Forward the lineage column
-    if (afterGby) {
-      Integer lineageIndex = ctx.getLineageColumnIndex(op);
-      if (lineageIndex != null) {
-        selFactory.setLineageIndex(selFactory.forwardColumn(op, lineageIndex, false));
       }
     }
 
@@ -404,18 +403,27 @@ public class RewriteProcFactory {
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
 
-      // Forward the count column
-      Integer countIndex = ctx.getCountColumnIndex(parent);
-      if (countIndex != null) {
-        ctx.putCountColumnIndex(op, forwardColumn(countIndex));
-      }
-
       // Forward the tid column
       if (ctx.withTid(op)) {
         int index = ctx.getTidColumnIndex(parent);
         // Maintain the tid column index
         ctx.putTidColumnIndex(op, forwardColumn(index));
       }
+
+      // <-- Actually it can only happens to ReduceSink
+      // Forward the count column
+      Integer countIndex = ctx.getCountColumnIndex(parent);
+      if (countIndex != null) {
+        ctx.putCountColumnIndex(op, forwardColumn(countIndex));
+      }
+
+      // Forward the lineage column
+      Integer lineageIndex = ctx.getLineageColumnIndex(parent);
+      if (lineageIndex != null) {
+        assert (nd instanceof ReduceSinkOperator);
+        ctx.putLineageColumnIndex(op, forwardColumn(lineageIndex));
+      }
+      // -->
 
       // Forward the condition columns
       List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
@@ -437,14 +445,6 @@ public class RewriteProcFactory {
             ctx.addGbyIdColumnIndex(op, gby, forwardColumn(index));
           }
         }
-      }
-
-      // Forward the lineage column
-      // Actually it can only happens to ReduceSink
-      Integer lineageIndex = ctx.getLineageColumnIndex(parent);
-      if (lineageIndex != null) {
-        assert (nd instanceof ReduceSinkOperator);
-        ctx.putLineageColumnIndex(op, forwardColumn(lineageIndex));
       }
 
       return null;
@@ -676,12 +676,16 @@ public class RewriteProcFactory {
       selFactory
           .setTidIndex(selFactory.forwardColumn(parent, ctx.getTidColumnIndex(parent), false));
 
+      // There is no count/lineage column to forward
+
       // Forward the condition columns if exist
       if (ctx.getCondColumnIndexes(parent) != null) {
         for (int index : ctx.getCondColumnIndexes(parent)) {
           selFactory.addCondIndex(selFactory.forwardColumn(parent, index, false));
         }
       }
+
+      // There is no gbyId column to forward
 
       // Create SEL
       SelectOperator sel = selFactory.getSelectOperator();
@@ -1021,6 +1025,8 @@ public class RewriteProcFactory {
           }
         }
 
+        // There is no count/lineage column to forward
+
         // Forward the condition columns
         List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
         if (condIndexes != null) {
@@ -1042,8 +1048,6 @@ public class RewriteProcFactory {
             }
           }
         }
-
-        // There is no lineage column to forward
       }
 
       assert countofTidCols <= 1;

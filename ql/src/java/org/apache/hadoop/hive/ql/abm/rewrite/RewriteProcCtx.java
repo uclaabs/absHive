@@ -18,16 +18,16 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
-  private final HashMap<Operator<? extends OperatorDesc>, Integer> countIndex =
-      new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, Integer> tidIndex =
       new HashMap<Operator<? extends OperatorDesc>, Integer>();
+  private final HashMap<Operator<? extends OperatorDesc>, Integer> countIndex =
+  new HashMap<Operator<? extends OperatorDesc>, Integer>();
+  private final HashMap<Operator<? extends OperatorDesc>, Integer> lineageIndex =
+  new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
   new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
-      new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
-  private final HashMap<Operator<? extends OperatorDesc>, Integer> lineageIndex =
-  new HashMap<Operator<? extends OperatorDesc>, Integer>();
+  new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
@@ -56,6 +56,14 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return isAnnotatedWithSrv(op);
   }
 
+  public Integer getTidColumnIndex(Operator<? extends OperatorDesc> op) {
+    return tidIndex.get(op);
+  }
+
+  public void putTidColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+    tidIndex.put(op, index);
+  }
+
   public Integer getCountColumnIndex(Operator<? extends OperatorDesc> op) {
     return countIndex.get(op);
   }
@@ -64,12 +72,12 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     countIndex.put(op, index);
   }
 
-  public Integer getTidColumnIndex(Operator<? extends OperatorDesc> op) {
-    return tidIndex.get(op);
+  public Integer getLineageColumnIndex(Operator<? extends OperatorDesc> op) {
+    return lineageIndex.get(op);
   }
 
-  public void putTidColumnIndex(Operator<? extends OperatorDesc> op, int index) {
-    tidIndex.put(op, index);
+  public void putLineageColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+    lineageIndex.put(op, index);
   }
 
   public List<Integer> getCondColumnIndexes(Operator<? extends OperatorDesc> op) {
@@ -83,14 +91,6 @@ public class RewriteProcCtx implements NodeProcessorCtx {
       condIndex.put(op, indexes);
     }
     indexes.add(index);
-  }
-
-  public Integer getLineageColumnIndex(Operator<? extends OperatorDesc> op) {
-    return lineageIndex.get(op);
-  }
-
-  public void putLineageColumnIndex(Operator<? extends OperatorDesc> op, int index) {
-    lineageIndex.put(op, index);
   }
 
   public Map<GroupByOperator, Integer> getGbyIdColumnIndexes(Operator<? extends OperatorDesc> op) {
@@ -118,14 +118,19 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   public HashSet<Integer> getSpecialColumnIndexes(Operator<? extends OperatorDesc> op) {
     HashSet<Integer> ret = new HashSet<Integer>();
 
+    Integer tidIndex = getTidColumnIndex(op);
+    if (tidIndex != null) {
+      ret.add(tidIndex);
+    }
+
     Integer countIndex = getCountColumnIndex(op);
     if (countIndex != null) {
       ret.add(countIndex);
     }
 
-    Integer tidIndex = getTidColumnIndex(op);
-    if (tidIndex != null) {
-      ret.add(tidIndex);
+    Integer lineageIndex = getLineageColumnIndex(op);
+    if (lineageIndex != null) {
+      ret.add(lineageIndex);
     }
 
     List<Integer> condIndexes = getCondColumnIndexes(op);
@@ -136,11 +141,6 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     Map<GroupByOperator, Integer> gbyIdIndexMap = getGbyIdColumnIndexes(op);
     if (gbyIdIndexMap != null) {
       ret.addAll(gbyIdIndexMap.values());
-    }
-
-    Integer lineageIndex = getLineageColumnIndex(op);
-    if (lineageIndex != null) {
-      ret.add(lineageIndex);
     }
 
     return ret;
