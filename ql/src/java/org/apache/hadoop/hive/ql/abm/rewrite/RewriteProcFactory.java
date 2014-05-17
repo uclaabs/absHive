@@ -227,7 +227,7 @@ public class RewriteProcFactory {
       // Forward the count column
       Integer countIndex = ctx.getCountColumnIndex(op);
       if (countIndex != null) {
-        selFactory.forwardColumn(op, countIndex, false);
+        selFactory.setCountIndex(selFactory.forwardColumn(op, countIndex, false));
       }
 
       // Forward the lineage column
@@ -414,6 +414,7 @@ public class RewriteProcFactory {
       // Forward the count column
       Integer countIndex = ctx.getCountColumnIndex(parent);
       if (countIndex != null) {
+        assert (nd instanceof ReduceSinkOperator);
         ctx.putCountColumnIndex(op, forwardColumn(countIndex));
       }
 
@@ -585,7 +586,7 @@ public class RewriteProcFactory {
         return null;
       }
 
-      boolean continuous = ctx.isAnnotatedWithSrv(parent);
+      boolean continuous = firstGby ? ctx.withTid(parent) : (ctx.getLineageColumnIndex(parent) != null);
 
       // Insert Select as input and cache it
       if (firstGby && continuous) {
@@ -598,27 +599,30 @@ public class RewriteProcFactory {
         modifyAggregator(i, continuous);
       }
 
-      // Add the COUNT(*) column
-      ctx.putCountColumnIndex(
-          gby,
-          (firstGby) ?
-              addAggregator(convertUdafName("count", continuous), new ArrayList<Integer>()) :
-              addAggregator(convertUdafName("count", continuous),
-                  new ArrayList<Integer>(ctx.getCountColumnIndex(parent))));
+      if (firstGby) {
+        // Add the COUNT(*) column
+        ctx.putCountColumnIndex(gby,
+            addAggregator(convertUdafName("count", continuous), new ArrayList<Integer>()));
+        // Add the column to compute lineage
+        if (continuous) {
+          ctx.putLineageColumnIndex(gby,
+              addAggregator(LIN_SUM, Arrays.asList(ctx.getTidColumnIndex(parent))));
+        }
+      } else {
+        // Add the COUNT(*) column
+        ctx.putCountColumnIndex(gby, addAggregator(convertUdafName("count", continuous),
+            Arrays.asList(ctx.getCountColumnIndex(parent))));
+        // Add the column to compute lineage
+        if (continuous) {
+          ctx.putLineageColumnIndex(gby,
+              addAggregator(LIN_SUM, Arrays.asList(ctx.getLineageColumnIndex(parent))));
+        }
+      }
 
       // Add the column to compute condition
       List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
       assert (condIndexes == null || condIndexes.size() < 2);
       ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, condIndexes));
-
-      // Add the column to compute lineage
-      if (firstGby && continuous) {
-        ctx.putLineageColumnIndex(gby,
-            addAggregator(LIN_SUM, Arrays.asList(ctx.getTidColumnIndex(parent))));
-      } else if (!firstGby && ctx.getLineageColumnIndex(parent) != null) {
-        ctx.putLineageColumnIndex(gby,
-            addAggregator(LIN_SUM, Arrays.asList(ctx.getLineageColumnIndex(parent))));
-      }
 
       // Add select to generate group id
       if (!firstGby) {
@@ -862,7 +866,7 @@ public class RewriteProcFactory {
             ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>(children);
             params.addAll(gbyIds);
             ctx.addTransform(fil, ExprNodeGenericFuncDesc.newInstance(
-                getUdf(getCondUdfName(udf, changeCode)), gbyIds));
+                getUdf(getCondUdfName(udf, changeCode)), params));
 
             // Rewrite the predicate.
             return ExprNodeGenericFuncDesc.newInstance(

@@ -23,7 +23,6 @@ public class Utils {
       Operator<? extends OperatorDesc> op, List<Integer> indexes) {
     ArrayList<ExprNodeColumnDesc> ret = new ArrayList<ExprNodeColumnDesc>();
     if (indexes != null) {
-      System.out.println(op.toString() + " " + indexes);
       for (int index : indexes) {
         ColumnInfo colInfo = op.getSchema().getSignature().get(index);
         ret.add(new ExprNodeColumnDesc(colInfo.getType(), colInfo
