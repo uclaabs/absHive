@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
@@ -72,6 +73,12 @@ public class NonBlockingOpDeDupProc implements Transform {
         Object... nodeOutputs) throws SemanticException {
       SelectOperator cSEL = (SelectOperator) nd;
       SelectOperator pSEL = (SelectOperator) stack.get(stack.size() - 2);
+      // ABM
+      if (AbmUtilities.inAbmMode() &&
+          (cSEL.getConf().toCache() || pSEL.getConf().toCache())) {
+        return null;
+      }
+
       if (pSEL.getNumChild() > 1) {
         return null;  // possible if all children have same expressions, but not likely.
       }

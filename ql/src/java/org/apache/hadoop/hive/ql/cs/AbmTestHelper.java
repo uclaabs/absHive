@@ -12,11 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.abm.funcdep.FuncDepProcFactory;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
-import org.apache.hadoop.hive.ql.abm.lineage.LineageProcFactory;
-import org.apache.hadoop.hive.ql.abm.rewrite.RewriteProcFactory;
-import org.apache.hadoop.hive.ql.abm.rewrite.TraceProcFactory;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
@@ -233,53 +229,28 @@ public class AbmTestHelper {
     }
   }
 
-  /**
-   * Main Test Entry Point
-   * @param op
-   * @param pCtx
-   */
-  public static void test(Operator<? extends OperatorDesc> op, ParseContext pCtx) {
+  public static void printBeforeRewritePlan(Operator<? extends OperatorDesc> op) {
     try {
+      needLogToFile = false;
+      println(0, "####### Before Rewrite #########");
+      analyzeHelper(op, 0);
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public static void printAfterRewritePlan(Operator<? extends OperatorDesc> op, ParseContext pCtx) {
+    try {
+      AbmTestHelper.pCtx = pCtx;
       new File(planFile).delete();
       new File(planFile).createNewFile();
       rootOpId = Integer.parseInt(op.getIdentifier());
 
-      needLogToFile = false;
-      if (pCtx.getFetchTask() == null) {
-        println(0, "####### Before Rewrite #########");
-        analyzeHelper(op, 0);
-      } else {
-        println(0, "FileSink Operator has been changed into ListSinkOperator!");
-      }
-
-      //opParseCtx = pCtx.getOpParseCtx();
-      AbmTestHelper.pCtx = pCtx;
-      try {
-        ctx = LineageProcFactory.extractLineage(pCtx);
-        FuncDepProcFactory.checkFuncDep(ctx);
-      }
-      catch (Exception e) {
-        logExceptions(exceptionFile, e.getMessage());
-        e.printStackTrace();
-      }
-
-      try {
-        RewriteProcFactory.rewritePlan(TraceProcFactory.trace(ctx));
-      }
-      catch (Exception e) {
-        logExceptions(exceptionFile, e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());
-        e.printStackTrace();
-      }
-
       needLogToFile = true;
       try {
-        if (pCtx.getFetchTask() == null) {
           println(0, "####### After Rewrite #########");
           visit(op, 0);
-        } else {
-          println(0, "FileSink Operator has been changed into ListSinkOperator!");
-          //println(0, ctx);
-        }
       }
       catch (Exception e) {
         logExceptions(exceptionFile, e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());

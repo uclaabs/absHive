@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.abm.AbmRewriter;
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.optimizer.index.RewriteGBUsingIndex;
 import org.apache.hadoop.hive.ql.optimizer.lineage.Generator;
 import org.apache.hadoop.hive.ql.optimizer.listbucketingpruner.ListBucketingPruner;
@@ -73,6 +75,9 @@ public class Optimizer {
       transformations.add(new GroupByOptimizer());
     }
     transformations.add(new SamplePruner());
+    // ABM: AbmRewirter must be called before MapJoinProcessor,
+    // because MapJoinProcessor needs AbmRewriter to pin tables.
+    transformations.add(new AbmRewriter());
     transformations.add(new MapJoinProcessor());
     boolean bucketMapJoinOptimizer = false;
     if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVEOPTBUCKETMAPJOIN)) {
@@ -96,14 +101,18 @@ public class Optimizer {
 
     transformations.add(new UnionProcessor());
     transformations.add(new JoinReorder());
-    if(HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVEOPTREDUCEDEDUPLICATION)) {
+    if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVEOPTREDUCEDEDUPLICATION)) {
       transformations.add(new ReduceSinkDeDuplication());
     }
     transformations.add(new NonBlockingOpDeDupProc());
     if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVELIMITOPTENABLE)) {
       transformations.add(new GlobalLimitOptimizer());
     }
-    transformations.add(new SimpleFetchOptimizer());  // must be called last
+    // ABM: skip SimpleFectchOptimizer as it is useless
+    if (AbmUtilities.inAbmMode()) {
+      return;
+    }
+    transformations.add(new SimpleFetchOptimizer()); // must be called last
   }
 
   /**
@@ -114,7 +123,7 @@ public class Optimizer {
    */
   public ParseContext optimize() throws SemanticException {
     for (Transform t : transformations) {
-        pctx = t.transform(pctx);
+      pctx = t.transform(pctx);
     }
     return pctx;
   }

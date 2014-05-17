@@ -23,6 +23,10 @@ public final class AbmUtilities {
 
   private static final Log LOG = LogFactory.getLog(AbmUtilities.class.getName());
 
+  private static boolean inAbmMode = false;
+  private static HashMap<HiveConf.ConfVars, Boolean> prevSetting =
+      new HashMap<HiveConf.ConfVars, Boolean>();
+
   private static String sampledTable;
   private static String label;
 
@@ -32,19 +36,20 @@ public final class AbmUtilities {
 
   public static void setAbmMode(HiveConf conf) throws SemanticException {
     if (conf.getBoolVar(HiveConf.ConfVars.HIVE_ABM)) {
+      inAbmMode = true;
       // Turn off skewed data support, because of
       // (1) group-by with map-side group-by and skewed data, and
       // (2) skew join optimizer.
-      conf.setBoolVar(HiveConf.ConfVars.HIVEGROUPBYSKEW, false);
-      conf.setBoolVar(HiveConf.ConfVars.HIVE_OPTIMIZE_SKEWJOIN_COMPILETIME, false);
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEGROUPBYSKEW, false);
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVE_OPTIMIZE_SKEWJOIN_COMPILETIME, false);
 
       // Turn off index-related optimization, because of
       // (1) rewrite group-by using index (RewriteGBUsingIndex).
-      conf.setBoolVar(HiveConf.ConfVars.HIVEOPTGBYUSINGINDEX, false);
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEOPTGBYUSINGINDEX, false);
 
       // Turn off map join hints
       // BUT no one is using this!
-      conf.setBoolVar(HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false);
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false);
 
       // No correlation optimizer support in hive 0.11
       // Turn off correlation optimizer.
@@ -60,15 +65,29 @@ public final class AbmUtilities {
 
       // Label -- only for debugging purpose
       label = conf.getVar(HiveConf.ConfVars.HIVE_ABM_LABEL);
+    } else {
+      inAbmMode = false;
+      for (Map.Entry<HiveConf.ConfVars, Boolean> entry : prevSetting.entrySet()) {
+        conf.setBoolVar(entry.getKey(), entry.getValue());
+      }
     }
+  }
+
+  private static void setAndRecordBoolVar(HiveConf conf, HiveConf.ConfVars confVar, boolean on) {
+    prevSetting.put(confVar, conf.getBoolVar(confVar));
+    conf.setBoolVar(confVar, on);
+  }
+
+  public static boolean inAbmMode() {
+    return inAbmMode;
   }
 
   public static String getLabel() {
     return label;
   }
 
-  public static void checkAndReport(HiveConf conf, ErrorMsg msg) throws SemanticException {
-    if (conf.getBoolVar(HiveConf.ConfVars.HIVE_ABM)) {
+  public static void checkAndReport(ErrorMsg msg) throws SemanticException {
+    if (inAbmMode) {
       report(msg);
     }
   }
