@@ -35,7 +35,7 @@ public final class AbmUtilities {
 
   private static final Map<String, Set<String>> schemaPrimaryKeyMap = new HashMap<String, Set<String>>();
 
-  private static ArrayList<String> fieldNames = null;
+  private static final ArrayList<String> fieldNames = new ArrayList<String>();
 
   private static final AtomicLong broadcastId = new AtomicLong(-1);
 
@@ -158,7 +158,7 @@ public final class AbmUtilities {
   }
 
   public static void recordViewSchema(RowResolver rr) {
-    fieldNames = new ArrayList<String>();
+    fieldNames.clear();
     for (ColumnInfo colInfo : rr.getColumnInfos()) {
       if (colInfo.isHiddenVirtualCol()) {
         continue;
