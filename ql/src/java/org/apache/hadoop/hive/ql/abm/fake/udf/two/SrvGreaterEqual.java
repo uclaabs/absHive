@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.ql.abm.fake.udf;
+package org.apache.hadoop.hive.ql.abm.fake.udf.two;
 
 import org.apache.hadoop.hive.ql.abm.fake.datatypes.SrvAno;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
