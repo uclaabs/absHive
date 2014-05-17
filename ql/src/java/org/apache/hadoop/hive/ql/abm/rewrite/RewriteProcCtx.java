@@ -18,6 +18,8 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
+  private final HashMap<Operator<? extends OperatorDesc>, Integer> countIndex =
+      new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, Integer> tidIndex =
       new HashMap<Operator<? extends OperatorDesc>, Integer>();
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>> condIndex =
@@ -52,6 +54,14 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   public boolean withTid(Operator<? extends OperatorDesc> op) {
     return isAnnotatedWithSrv(op);
+  }
+
+  public Integer getCountColumnIndex(Operator<? extends OperatorDesc> op) {
+    return countIndex.get(op);
+  }
+
+  public void putCountColumnIndex(Operator<? extends OperatorDesc> op, int index) {
+    countIndex.put(op, index);
   }
 
   public Integer getTidColumnIndex(Operator<? extends OperatorDesc> op) {
@@ -108,14 +118,19 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   public HashSet<Integer> getSpecialColumnIndexes(Operator<? extends OperatorDesc> op) {
     HashSet<Integer> ret = new HashSet<Integer>();
 
+    Integer countIndex = getCountColumnIndex(op);
+    if (countIndex != null) {
+      ret.add(countIndex);
+    }
+
     Integer tidIndex = getTidColumnIndex(op);
     if (tidIndex != null) {
       ret.add(tidIndex);
     }
 
-    Integer lineageIndex = getLineageColumnIndex(op);
-    if (lineageIndex != null) {
-      ret.add(lineageIndex);
+    List<Integer> condIndexes = getCondColumnIndexes(op);
+    if (condIndexes != null) {
+      ret.addAll(condIndexes);
     }
 
     Map<GroupByOperator, Integer> gbyIdIndexMap = getGbyIdColumnIndexes(op);
@@ -123,9 +138,9 @@ public class RewriteProcCtx implements NodeProcessorCtx {
       ret.addAll(gbyIdIndexMap.values());
     }
 
-    List<Integer> condIndexes = getCondColumnIndexes(op);
-    if (condIndexes != null) {
-      ret.addAll(condIndexes);
+    Integer lineageIndex = getLineageColumnIndex(op);
+    if (lineageIndex != null) {
+      ret.add(lineageIndex);
     }
 
     return ret;

@@ -103,6 +103,7 @@ public class RewriteProcFactory {
     private final HashMap<String, ExprNodeDesc> columnExprMap = new HashMap<String, ExprNodeDesc>();
     private final RowResolver rowResolver = new RowResolver();
 
+    private Integer countIndex = null;
     private Integer tidIndex = null;
     private final ArrayList<Integer> condIndex = new ArrayList<Integer>();
     private final HashMap<GroupByOperator, Integer> gbyIdIndex = new HashMap<GroupByOperator, Integer>();
@@ -131,6 +132,10 @@ public class RewriteProcFactory {
       rowResolver.put("", outputName, new ColumnInfo(outputName, column.getTypeInfo(), "", false));
 
       return outputColumnNames.size() - 1;
+    }
+
+    public void setCountIndex(int index) {
+      countIndex = index;
     }
 
     public void setTidIndex(int index) {
@@ -167,6 +172,9 @@ public class RewriteProcFactory {
       OpParseContext opParseContext = new OpParseContext(rowResolver);
       ctx.getParseContext().getOpParseCtx().put(sel, opParseContext);
 
+      if (countIndex != null) {
+        ctx.putCountColumnIndex(sel, countIndex);
+      }
       if (tidIndex != null) {
         ctx.putTidColumnIndex(sel, tidIndex);
       }
@@ -208,6 +216,14 @@ public class RewriteProcFactory {
       }
     }
 
+    // Forward the count column
+    if (afterGby) {
+      Integer countIndex = ctx.getCountColumnIndex(op);
+      if (countIndex != null) {
+        selFactory.forwardColumn(op, countIndex, false);
+      }
+    }
+
     // Forward the tid column
     if (ctx.withTid(op)) {
       assert !afterGby;
@@ -226,7 +242,7 @@ public class RewriteProcFactory {
     if (afterGby) {
       GroupByOperator gby = (GroupByOperator) op;
       selFactory.addGbyIdIndex(gby, selFactory.addColumn(
-              ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>())));
+          ExprNodeGenericFuncDesc.newInstance(getUdf(GEN_ID), new ArrayList<ExprNodeDesc>())));
     }
     // Forward the original group-by-id columns
     Map<GroupByOperator, Integer> gbyIdIndexes = ctx.getGbyIdColumnIndexes(op);
@@ -387,6 +403,12 @@ public class RewriteProcFactory {
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
+
+      // Forward the count column
+      Integer countIndex = ctx.getCountColumnIndex(parent);
+      if (countIndex != null) {
+        ctx.putCountColumnIndex(op, forwardColumn(countIndex));
+      }
 
       // Forward the tid column
       if (ctx.withTid(op)) {
@@ -576,18 +598,26 @@ public class RewriteProcFactory {
         modifyAggregator(i, continuous);
       }
 
+      // Add the COUNT(*) column
+      ctx.putCountColumnIndex(
+          gby,
+          (firstGby) ?
+              addAggregator(convertUdafName("count", continuous), new ArrayList<Integer>()) :
+              addAggregator(convertUdafName("count", continuous),
+                  new ArrayList<Integer>(ctx.getCountColumnIndex(parent))));
+
       // Add the column to compute condition
       List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
       assert (condIndexes == null || condIndexes.size() < 2);
-      ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, parent, condIndexes));
+      ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, condIndexes));
 
       // Add the column to compute lineage
       if (firstGby && continuous) {
         ctx.putLineageColumnIndex(gby,
-            addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getTidColumnIndex(parent))));
-      } else if (ctx.getLineageColumnIndex(parent) != null) {
+            addAggregator(LIN_SUM, Arrays.asList(ctx.getTidColumnIndex(parent))));
+      } else if (!firstGby && ctx.getLineageColumnIndex(parent) != null) {
         ctx.putLineageColumnIndex(gby,
-            addAggregator(LIN_SUM, parent, Arrays.asList(ctx.getLineageColumnIndex(parent))));
+            addAggregator(LIN_SUM, Arrays.asList(ctx.getLineageColumnIndex(parent))));
       }
 
       // Add select to generate group id
@@ -598,8 +628,9 @@ public class RewriteProcFactory {
         }
         appendSelect(sel, ctx, false, false, ExprNodeGenericFuncDesc.newInstance(
             getUdf("srv_greater_than"),
-            Arrays.asList(Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0),
-                new ExprNodeConstantDesc(new Double(0)))
+            Arrays.asList(Utils.generateColumnDescs(sel, ctx.getCountColumnIndex(sel)).get(0),
+                new ExprNodeConstantDesc(new Double(0)),
+                Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0))
             ));
       }
 
@@ -721,8 +752,8 @@ public class RewriteProcFactory {
       }
     }
 
-    private int addAggregator(String udafName, Operator<? extends OperatorDesc> op,
-        List<Integer> parameterIndexes) throws SemanticException {
+    private int addAggregator(String udafName, List<Integer> parameterIndexes)
+        throws SemanticException {
       ArrayList<ExprNodeDesc> parameters = new ArrayList<ExprNodeDesc>(
           Utils.generateColumnDescs(parent, parameterIndexes));
       GenericUDAFEvaluator udafEvaluator =
