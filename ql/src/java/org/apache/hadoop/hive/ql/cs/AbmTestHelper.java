@@ -482,7 +482,7 @@ public class AbmTestHelper {
     }
   }
 
-  private static void logToFile(String path, String msg) {
+  public static void logToFile(String path, String msg) {
     try {
       PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(path, true)));
       out.print(msg);

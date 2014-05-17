@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.exec.ConditionalTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
@@ -148,7 +149,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
      * See if the two tasks can be merged.
      */
     private void mergeMapJoinTaskWithChildMapJoinTask(MapRedTask task, Configuration conf) {
-      MapRedTask childTask = (MapRedTask)task.getChildTasks().get(0);
+      MapRedTask childTask = (MapRedTask) task.getChildTasks().get(0);
       MapredWork work = task.getWork();
       MapredLocalWork localWork = work.getMapLocalWork();
       MapredWork childWork = childTask.getWork();
@@ -173,7 +174,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
         return;
       }
 
-      FileSinkOperator fop = (FileSinkOperator)op;
+      FileSinkOperator fop = (FileSinkOperator) op;
       String workDir = fop.getConf().getDirName();
 
       Map<String, ArrayList<String>> childPathToAliases = childWork.getPathToAliases();
@@ -202,7 +203,8 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
       for (String alias : localWork.getAliasToWork().keySet()) {
         Long tabSize = aliasToSize.get(alias);
         if (tabSize == null) {
-          /* if the size is unavailable, we need to assume a size 1 greater than mapJoinSize
+          /*
+           * if the size is unavailable, we need to assume a size 1 greater than mapJoinSize
            * this implies that merge cannot happen so we can return.
            */
           return;
@@ -213,7 +215,8 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
       for (String alias : childLocalWork.getAliasToWork().keySet()) {
         Long tabSize = aliasToSize.get(alias);
         if (tabSize == null) {
-          /* if the size is unavailable, we need to assume a size 1 greater than mapJoinSize
+          /*
+           * if the size is unavailable, we need to assume a size 1 greater than mapJoinSize
            * this implies that merge cannot happen so we can return.
            */
           return;
@@ -241,8 +244,8 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
       childAliasOp.setParentOperators(parentOps);
 
       work.getAliasToPartnInfo().putAll(childWork.getAliasToPartnInfo());
-      for (Map.Entry<String, PartitionDesc> childWorkEntry :
-        childWork.getPathToPartitionInfo().entrySet()) {
+      for (Map.Entry<String, PartitionDesc> childWorkEntry : childWork.getPathToPartitionInfo()
+          .entrySet()) {
         if (childWork.getAliasToPartnInfo().containsValue(childWorkEntry.getKey())) {
           work.getPathToPartitionInfo().put(childWorkEntry.getKey(), childWorkEntry.getValue());
         }
@@ -486,7 +489,8 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
           }
         }
 
-        HashSet<Integer> bigTableCandidates = MapJoinProcessor.getBigTableCandidates(joinDesc.getConds());
+        HashSet<Integer> bigTableCandidates = MapJoinProcessor.getBigTableCandidates(joinDesc
+            .getConds());
 
         // no table could be the big table; there is no need to convert
         if (bigTableCandidates == null) {
@@ -500,7 +504,13 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
         boolean convertJoinMapJoin = HiveConf.getBoolVar(conf,
             HiveConf.ConfVars.HIVECONVERTJOINNOCONDITIONALTASK);
         int bigTablePosition = -1;
-        if (convertJoinMapJoin) {
+        // ABM
+        if (AbmUtilities.inAbmMode()) {
+          bigTablePosition = joinDesc.getToPin();
+        }
+        // ABM
+        if (bigTablePosition == -1 && convertJoinMapJoin) {
+          //if (convertJoinMapJoin) {
           // This is the threshold that the user has specified to fit in mapjoin
           long mapJoinSize = HiveConf.getLongVar(conf,
               HiveConf.ConfVars.HIVECONVERTJOINNOCONDITIONALTASKTHRESHOLD);
@@ -598,8 +608,8 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
           if (aliasKnownSize != null && aliasKnownSize.longValue() > 0) {
             long smallTblTotalKnownSize = aliasTotalKnownInputSize
                 - aliasKnownSize.longValue();
-            if(smallTblTotalKnownSize > ThresholdOfSmallTblSizeSum) {
-              //this table is not good to be a big table.
+            if (smallTblTotalKnownSize > ThresholdOfSmallTblSizeSum) {
+              // this table is not good to be a big table.
               continue;
             }
           }
@@ -609,7 +619,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
           listTasks.add(newTask);
           newTask.setTaskTag(Task.CONVERTED_MAPJOIN);
 
-          //set up backup task
+          // set up backup task
           newTask.setBackupTask(currTask);
           newTask.setBackupChildrenTasks(currTask.getChildTasks());
 
@@ -644,7 +654,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
       resolverCtx.setHdfsTmpDir(context.getMRScratchDir());
       cndTsk.setResolverCtx(resolverCtx);
 
-      //replace the current task with the new generated conditional task
+      // replace the current task with the new generated conditional task
       this.replaceTaskWithConditionalTask(currTask, cndTsk, physicalContext);
       return cndTsk;
     }

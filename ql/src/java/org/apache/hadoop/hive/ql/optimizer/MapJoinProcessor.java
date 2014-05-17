@@ -660,12 +660,6 @@ public class MapJoinProcessor implements Transform {
    *         otherwise
    */
   private int mapSideJoin(JoinOperator op, QBJoinTree joinTree) throws SemanticException {
-    // ABM
-    int toPin = op.getConf().getToPin();
-    if (toPin != -1) {
-      return toPin;
-    }
-
     int mapJoinPos = -1;
     if (joinTree.isMapSideJoin()) {
       int pos = 0;

@@ -51,6 +51,11 @@ public final class AbmUtilities {
       // BUT no one is using this!
       setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false);
 
+      // Turn on this:
+      // (1) Make sure CommonJoinResolver will go through our code;
+      // (2) Prevent ReduceSinkDeDuplication to apply JOIN...RS rewriting
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVECONVERTJOINNOCONDITIONALTASK, true);
+
       // No correlation optimizer support in hive 0.11
       // Turn off correlation optimizer.
       // Anyway, shark does not support it (no Demux and Mux).
