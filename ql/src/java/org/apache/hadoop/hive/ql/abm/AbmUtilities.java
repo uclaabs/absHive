@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.ql.abm;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -12,6 +13,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.ErrorMsg;
+import org.apache.hadoop.hive.ql.exec.ColumnInfo;
+import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 /**
@@ -31,6 +34,8 @@ public final class AbmUtilities {
   private static String label;
 
   private static final Map<String, Set<String>> schemaPrimaryKeyMap = new HashMap<String, Set<String>>();
+
+  private static final ArrayList<String> fieldNames = new ArrayList<String>();
 
   private static final AtomicLong broadcastId = new AtomicLong(-1);
 
@@ -150,6 +155,22 @@ public final class AbmUtilities {
 
   public static void warn(ErrorMsg msg) {
     LOG.warn(msg.getMsg());
+  }
+
+  public static void recordViewSchema(RowResolver rr) {
+    fieldNames.clear();
+    for (ColumnInfo colInfo : rr.getColumnInfos()) {
+      if (colInfo.isHiddenVirtualCol()) {
+        continue;
+      }
+      String colName = rr.reverseLookup(colInfo.getInternalName())[1];
+      fieldNames.add(colName);
+    }
+    fieldNames.add("_existence_prob.");
+  }
+
+  public static ArrayList<String> getViewSchema() {
+    return fieldNames;
   }
 
   public static long newBroadcastId() {
