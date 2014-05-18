@@ -59,6 +59,16 @@ public class AbmTestHelper {
     }
   }
 
+  private static String getSampledTable() {
+    String sampledTable = AbmUtilities.getSampledTable();
+    if (AbmUtilities.inAbmMode()) {
+      return sampledTable;
+    }
+    else {
+      return "";
+    }
+  }
+
   /**
    * a small tree with minimal info
    * @param op
@@ -67,7 +77,7 @@ public class AbmTestHelper {
   private static void printTree(Operator<? extends OperatorDesc> op, int level) {
     if (op instanceof TableScanOperator) {
       String name = pCtx.getTopToTable().get(op).getTableName();
-      println(level, getOpBriefInfo(op) + " " +  name.toLowerCase().equals(AbmUtilities.getSampledTable()));
+      println(level, getOpBriefInfo(op) + " " +  name.toLowerCase().equals(getSampledTable()));
     } else {
       println(level, getOpBriefInfo(op));
     }
@@ -207,7 +217,7 @@ public class AbmTestHelper {
     //print additional info
     if (op instanceof TableScanOperator) {
       String name = pCtx.getTopToTable().get(op).getTableName();
-      println(level, "[TableScan] TabName: " + name + " isSampleTable: " + name.toLowerCase().equals(AbmUtilities.getSampledTable().toLowerCase()));
+      println(level, "[TableScan] TabName: " + name + " isSampleTable: " + name.toLowerCase().equals(getSampledTable()));
     }
     else if (op instanceof FilterOperator) {
       println(level, "[Filter] Predicate:");
@@ -495,7 +505,9 @@ public class AbmTestHelper {
   private static void logExceptions(String path, String msg) {
     try {
       PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(path, true)));
-      out.println("q" + AbmUtilities.getLabel() + ":");
+      if (AbmUtilities.inAbmMode()) {
+        out.println("q" + AbmUtilities.getLabel() + ":");
+      }
       out.println(msg);
       out.close();
     } catch (IOException e) {
