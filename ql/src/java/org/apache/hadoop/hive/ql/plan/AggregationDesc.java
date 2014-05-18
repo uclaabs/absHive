@@ -30,7 +30,7 @@ public class AggregationDesc implements java.io.Serializable {
 
   /**
    * In case genericUDAFEvaluator is Serializable, we will serialize the object.
-   *
+   * 
    * In case genericUDAFEvaluator does not implement Serializable, Java will
    * remember the class of genericUDAFEvaluator and creates a new instance when
    * deserialized. This is exactly what we want.
@@ -39,6 +39,9 @@ public class AggregationDesc implements java.io.Serializable {
   private java.util.ArrayList<ExprNodeDesc> parameters;
   private boolean distinct;
   private GenericUDAFEvaluator.Mode mode;
+
+  public AggregationDesc() {
+  }
 
   public AggregationDesc(final String genericUDAFName,
       final GenericUDAFEvaluator genericUDAFEvaluator,
