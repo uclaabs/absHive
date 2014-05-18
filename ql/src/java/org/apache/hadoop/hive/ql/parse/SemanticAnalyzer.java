@@ -8749,17 +8749,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
      */
     AbmTestHelper.printBeforeRewritePlan(sinkOp);
 
-    try {
     Optimizer optm = new Optimizer();
     optm.setPctx(pCtx);
     optm.initialize(conf);
     pCtx = optm.optimize();
-    } catch (SemanticException e) {
-      e.printStackTrace();
-      throw e;
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
 
     /**
      * print after plan
