@@ -53,8 +53,9 @@ public final class AbmUtilities {
       setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEOPTGBYUSINGINDEX, false);
 
       // Turn off map join hints
-      // BUT no one is using this!
-      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false);
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false); // BUT no one is using this!
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEOPTBUCKETMAPJOIN, false);
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEOPTSORTMERGEBUCKETMAPJOIN, false);
 
       // Turn on this:
       // (1) Make sure CommonJoinResolver will go through our code;
