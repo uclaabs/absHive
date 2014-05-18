@@ -14,10 +14,6 @@ public class AbmRewriter implements Transform {
 
   @Override
   public ParseContext transform(ParseContext pctx) throws SemanticException {
-    if (!AbmUtilities.inAbmMode()) {
-      return pctx;
-    }
-
     LineageCtx lctx = LineageProcFactory.extractLineage(pctx);
     FuncDepProcFactory.checkFuncDep(lctx);
 

@@ -77,7 +77,9 @@ public class Optimizer {
     transformations.add(new SamplePruner());
     // ABM: AbmRewirter must be called before MapJoinProcessor,
     // because MapJoinProcessor needs AbmRewriter to pin tables.
-    transformations.add(new AbmRewriter());
+    if (AbmUtilities.inAbmMode()) {
+      transformations.add(new AbmRewriter());
+    }
     transformations.add(new MapJoinProcessor());
     boolean bucketMapJoinOptimizer = false;
     if (HiveConf.getBoolVar(hiveConf, HiveConf.ConfVars.HIVEOPTBUCKETMAPJOIN)) {
