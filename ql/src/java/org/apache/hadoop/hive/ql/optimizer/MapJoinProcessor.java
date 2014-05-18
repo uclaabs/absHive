@@ -33,6 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.ErrorMsg;
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.exec.AbstractMapJoinOperator;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
@@ -660,6 +661,14 @@ public class MapJoinProcessor implements Transform {
    *         otherwise
    */
   private int mapSideJoin(JoinOperator op, QBJoinTree joinTree) throws SemanticException {
+    // ABM
+    if (AbmUtilities.inAbmMode()) {
+      int toPin = op.getConf().getToPin();
+      if (toPin != -1) {
+        return toPin;
+      }
+    }
+
     int mapJoinPos = -1;
     if (joinTree.isMapSideJoin()) {
       int pos = 0;
