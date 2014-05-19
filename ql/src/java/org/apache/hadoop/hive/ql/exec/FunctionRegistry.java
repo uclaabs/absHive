@@ -48,7 +48,6 @@ import org.apache.hadoop.hive.ql.abm.fake.SrvAvg;
 import org.apache.hadoop.hive.ql.abm.fake.SrvCount;
 import org.apache.hadoop.hive.ql.abm.fake.SrvSum;
 import org.apache.hadoop.hive.ql.abm.fake.udf.CondJoin;
-import org.apache.hadoop.hive.ql.abm.fake.udf.GenRowID;
 import org.apache.hadoop.hive.ql.abm.fake.udf.four.SrvGreaterEqualFour;
 import org.apache.hadoop.hive.ql.abm.fake.udf.three.SrvGreaterEqualThree;
 import org.apache.hadoop.hive.ql.abm.fake.udf.three.SrvGreaterThree;
@@ -58,6 +57,7 @@ import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvGreater;
 import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvGreaterEqual;
 import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvLess;
 import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvLessEqual;
+import org.apache.hadoop.hive.ql.abm.udf.GenRowId;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
@@ -426,7 +426,7 @@ public final class FunctionRegistry {
 
 
     //UDFs
-    registerUDF("gen_id", GenRowID.class, false);
+    registerGenericUDF("gen_id", GenRowId.class);
     registerGenericUDF("cond_join" , CondJoin.class);
 
 
