@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import org.apache.hadoop.hive.ql.ErrorMsg;
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.lib.PostOrderPlanWalker;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
@@ -365,10 +367,15 @@ public class RewriteProcFactory {
       super.process(nd, stack, procCtx, nodeOutputs);
 
       if (ctx.withTid(ts)) {
+        int numOfTid = 0;
         for (int i = 0; i < signature.size(); ++i) {
           if (signature.get(i).getInternalName().equals(TID)) {
             ctx.putTidColumnIndex(ts, i);
+            ++numOfTid;
           }
+        }
+        if (numOfTid != 1) {
+          AbmUtilities.report(ErrorMsg.SAMPLED_TABLE_WRONG_SCHEMA_ABM);
         }
       }
 

@@ -127,8 +127,9 @@ public enum ErrorMsg {
   CTAS_COLLST_COEXISTENCE(10065, "CREATE TABLE AS SELECT command cannot specify "
       + "the list of columns "
       + "for the target table"),
-  CTLT_COLLST_COEXISTENCE(10066, "CREATE TABLE LIKE command cannot specify the list of columns for "
-      + "the target table"),
+  CTLT_COLLST_COEXISTENCE(10066,
+      "CREATE TABLE LIKE command cannot specify the list of columns for "
+          + "the target table"),
   INVALID_SELECT_SCHEMA(10067, "Cannot derive schema from the select-clause"),
   CTAS_PARCOL_COEXISTENCE(10068, "CREATE-TABLE-AS-SELECT does not support "
       + "partitioning in the target table "),
@@ -155,8 +156,9 @@ public enum ErrorMsg {
   LATERAL_VIEW_INVALID_CHILD(10086, "LATERAL VIEW AST with invalid child"),
   OUTPUT_SPECIFIED_MULTIPLE_TIMES(10087, "The same output cannot be present multiple times: "),
   INVALID_AS(10088, "AS clause has an invalid number of aliases"),
-  VIEW_COL_MISMATCH(10089, "The number of columns produced by the SELECT clause does not match the "
-      + "number of column names specified by CREATE VIEW"),
+  VIEW_COL_MISMATCH(10089,
+      "The number of columns produced by the SELECT clause does not match the "
+          + "number of column names specified by CREATE VIEW"),
   DML_AGAINST_VIEW(10090, "A view cannot be used as target table for LOAD or INSERT"),
   ANALYZE_VIEW(10091, "ANALYZE is not supported for views"),
   VIEW_PARTITION_TOTAL(10092, "At least one non-partitioning column must be present in view"),
@@ -187,10 +189,10 @@ public enum ErrorMsg {
   ARCHIVE_ON_TABLE(10110, "ARCHIVE can only be run on partitions"),
   RESERVED_PART_VAL(10111, "Partition value contains a reserved substring"),
   HOLD_DDLTIME_ON_NONEXIST_PARTITIONS(10112, "HOLD_DDLTIME hint cannot be applied to dynamic " +
-                                      "partitions or non-existent partitions"),
+      "partitions or non-existent partitions"),
   OFFLINE_TABLE_OR_PARTITION(10113, "Query against an offline table or partition"),
   OUTERJOIN_USES_FILTERS(10114, "The query results could be wrong. " +
-                         "Turn on hive.outerjoin.supports.filters"),
+      "Turn on hive.outerjoin.supports.filters"),
   NEED_PARTITION_SPECIFICATION(10115, "Table is partitioned and partition specification is needed"),
   INVALID_METADATA(10116, "The metadata file could not be parsed "),
   NEED_TABLE_SPECIFICATION(10117, "Table name could be determined; It should be specified "),
@@ -213,28 +215,28 @@ public enum ErrorMsg {
       "Dynamic partitions do not support IF NOT EXISTS. Specified partitions with value :"),
   UDAF_INVALID_LOCATION(10128, "Not yet supported place for UDAF"),
   DROP_PARTITION_NON_STRING_PARTCOLS_NONEQUALITY(10129,
-    "Drop partitions for a non string partition columns is not allowed using non-equality"),
+      "Drop partitions for a non string partition columns is not allowed using non-equality"),
   ALTER_COMMAND_FOR_VIEWS(10131, "To alter a view you need to use the ALTER VIEW command."),
   ALTER_COMMAND_FOR_TABLES(10132, "To alter a base table you need to use the ALTER TABLE command."),
   ALTER_VIEW_DISALLOWED_OP(10133, "Cannot use this form of ALTER on a view"),
   ALTER_TABLE_NON_NATIVE(10134, "ALTER TABLE cannot be used for a non-native table"),
   SORTMERGE_MAPJOIN_FAILED(10135,
       "Sort merge bucketed join could not be performed. " +
-      "If you really want to perform the operation, either set " +
-      "hive.optimize.bucketmapjoin.sortedmerge=false, or set " +
-      "hive.enforce.sortmergebucketmapjoin=false."),
+          "If you really want to perform the operation, either set " +
+          "hive.optimize.bucketmapjoin.sortedmerge=false, or set " +
+          "hive.enforce.sortmergebucketmapjoin=false."),
   BUCKET_MAPJOIN_NOT_POSSIBLE(10136,
-    "Bucketed mapjoin cannot be performed. " +
-    "This can be due to multiple reasons: " +
-    " . Join columns dont match bucketed columns. " +
-    " . Number of buckets are not a multiple of each other. " +
-    "If you really want to perform the operation, either remove the " +
-    "mapjoin hint from your query or set hive.enforce.bucketmapjoin to false."),
+      "Bucketed mapjoin cannot be performed. " +
+          "This can be due to multiple reasons: " +
+          " . Join columns dont match bucketed columns. " +
+          " . Number of buckets are not a multiple of each other. " +
+          "If you really want to perform the operation, either remove the " +
+          "mapjoin hint from your query or set hive.enforce.bucketmapjoin to false."),
 
   BUCKETED_TABLE_METADATA_INCORRECT(10141,
-   "Bucketed table metadata is not correct. " +
-    "Fix the metadata or don't use bucketed mapjoin, by setting " +
-    "hive.enforce.bucketmapjoin to false."),
+      "Bucketed table metadata is not correct. " +
+          "Fix the metadata or don't use bucketed mapjoin, by setting " +
+          "hive.enforce.bucketmapjoin to false."),
 
   JOINNODE_OUTERJOIN_MORETHAN_16(10142, "Single join node containing outer join(s) " +
       "cannot have more than 16 aliases"),
@@ -270,60 +272,68 @@ public enum ErrorMsg {
       "Skewed column value is empty but skewed name is not."),
   SKEWED_TABLE_SKEWED_COL_NAME_VALUE_MISMATCH_3(10206,
       "The number of skewed column names and the number of " +
-      "skewed column values are different: "),
+          "skewed column values are different: "),
   ALTER_TABLE_NOT_ALLOWED_RENAME_SKEWED_COLUMN(10207,
       " is a skewed column. It's not allowed to rename skewed column"
           + " or change skewed column type."),
   HIVE_GROUPING_SETS_AGGR_NOMAPAGGR(10209,
-    "Grouping sets aggregations (with rollups or cubes) are not allowed if map-side " +
-    " aggregation is turned off. Set hive.map.aggr=true if you want to use grouping sets"),
+      "Grouping sets aggregations (with rollups or cubes) are not allowed if map-side " +
+          " aggregation is turned off. Set hive.map.aggr=true if you want to use grouping sets"),
   HIVE_GROUPING_SETS_AGGR_EXPRESSION_INVALID(10210,
-    "Grouping sets aggregations (with rollups or cubes) are not allowed if aggregation function " +
-    "parameters overlap with the aggregation functions columns"),
+      "Grouping sets aggregations (with rollups or cubes) are not allowed if aggregation function "
+          +
+          "parameters overlap with the aggregation functions columns"),
 
   HIVE_GROUPING_SETS_AGGR_NOFUNC(10211,
-    "Grouping sets aggregations are not allowed if no aggregation function is presented"),
+      "Grouping sets aggregations are not allowed if no aggregation function is presented"),
 
   HIVE_UNION_REMOVE_OPTIMIZATION_NEEDS_SUBDIRECTORIES(10212,
-    "In order to use hive.optimize.union.remove, the hadoop version that you are using " +
-    "should support sub-directories for tables/partitions. If that is true, set " +
-    "hive.hadoop.supports.subdirectories to true. Otherwise, set hive.optimize.union.remove " +
-    "to false"),
+      "In order to use hive.optimize.union.remove, the hadoop version that you are using " +
+          "should support sub-directories for tables/partitions. If that is true, set " +
+          "hive.hadoop.supports.subdirectories to true. Otherwise, set hive.optimize.union.remove "
+          +
+          "to false"),
 
   HIVE_GROUPING_SETS_EXPR_NOT_IN_GROUPBY(10213,
-    "Grouping sets expression is not in GROUP BY key"),
+      "Grouping sets expression is not in GROUP BY key"),
   INVALID_PARTITION_SPEC(10214, "Invalid partition spec specified"),
   ALTER_TBL_UNSET_NON_EXIST_PROPERTY(10215,
-    "Please use the following syntax if not sure " +
-    "whether the property existed or not:\n" +
-    "ALTER TABLE tableName UNSET TBLPROPERTIES IF EXISTS (key1, key2, ...)\n"),
+      "Please use the following syntax if not sure " +
+          "whether the property existed or not:\n" +
+          "ALTER TABLE tableName UNSET TBLPROPERTIES IF EXISTS (key1, key2, ...)\n"),
   ALTER_VIEW_AS_SELECT_NOT_EXIST(10216,
-    "Cannot ALTER VIEW AS SELECT if view currently does not exist\n"),
+      "Cannot ALTER VIEW AS SELECT if view currently does not exist\n"),
   REPLACE_VIEW_WITH_PARTITION(10217,
-    "Cannot replace a view with CREATE VIEW or REPLACE VIEW or " +
-    "ALTER VIEW AS SELECT if the view has paritions\n"),
+      "Cannot replace a view with CREATE VIEW or REPLACE VIEW or " +
+          "ALTER VIEW AS SELECT if the view has paritions\n"),
   EXISTING_TABLE_IS_NOT_VIEW(10218,
-    "Existing table is not a view\n"),
+      "Existing table is not a view\n"),
   NO_SUPPORTED_ORDERBY_ALLCOLREF_POS(10219,
-    "Position in ORDER BY is not supported when using SELECT *"),
+      "Position in ORDER BY is not supported when using SELECT *"),
   INVALID_POSITION_ALIAS_IN_GROUPBY(10220,
-    "Invalid position alias in Group By\n"),
+      "Invalid position alias in Group By\n"),
   INVALID_POSITION_ALIAS_IN_ORDERBY(10221,
-    "Invalid position alias in Order By\n"),
+      "Invalid position alias in Order By\n"),
 
-  HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_SKEW(10225,
-    "An additional MR job is introduced since the number of rows created per input row " +
-    "due to grouping sets is more than hive.new.job.grouping.set.cardinality. There is no need " +
-    "to handle skew separately. set hive.groupby.skewindata to false."),
-  HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_DISTINCTS(10226,
-    "An additional MR job is introduced since the cardinality of grouping sets " +
-    "is more than hive.new.job.grouping.set.cardinality. This functionality is not supported " +
-    "with distincts. Either set hive.new.job.grouping.set.cardinality to a high number " +
-    "(higher than the number of rows per input row due to grouping sets in the query), or " +
-    "rewrite the query to not use distincts."),
+  HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_SKEW(
+      10225,
+      "An additional MR job is introduced since the number of rows created per input row "
+          +
+          "due to grouping sets is more than hive.new.job.grouping.set.cardinality. There is no need "
+          +
+          "to handle skew separately. set hive.groupby.skewindata to false."),
+  HIVE_GROUPING_SETS_THRESHOLD_NOT_ALLOWED_WITH_DISTINCTS(
+      10226,
+      "An additional MR job is introduced since the cardinality of grouping sets "
+          +
+          "is more than hive.new.job.grouping.set.cardinality. This functionality is not supported "
+          +
+          "with distincts. Either set hive.new.job.grouping.set.cardinality to a high number " +
+          "(higher than the number of rows per input row due to grouping sets in the query), or " +
+          "rewrite the query to not use distincts."),
 
   OPERATOR_NOT_ALLOWED_WITH_MAPJOIN(10227,
-    "Not all clauses are supported with mapjoin hint. Please remove mapjoin hint."),
+      "Not all clauses are supported with mapjoin hint. Please remove mapjoin hint."),
 
   ANALYZE_TABLE_NOSCAN_NON_NATIVE(10228, "ANALYZE TABLE NOSCAN cannot be used for "
       + "a non-native table"),
@@ -335,9 +345,9 @@ public enum ErrorMsg {
   ANALYZE_TABLE_PARTIALSCAN_EXTERNAL_TABLE(10231, "ANALYZE TABLE PARTIALSCAN "
       + "doesn't support external table: "),
   ANALYZE_TABLE_PARTIALSCAN_AGGKEY(10232, "Analyze partialscan command "
-            + "fails to construct aggregation for the partition "),
+      + "fails to construct aggregation for the partition "),
   ANALYZE_TABLE_PARTIALSCAN_AUTOGATHER(10233, "Analyze partialscan is not allowed " +
-            "if hive.stats.autogather is set to false"),
+      "if hive.stats.autogather is set to false"),
 
   SCRIPT_INIT_ERROR(20000, "Unable to initialize custom script."),
   SCRIPT_IO_ERROR(20001, "An error occurred while reading or writing to your custom script. "
@@ -348,66 +358,90 @@ public enum ErrorMsg {
       "running your custom script."),
 
   STATSPUBLISHER_NOT_OBTAINED(30000, "StatsPublisher cannot be obtained. " +
-    "There was a error to retrieve the StatsPublisher, and retrying " +
-    "might help. If you dont want the query to fail because accurate statistics " +
-    "could not be collected, set hive.stats.reliable=false"),
+      "There was a error to retrieve the StatsPublisher, and retrying " +
+      "might help. If you dont want the query to fail because accurate statistics " +
+      "could not be collected, set hive.stats.reliable=false"),
   STATSPUBLISHER_INITIALIZATION_ERROR(30001, "StatsPublisher cannot be initialized. " +
-    "There was a error in the initialization of StatsPublisher, and retrying " +
-    "might help. If you dont want the query to fail because accurate statistics " +
-    "could not be collected, set hive.stats.reliable=false"),
+      "There was a error in the initialization of StatsPublisher, and retrying " +
+      "might help. If you dont want the query to fail because accurate statistics " +
+      "could not be collected, set hive.stats.reliable=false"),
   STATSPUBLISHER_CONNECTION_ERROR(30002, "StatsPublisher cannot be connected to." +
-    "There was a error while connecting to the StatsPublisher, and retrying " +
-    "might help. If you dont want the query to fail because accurate statistics " +
-    "could not be collected, set hive.stats.reliable=false"),
+      "There was a error while connecting to the StatsPublisher, and retrying " +
+      "might help. If you dont want the query to fail because accurate statistics " +
+      "could not be collected, set hive.stats.reliable=false"),
   STATSPUBLISHER_PUBLISHING_ERROR(30003, "Error in publishing stats. There was an " +
-    "error in publishing stats via StatsPublisher, and retrying " +
-    "might help. If you dont want the query to fail because accurate statistics " +
-    "could not be collected, set hive.stats.reliable=false"),
+      "error in publishing stats via StatsPublisher, and retrying " +
+      "might help. If you dont want the query to fail because accurate statistics " +
+      "could not be collected, set hive.stats.reliable=false"),
   STATSPUBLISHER_CLOSING_ERROR(30004, "StatsPublisher cannot be closed." +
-    "There was a error while closing the StatsPublisher, and retrying " +
-    "might help. If you dont want the query to fail because accurate statistics " +
-    "could not be collected, set hive.stats.reliable=false"),
+      "There was a error while closing the StatsPublisher, and retrying " +
+      "might help. If you dont want the query to fail because accurate statistics " +
+      "could not be collected, set hive.stats.reliable=false"),
 
   COLUMNSTATSCOLLECTOR_INVALID_PART_KEY(30005, "Invalid partitioning key specified in ANALYZE " +
-    "statement"),
+      "statement"),
   COLUMNSTATSCOLLECTOR_INCORRECT_NUM_PART_KEY(30006, "Incorrect number of partitioning key " +
-    "specified in ANALYZE statement"),
+      "specified in ANALYZE statement"),
   COLUMNSTATSCOLLECTOR_INVALID_PARTITION(30007, "Invalid partitioning key/value specified in " +
-    "ANALYZE statement"),
+      "ANALYZE statement"),
   COLUMNSTATSCOLLECTOR_INVALID_SYNTAX(30008, "Dynamic partitioning is not supported yet while " +
-    "gathering column statistics through ANALYZE statement"),
+      "gathering column statistics through ANALYZE statement"),
   COLUMNSTATSCOLLECTOR_PARSE_ERROR(30009, "Encountered parse error while parsing rewritten query"),
   COLUMNSTATSCOLLECTOR_IO_ERROR(30010, "Encountered I/O exception while parsing rewritten query"),
   DROP_COMMAND_NOT_ALLOWED_FOR_PARTITION(30011, "Partition protected from being dropped"),
 
   // ABM defined errors
-  TABLE_CREATION_NOT_ALLOWED_FOR_ABM(40000, "Dumping approximate query results with error bars into tables are not supported in analytical bootstrap mode currently"),
-  VIEW_CREATION_NOT_ALLOWED_FOR_ABM(40001, "Dumping approximate query results with error bars into views are not supported in analytical bootstrap mode currently"),
-  GROUPING_SET_NOT_ALLOWED_FOR_ABM(40002, "Grouping sets aggregations are not supported in analytical bootstrap mode currently"),
-  WINDOW_SPEC_NOT_ALLOWED_FOR_ABM(40003, "Window-based aggregations are not supported in analytical bootstrap mode currently"),
-  SAMPLE_NOT_ALLOWED_FOR_ABM(40004, "Sampling is not supported in analytical bootstrap mode currently"),
-  FIELDS_NOT_ALLOWED_FOR_ABM(40005, "Fields are not supported in analytical bootstrap mode currently"),
-  OPERATOR_NOT_ALLOWED_FOR_ABM(40006, "{0} are not supported in analytical bootstrap mode currently", true),
-  FUNC_OF_AGGR_NOT_ALLOWED_FOR_ABM(40007, "Complex functions/comparison of aggregates are not supported in analytical bootstrap mode currently"),
-  COMPLEX_AGGR_NOT_ALLOWED_FOR_ABM(40008, "Complex aggregates are not supported in analytical bootstrap mode currently"),
-  AGGR_16_LIN_ALLOWED_FOR_ABM(40009, "At most 16 lineages of aggregates can be maintained in analytical bootstrap mode currently"),
-  UNIQ_JOIN_NOT_ALLOWED_FOR_ABM(40010, "Unique join is not supported in analytical bootstrap mode currently"),
-  SEMI_JOIN_NOT_ALLOWED_FOR_ABM(40011, "Semi join is not supported in analytical bootstrap mode currently. Use join instead"),
-  SELF_JOIN_NOT_ALLOWED_FOR_ABM(40012, "Self join is not supported in analytical bootstrap mode currently"),
-  COUNT_PARAM_NOT_ALLOWED_FOR_ABM(40012, "COUNT with parameters is not supported in analytical bootstrap mode currently. "
-      + "Please rewrite it using SUM"),
+  TABLE_CREATION_NOT_ALLOWED_FOR_ABM(
+      40000,
+      "Dumping approximate query results with error bars into tables are not supported in analytical bootstrap mode currently"),
+  VIEW_CREATION_NOT_ALLOWED_FOR_ABM(
+      40001,
+      "Dumping approximate query results with error bars into views are not supported in analytical bootstrap mode currently"),
+  GROUPING_SET_NOT_ALLOWED_FOR_ABM(40002,
+      "Grouping sets aggregations are not supported in analytical bootstrap mode currently"),
+  WINDOW_SPEC_NOT_ALLOWED_FOR_ABM(40003,
+      "Window-based aggregations are not supported in analytical bootstrap mode currently"),
+  SAMPLE_NOT_ALLOWED_FOR_ABM(40004,
+      "Sampling is not supported in analytical bootstrap mode currently"),
+  FIELDS_NOT_ALLOWED_FOR_ABM(40005,
+      "Fields are not supported in analytical bootstrap mode currently"),
+  OPERATOR_NOT_ALLOWED_FOR_ABM(40006,
+      "{0} are not supported in analytical bootstrap mode currently", true),
+  FUNC_OF_AGGR_NOT_ALLOWED_FOR_ABM(
+      40007,
+      "Complex functions/comparison of aggregates are not supported in analytical bootstrap mode currently"),
+  COMPLEX_AGGR_NOT_ALLOWED_FOR_ABM(40008,
+      "Complex aggregates are not supported in analytical bootstrap mode currently"),
+  AGGR_16_LIN_ALLOWED_FOR_ABM(40009,
+      "At most 16 lineages of aggregates can be maintained in analytical bootstrap mode currently"),
+  UNIQ_JOIN_NOT_ALLOWED_FOR_ABM(40010,
+      "Unique join is not supported in analytical bootstrap mode currently"),
+  SEMI_JOIN_NOT_ALLOWED_FOR_ABM(40011,
+      "Semi join is not supported in analytical bootstrap mode currently. Use join instead"),
+  SELF_JOIN_NOT_ALLOWED_FOR_ABM(40012,
+      "Self join is not supported in analytical bootstrap mode currently"),
+  COUNT_PARAM_NOT_ALLOWED_FOR_ABM(40012,
+      "COUNT with parameters is not supported in analytical bootstrap mode currently. "
+          + "Please rewrite it using SUM"),
 
-  SCHEMA_MISSING_ABM(40013, "Missing or corrupted schema (primary key) file in analytical bootstrap mode. "
-      + "It should be set through hive.abm.schema."),
+  SAMPLED_TABLE_WRONG_SCHEMA_ABM(40013, "The schema of the sampled table is corrupted."),
+  SCHEMA_MISSING_ABM(40014,
+      "Missing or corrupted schema (primary key) file in analytical bootstrap mode. "
+          + "It should be set through hive.abm.schema."),
 
-  MIN_MAX_NOT_ABM_ELIGIBLE(40014, "Extreme aggregates (MIN/MAX) are not eligible to apply analytical bootstrap method"),
-  EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE(40015, "Equality test on aggregates are not eligible to apply analytical bootstrap method"),
-  AGGR_OF_AGGR_NOT_ABM_ELIGIBLE(40016, "Aggregates of aggregates are not eligible to apply analytical bootstrap method"),
-  DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE(40017, "Distinct aggregates are not ptime eligible to apply analytical bootstrap method"),
-  QUERY_NOT_ABM_ELIGIBLE(40018, "The query is not eligible to apply analytical bootstrap method"),
-  QUERY_NOT_ABM_PTIME_ELIGIBLE(40019, "The query is not ptime eligible to apply analytical bootstrap method"),
+  MIN_MAX_NOT_ABM_ELIGIBLE(40015,
+      "Extreme aggregates (MIN/MAX) are not eligible to apply analytical bootstrap method"),
+  EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE(40016,
+      "Equality test on aggregates are not eligible to apply analytical bootstrap method"),
+  AGGR_OF_AGGR_NOT_ABM_ELIGIBLE(40017,
+      "Aggregates of aggregates are not eligible to apply analytical bootstrap method"),
+  DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE(40018,
+      "Distinct aggregates are not ptime eligible to apply analytical bootstrap method"),
+  QUERY_NOT_ABM_ELIGIBLE(40019, "The query is not eligible to apply analytical bootstrap method"),
+  QUERY_NOT_ABM_PTIME_ELIGIBLE(40020,
+      "The query is not ptime eligible to apply analytical bootstrap method"),
 
-    ;
+  ;
 
   private int errorCode;
   private String mesg;
@@ -417,7 +451,7 @@ public enum ErrorMsg {
   private static final char SPACE = ' ';
   private static final Pattern ERROR_MESSAGE_PATTERN = Pattern.compile(".*Line [0-9]+:[0-9]+ (.*)");
   private static final Pattern ERROR_CODE_PATTERN =
-    Pattern.compile("HiveException:\\s+\\[Error ([0-9]+)\\]: (.*)");
+      Pattern.compile("HiveException:\\s+\\[Error ([0-9]+)\\]: (.*)");
   private static Map<String, ErrorMsg> mesgToErrorMsgMap = new HashMap<String, ErrorMsg>();
   private static Map<Pattern, ErrorMsg> formatToErrorMsgMap = new HashMap<Pattern, ErrorMsg>();
   private static int minMesgLength = -1;
@@ -439,7 +473,9 @@ public enum ErrorMsg {
 
   /**
    * Given an error message string, returns the ErrorMsg object associated with it.
-   * @param mesg An error message string
+   *
+   * @param mesg
+   *          An error message string
    * @return ErrorMsg
    */
   public static ErrorMsg getErrorMsg(String mesg) {
@@ -490,7 +526,9 @@ public enum ErrorMsg {
 
   /**
    * Given an error code, returns the ErrorMsg object associated with it.
-   * @param errorCode An error code
+   *
+   * @param errorCode
+   *          An error code
    * @return ErrorMsg
    */
   public static ErrorMsg getErrorMsg(int errorCode) {
@@ -504,11 +542,10 @@ public enum ErrorMsg {
 
   /**
    * For a given error message string, searches for a <code>ErrorMsg</code> enum
-   * that appears to be a match. If an match is found, returns the
-   * <code>SQLState</code> associated with the <code>ErrorMsg</code>. If a match
+   * that appears to be a match. If an match is found, returns the <code>SQLState</code> associated
+   * with the <code>ErrorMsg</code>. If a match
    * is not found or <code>ErrorMsg</code> has no <code>SQLState</code>, returns
-   * the <code>SQLState</code> bound to the <code>GENERIC_ERROR</code>
-   * <code>ErrorMsg</code>.
+   * the <code>SQLState</code> bound to the <code>GENERIC_ERROR</code> <code>ErrorMsg</code>.
    *
    * @param mesg
    *          An error message string
@@ -619,7 +656,7 @@ public enum ErrorMsg {
   }
 
   public String format(String reason) {
-    return format(new String[]{reason});
+    return format(new String[] {reason});
   }
 
   public String format(String... reasons) {
