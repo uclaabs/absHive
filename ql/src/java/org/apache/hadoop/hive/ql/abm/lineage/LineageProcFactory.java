@@ -37,6 +37,7 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
+import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
@@ -72,22 +73,32 @@ public class LineageProcFactory {
    * BaseLineage maintains the annotation/condition sources of an operator.
    *
    */
-  public static class BaseLineage implements NodeProcessor {
+  public static abstract class BaseLineage implements NodeProcessor {
+
+    protected Operator<? extends OperatorDesc> op = null;
+    protected ArrayList<ColumnInfo> signature = null;
+    protected LineageCtx ctx = null;
 
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
-      @SuppressWarnings("unchecked")
-      Operator<? extends OperatorDesc> op = (Operator<? extends OperatorDesc>) nd;
-      LineageCtx ctx = (LineageCtx) procCtx;
-
-      propagateAnnoAndCond(op, ctx);
-
+      initialize(nd, procCtx);
+      // We must propagate annotation first, as in GBY we need to use isUncertain
+      propagateAnnoAndCond();
+      propagateLineage();
       return null;
     }
 
-    protected void propagateAnnoAndCond(Operator<? extends OperatorDesc> op,
-        LineageCtx ctx) throws SemanticException {
+    @SuppressWarnings("unchecked")
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      op = (Operator<? extends OperatorDesc>) nd;
+      ctx = (LineageCtx) procCtx;
+      signature = op.getSchema().getSignature();
+    }
+
+    protected abstract void propagateLineage() throws SemanticException;
+
+    protected void propagateAnnoAndCond() throws SemanticException {
       int numAnnoSrc = 0;
       int numCondSrc = 0;
       for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
@@ -123,21 +134,25 @@ public class LineageProcFactory {
    * Do not maintain lineage (as there is no parent).
    *
    */
-  public static class TableScanLineage implements NodeProcessor {
+  public static class TableScanLineage extends BaseLineage {
+    private TableScanOperator ts = null;
 
     @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      LineageCtx ctx = (LineageCtx) procCtx;
-      ParseContext pctx = ctx.getParseContext();
-      TableScanOperator ts = (TableScanOperator) nd;
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      ts = (TableScanOperator) nd;
+    }
 
+    @Override
+    protected void propagateLineage() throws SemanticException { }
+
+    @Override
+    protected void propagateAnnoAndCond() throws SemanticException {
+      ParseContext pctx = ctx.getParseContext();
       Table tab = pctx.getTopToTable().get(ts);
       if (AbmUtilities.getSampledTable().equals(tab.getTableName())) {
         ctx.addAnnoSrc(ts, ts);
       }
-
-      return null;
     }
 
   }
@@ -147,38 +162,40 @@ public class LineageProcFactory {
    * Processor for reduce sink operator.
    *
    */
-  public static class ReduceSinkLineage extends BaseLineage {
+  public static class ReduceSinkLineage extends DefaultLineage {
+
+    private ReduceSinkOperator rs = null;
+    private ReduceSinkDesc desc = null;
 
     @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      LineageCtx ctx = (LineageCtx) procCtx;
-      ReduceSinkOperator rs = (ReduceSinkOperator) nd;
-      Operator<? extends OperatorDesc> parent = rs.getParentOperators().get(0);
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      rs = (ReduceSinkOperator) nd;
+      desc = rs.getConf();
+    }
 
-      ArrayList<ColumnInfo> colInfos = rs.getSchema().getSignature();
-      int cnt = 0;
+    @Override
+    protected void propagateLineage() throws SemanticException {
+      int index = 0;
 
       // The keys may or may not be included:
       // (1) if RS is used in join, the keys are not included
       // (2) if RS is used in group by, the keys are included
-      if (colInfos.size() > rs.getConf().getValueCols().size()) {
-        for (ExprNodeDesc expr : rs.getConf().getKeyCols()) {
-          String internalName = colInfos.get(cnt).getInternalName();
+      if (signature.size() > desc.getValueCols().size()) {
+        for (ExprNodeDesc expr : desc.getKeyCols()) {
+          String internalName = signature.get(index).getInternalName();
           ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, expr);
           ctx.putLineage(rs, internalName, info);
-          cnt++;
+          index++;
         }
       }
 
-      for (ExprNodeDesc expr : rs.getConf().getValueCols()) {
-        String internalName = colInfos.get(cnt).getInternalName();
+      for (ExprNodeDesc expr : desc.getValueCols()) {
+        String internalName = signature.get(index).getInternalName();
         ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, expr);
         ctx.putLineage(rs, internalName, info);
-        cnt++;
+        index++;
       }
-
-      return super.process(nd, stack, procCtx, nodeOutputs);
     }
 
   }
@@ -190,56 +207,64 @@ public class LineageProcFactory {
    */
   public static class SelectLineage extends DefaultLineage {
 
-    @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      SelectOperator sel = (SelectOperator) nd;
-      SelectDesc desc = sel.getConf();
+    private SelectOperator sel = null;
+    private SelectDesc desc = null;
 
+    @Override
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      sel = (SelectOperator) nd;
+      desc = sel.getConf();
+    }
+
+    @Override
+    protected void propagateLineage() throws SemanticException {
       // If this is a selStarNoCompute then this select operator
       // is treated like a default operator, so just call the super classes
       // process method.
       if (desc.isSelStarNoCompute()) {
-        return super.process(nd, stack, procCtx, nodeOutputs);
+        super.propagateLineage();
+        return;
       }
 
       // Otherwise we treat this as a normal select operator and look at
       // the expressions.
-      LineageCtx ctx = (LineageCtx) procCtx;
-      Operator<? extends OperatorDesc> parent = sel.getParentOperators().get(0);
-
-      ArrayList<ColumnInfo> colInfos = sel.getSchema().getSignature();
-      int cnt = 0;
+      int index = 0;
       for (ExprNodeDesc expr : desc.getColList()) {
-        String internalName = colInfos.get(cnt).getInternalName();
+        String internalName = signature.get(index).getInternalName();
         ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, expr);
         ctx.putLineage(sel, internalName, info);
-        cnt++;
+        index++;
       }
-
-      return super.baseProcess(nd, stack, procCtx, nodeOutputs);
     }
 
   }
 
   public static class FilterLineage extends DefaultLineage {
 
+    protected FilterOperator fil = null;
+    protected FilterDesc desc = null;
+
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
-      FilterOperator fil = (FilterOperator) nd;
-      FilterDesc desc = fil.getConf();
+      super.process(nd, stack, procCtx, nodeOutputs);
 
       // We do not support sampling.
       if (desc.getIsSamplingPred()) {
         AbmUtilities.report(ErrorMsg.SAMPLE_NOT_ALLOWED_FOR_ABM);
       }
 
-      LineageCtx ctx = (LineageCtx) procCtx;
-      Operator<? extends OperatorDesc> parent = fil.getParentOperators().get(0);
       ExprProcFactory.checkFilter(parent, ctx, desc.getPredicate());
 
-      return super.process(nd, stack, procCtx, nodeOutputs);
+      return null;
+    }
+
+    @Override
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      fil = (FilterOperator) nd;
+      desc = fil.getConf();
     }
 
   }
@@ -249,37 +274,39 @@ public class LineageProcFactory {
    * Processor for group by operator.
    *
    */
-  public static class GroupByLineage extends BaseLineage {
+  public static class GroupByLineage extends DefaultLineage {
 
-    private static final HashSet<String> extrema = new HashSet<String>(Arrays.asList("min", "max"));
-    private static final HashSet<String> basic = new HashSet<String>(Arrays.asList("sum", "count",
-        "avg"));
+    private static final HashSet<String> extrema =
+        new HashSet<String>(Arrays.asList("min", "max"));
+    private static final HashSet<String> basic =
+        new HashSet<String>(Arrays.asList("sum", "count", "avg"));
+
+    private GroupByOperator gby = null;
+    private GroupByDesc desc = null;
 
     @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      super.process(nd, stack, procCtx, nodeOutputs);
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      gby = (GroupByOperator) nd;
+      desc = gby.getConf();
+    }
 
+    @Override
+    protected void propagateLineage() throws SemanticException {
       // For group by operators, columnExprMap only contains the key columns.
       // We should include both key and aggregates columns here.
       // Use "schema" to get the full info -- [keys, aggregates]
-
-      GroupByOperator gby = (GroupByOperator) nd;
-      LineageCtx ctx = (LineageCtx) procCtx;
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-
-      ArrayList<ColumnInfo> colInfos = gby.getSchema().getSignature();
-      int cnt = 0;
+      int index = 0;
 
       // In keys
-      for (ExprNodeDesc expr : gby.getConf().getKeys()) {
-        String internalName = colInfos.get(cnt).getInternalName();
+      for (ExprNodeDesc expr : desc.getKeys()) {
+        String internalName = signature.get(index).getInternalName();
         ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, expr);
         if (info.hasAggrOutput()) {
           AbmUtilities.report(ErrorMsg.EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE);
         }
         ctx.putLineage(gby, internalName, info);
-        cnt++;
+        index++;
       }
 
       // There are two types of group by plan:
@@ -290,8 +317,8 @@ public class LineageProcFactory {
       boolean sampled = ctx.isUncertain(gby);
 
       // In aggregates
-      for (AggregationDesc agg : gby.getConf().getAggregators()) {
-        String internalName = colInfos.get(cnt).getInternalName();
+      for (AggregationDesc agg : desc.getAggregators()) {
+        String internalName = signature.get(index).getInternalName();
         ExprInfo info = ExprProcFactory.extractExprInfo(parent, ctx, agg.getParameters());
         if (sampled && toCheckAggr) {
           if (extrema.contains(agg.getGenericUDAFName().toLowerCase())) {
@@ -312,33 +339,27 @@ public class LineageProcFactory {
           info.setHasAggrOutput(true);
         }
         ctx.putLineage(gby, internalName, info);
-        cnt++;
+        index++;
       }
-
-      return null;
     }
 
     @Override
-    protected void propagateAnnoAndCond(Operator<? extends OperatorDesc> op,
-        LineageCtx ctx) throws SemanticException {
+    protected void propagateAnnoAndCond() throws SemanticException {
       int numAnnoSrc = 0;
       int numCondSrc = 0;
-      for (Operator<? extends OperatorDesc> parent : op.getParentOperators()) {
-        Set<Operator<? extends OperatorDesc>> anno = ctx.getAnnoSrcs(parent);
-        Set<Operator<? extends OperatorDesc>> cond = ctx.getCondSrcs(parent);
-        if (anno != null) {
-          ++numAnnoSrc;
-          ctx.addCondSrcs(op, anno);
-        }
-        if (cond != null) {
-          ++numCondSrc;
-          ctx.addCondSrcs(op, cond);
-        }
+
+      Set<Operator<? extends OperatorDesc>> anno = ctx.getAnnoSrcs(parent);
+      Set<Operator<? extends OperatorDesc>> cond = ctx.getCondSrcs(parent);
+      if (anno != null) {
+        ++numAnnoSrc;
+        ctx.addCondSrcs(op, anno);
+      }
+      if (cond != null) {
+        ++numCondSrc;
+        ctx.addCondSrcs(op, cond);
       }
 
-      if (numAnnoSrc > 1) {
-        AbmUtilities.report(ErrorMsg.SELF_JOIN_NOT_ALLOWED_FOR_ABM);
-      } else if (numAnnoSrc == 1 && numCondSrc > 0) {
+      if (numAnnoSrc > 0 || numCondSrc > 0) {
         ctx.addCondSrc(op, op);
       }
     }
@@ -352,15 +373,19 @@ public class LineageProcFactory {
    */
   public static class JoinLineage extends BaseLineage {
 
-    @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      // Join filters are used when outer joins exist and predicates cannot be pushed down
+    private JoinOperator join = null;
+    private JoinDesc desc = null;
 
-      // LineageCtx
-      LineageCtx ctx = (LineageCtx) procCtx;
-      JoinOperator join = (JoinOperator) nd;
-      JoinDesc desc = join.getConf();
+    @Override
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      join = (JoinOperator) nd;
+      desc = join.getConf();
+    }
+
+    @Override
+    protected void propagateLineage() throws SemanticException {
+      // Join filters are used when outer joins exist and predicates cannot be pushed down
 
       for (Operator<? extends OperatorDesc> parent : join.getParentOperators()) {
         // The input operator to the join is always a reduce sink operator
@@ -379,23 +404,21 @@ public class LineageProcFactory {
 
         // Iterate over the outputs of the join operator and merge the
         // dependencies of the columns that corresponding to the tag.
-        int cnt = 0;
+        int index = 0;
         List<ExprNodeDesc> exprs = desc.getExprs().get(tag);
-        for (ColumnInfo ci : join.getSchema().getSignature()) {
+        for (ColumnInfo ci : signature) {
           String internalName = ci.getInternalName();
           if (desc.getReversedExprs().get(internalName) != tag) {
             continue;
           }
           // Otherwise look up the expression corresponding to this ci
-          ExprNodeDesc expr = exprs.get(cnt);
+          ExprNodeDesc expr = exprs.get(index);
 
           ExprInfo info = ExprProcFactory.extractExprInfo(rs, ctx, expr);
           ctx.putLineage(join, internalName, info);
-          cnt++;
+          index++;
         }
       }
-
-      return super.process(nd, stack, procCtx, nodeOutputs);
     }
 
   }
@@ -408,16 +431,19 @@ public class LineageProcFactory {
    */
   public static class DefaultLineage extends BaseLineage {
 
-    @Override
-    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      @SuppressWarnings("unchecked")
-      Operator<? extends OperatorDesc> op = (Operator<? extends OperatorDesc>) nd;
-      LineageCtx ctx = (LineageCtx) procCtx;
-      Operator<? extends OperatorDesc> parent = op.getParentOperators().get(0);
+    // We have a single parent!
+    protected Operator<? extends OperatorDesc> parent = null;
 
+    @Override
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+      parent = op.getParentOperators().get(0);
+    }
+
+    @Override
+    protected void propagateLineage() throws SemanticException {
       // Get the row schema of the input operator.
-      for (ColumnInfo ci : op.getSchema().getSignature()) {
+      for (ColumnInfo ci : signature) {
         String internalName = ci.getInternalName();
         ExprInfo info = new ExprInfo(parent, internalName);
 
@@ -428,13 +454,6 @@ public class LineageProcFactory {
 
         ctx.putLineage(op, internalName, info);
       }
-
-      return super.process(nd, stack, procCtx, nodeOutputs);
-    }
-
-    public Object baseProcess(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-        Object... nodeOutputs) throws SemanticException {
-      return super.process(nd, stack, procCtx, nodeOutputs);
     }
 
   }
@@ -496,7 +515,8 @@ public class LineageProcFactory {
     LineageCtx ctx = new LineageCtx(pctx);
 
     // MapJoin, SMBMapJoin, DummyStore are added in physical optimizer.
-    // We do not consider ListSink, as ABM rewriting is added before MapJoin is added, which is before ListSink optimization.
+    // We do not consider ListSink, as ABM rewriting is added before MapJoin is added, which is
+    // before ListSink optimization.
     Map<Rule, NodeProcessor> opRules = new LinkedHashMap<Rule, NodeProcessor>();
     opRules.put(new RuleRegExp("R1", TableScanOperator.getOperatorName() + "%"),
         getTableScanProc());
