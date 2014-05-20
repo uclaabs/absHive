@@ -39,14 +39,37 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
  */
 public class AbmTestHelper {
 
-  private static final String exceptionFile = "exceptions.txt";
-  private static final String planFile = "plan.txt";
+  private static final String planFileFolder = "plan";
+  private static final String exceptionFile = planFileFolder + "/exceptions.txt";
+
+  static String planFile;
 
   static LineageCtx ctx;
   static ParseContext pCtx;
   static boolean printExprMap = true;
   static boolean needLogToFile = false;
   static int rootOpId = 0;
+
+  static {
+    File f = new File(planFileFolder);
+    if (!f.exists()) {
+      f.mkdir();
+    }
+
+    if (!f.isDirectory()) {
+      f.delete();
+      f.mkdir();
+    }
+
+
+    f = new File(exceptionFile);
+    f.delete();
+    try {
+      f.createNewFile();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 
   private static String getOpBriefInfo(Operator<? extends OperatorDesc> op) {
     int id = Integer.parseInt(op.getIdentifier());
@@ -250,11 +273,18 @@ public class AbmTestHelper {
     }
   }
 
+  private static void initPlanFile() throws IOException {
+    planFile = planFileFolder + "/" + "q" + AbmUtilities.getLabel() + "_plan.txt";
+    File f = new File(planFile);
+    f.delete();
+    f.createNewFile();
+  }
+
   public static void printAfterRewritePlan(Operator<? extends OperatorDesc> op, ParseContext pCtx) {
     try {
+      initPlanFile();
+
       AbmTestHelper.pCtx = pCtx;
-      new File(planFile).delete();
-      new File(planFile).createNewFile();
       rootOpId = Integer.parseInt(op.getIdentifier());
 
       needLogToFile = true;
@@ -263,7 +293,10 @@ public class AbmTestHelper {
           visit(op, 0);
       }
       catch (Exception e) {
-        logExceptions(exceptionFile, e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString());
+        String s = e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString();
+        //logExceptions won't take effect here since exceptions happen in the function checker which is in transformation
+        //logExceptions(s);
+        logToFile(s);
         e.printStackTrace();
       }
 
@@ -456,55 +489,57 @@ public class AbmTestHelper {
 
   }
 
-  public static void println(int level, Object content) {
+  private static void println(int level, Object content) {
     for (int i=0; i< level; i++) {
       System.out.print("  ");
       if (needLogToFile) {
-        logToFile(planFile, "  ");
+        logToFile("  ");
       }
     }
     System.out.println(content);
     if (needLogToFile) {
-      logToFile(planFile, content + "\n");
+      logToFile(content + "\n");
     }
   }
 
-  public static void println() {
+  private static void println() {
     System.out.println();
     if (needLogToFile) {
-      logToFile(planFile, "\n");
+      logToFile("\n");
     }
   }
 
-  public static void printLevel(int level) {
+  private static void printLevel(int level) {
     for (int i=0; i< level; i++) {
       System.out.print("  ");
       if (needLogToFile) {
-        logToFile(planFile, "  ");
+        logToFile("  ");
       }
     }
   }
 
-  public static void print(Object content) {
+  private static void print(Object content) {
     System.out.print(content + " ");
     if (needLogToFile) {
-      logToFile(planFile, content + " ");
+      logToFile(content + " ");
     }
   }
 
-  public static void logToFile(String path, String msg) {
+  private static void logToFile(String msg) {
     try {
-      PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(path, true)));
-      out.print(msg);
-      out.close();
+      if (AbmUtilities.inAbmMode()) {
+        PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(planFile, true)));
+        out.print(msg);
+        out.close();
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
-  private static void logExceptions(String path, String msg) {
+  private static void logExceptions(String msg) {
     try {
-      PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(path, true)));
+      PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(exceptionFile, true)));
       if (AbmUtilities.inAbmMode()) {
         out.println("q" + AbmUtilities.getLabel() + ":");
       }
