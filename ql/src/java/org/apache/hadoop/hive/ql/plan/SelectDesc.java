@@ -19,7 +19,11 @@
 package org.apache.hadoop.hive.ql.plan;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
+
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
+import org.apache.hadoop.hive.serde.serdeConstants;
 
 
 /**
@@ -39,7 +43,9 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   // ABM
   private boolean cache = false;
-  private int toCache = 0;
+  private TableDesc tableDesc = null;
+  private BitSet colsToCache = null;
+  private String tableName = null;
 
   public SelectDesc() {
   }
@@ -49,23 +55,23 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public SelectDesc(
-    final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
-    final List<java.lang.String> outputColumnNames) {
+      final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
+      final List<java.lang.String> outputColumnNames) {
     this(colList, outputColumnNames, false);
   }
 
   public SelectDesc(
-    final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
-    List<java.lang.String> outputColumnNames,
-    final boolean selectStar) {
+      final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
+      List<java.lang.String> outputColumnNames,
+      final boolean selectStar) {
     this.colList = colList;
     this.selectStar = selectStar;
     this.outputColumnNames = outputColumnNames;
   }
 
   public SelectDesc(
-    final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
-    final boolean selectStar, final boolean selStarNoCompute) {
+      final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList,
+      final boolean selectStar, final boolean selStarNoCompute) {
     this.colList = colList;
     this.selectStar = selectStar;
     this.selStarNoCompute = selStarNoCompute;
@@ -76,7 +82,7 @@ public class SelectDesc extends AbstractOperatorDesc {
     SelectDesc ret = new SelectDesc();
     ret.setColList(getColList() == null ? null : new ArrayList<ExprNodeDesc>(getColList()));
     ret.setOutputColumnNames(getOutputColumnNames() == null ? null :
-      new ArrayList<String>(getOutputColumnNames()));
+        new ArrayList<String>(getOutputColumnNames()));
     ret.setSelectStar(selectStar);
     ret.setSelStarNoCompute(selStarNoCompute);
     return ret;
@@ -88,7 +94,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public void setColList(
-    final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList) {
+      final List<org.apache.hadoop.hive.ql.plan.ExprNodeDesc> colList) {
     this.colList = colList;
   }
 
@@ -98,7 +104,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public void setOutputColumnNames(
-    List<java.lang.String> outputColumnNames) {
+      List<java.lang.String> outputColumnNames) {
     this.outputColumnNames = outputColumnNames;
   }
 
@@ -141,13 +147,74 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.selStarNoCompute = selStarNoCompute;
   }
 
-  public void cache(int numColsToCache) {
+  public void cache(int numColsToCache, String tableName) {
     cache = true;
-    toCache = numColsToCache;
+    assert !selStarNoCompute;
+    tableDesc = generateTableDescToCache();
+    colsToCache = generateColsToCache(numColsToCache);
+    this.tableName = tableName;
   }
 
-  public boolean toCache() {
+  private TableDesc generateTableDescToCache() {
+    String cols = "";
+    String colTypes = "";
+    boolean first = true;
+    for (int i = 0; i < colList.size(); i++) {
+      if (!first) {
+        cols = cols.concat(",");
+        colTypes = colTypes.concat(":");
+      }
+      first = false;
+      cols = cols.concat(outputColumnNames.get(i));
+      String tName = colList.get(i).getTypeInfo().getTypeName();
+      if (tName.equals(serdeConstants.VOID_TYPE_NAME)) {
+        colTypes = colTypes.concat(serdeConstants.STRING_TYPE_NAME);
+      } else {
+        colTypes = colTypes.concat(tName);
+      }
+    }
+    return PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes,
+        AbmUtilities.getQueryResultFileFormat());
+  }
+
+  private BitSet generateColsToCache(int numColsToCache) {
+    BitSet colsUsed = new BitSet();
+    for (int i = 0; i < numColsToCache; ++i) {
+      colsUsed.set(i);
+    }
+    return colsUsed;
+  }
+
+  public void setCache(boolean cache) {
+    this.cache = cache;
+  }
+
+  public boolean getCache() {
     return cache;
+  }
+
+  public void setTableDesc(TableDesc tableDesc) {
+    this.tableDesc = tableDesc;
+  }
+
+  public TableDesc getTableDesc() {
+    return tableDesc;
+  }
+
+  public void setColsToCache(BitSet colsToCache) {
+    this.colsToCache = colsToCache;
+  }
+
+  public BitSet getColsToCache() {
+    return colsToCache;
+  }
+
+  public void setTableName(String tableName) {
+    this.tableName = tableName;
+  }
+
+  public String getTableName() {
+    return tableName;
   }
 
 }

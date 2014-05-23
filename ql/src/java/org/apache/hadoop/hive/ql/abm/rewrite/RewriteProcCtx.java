@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
@@ -147,7 +148,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
-    input.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getInputSize(gby));
+    input.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getInputSize(gby),
+        AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString());
     inputs.put(gby, input);
   }
 
@@ -156,7 +158,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
-    output.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getOutputSize(gby));
+    output.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getOutputSize(gby),
+        AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString());
     outputs.put(gby, output);
   }
 

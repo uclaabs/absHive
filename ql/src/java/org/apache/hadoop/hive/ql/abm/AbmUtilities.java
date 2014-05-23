@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,18 +25,19 @@ public final class AbmUtilities {
 
   private static final Log LOG = LogFactory.getLog(AbmUtilities.class.getName());
 
+  public static final String ABM_CACHE_DB_NAME = "AbmCache";
+  public static final String ABM_CACHE_INPUT_PREFIX = "Input_";
+  public static final String ABM_CACHE_OUTPUT_PREFIX = "Output_";
+
   private static boolean inAbmMode = false;
   private static HashMap<HiveConf.ConfVars, Boolean> prevSetting =
       new HashMap<HiveConf.ConfVars, Boolean>();
 
   private static String sampledTable;
+  private static String queryResultFileFormat;
   private static String label;
-
   private static final Map<String, Set<String>> schemaPrimaryKeyMap = new HashMap<String, Set<String>>();
-
   private static final ArrayList<String> fieldNames = new ArrayList<String>();
-
-  private static final AtomicLong broadcastId = new AtomicLong(-1);
 
   public static void setAbmMode(HiveConf conf) throws SemanticException {
     if (conf.getBoolVar(HiveConf.ConfVars.HIVE_ABM)) {
@@ -76,6 +76,9 @@ public final class AbmUtilities {
 
       // Label -- only for debugging purpose
       label = conf.getVar(HiveConf.ConfVars.HIVE_ABM_LABEL);
+
+      // QueryResultFileFormat: for caching Select outputs
+      queryResultFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
     } else {
       inAbmMode = false;
       for (Map.Entry<HiveConf.ConfVars, Boolean> entry : prevSetting.entrySet()) {
@@ -174,8 +177,8 @@ public final class AbmUtilities {
     return fieldNames;
   }
 
-  public static long newBroadcastId() {
-    return broadcastId.getAndDecrement();
+  public static String getQueryResultFileFormat() {
+    return queryResultFileFormat;
   }
 
 }
