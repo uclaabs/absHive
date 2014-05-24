@@ -223,6 +223,7 @@ public class ConditionGroup {
       if(this.dimension > 1)
       {
         int partitionNumber = genCondition(condList, 2, lineage);
+        System.out.println("PartitionNumber: " + partitionNumber);
         for(int j = 1; j < partitionNumber; j ++) {
           condList.addCondition(0, this.merges.get(0).getCondition(keys.get(0), i));
         }
@@ -270,6 +271,9 @@ public class ConditionGroup {
             for(int j = 1; j < tmpNumber; j ++) {
               condList.addCondition(currentDim - 1, currentMerge.getCondition(keys.get(currentDim - 1), start, i));
             }
+            partitionNumber += tmpNumber;
+          } else {
+            partitionNumber += 1;
           }
           start = i;
         } else {
@@ -290,6 +294,9 @@ public class ConditionGroup {
         for(int j = 1; j < tmpNumber; j ++) {
           condList.addCondition(currentDim - 1, currentMerge.getCondition(keys.get(currentDim - 1), start, currentMerge.intervalSize()));
         }
+        partitionNumber += tmpNumber;
+      }else {
+        partitionNumber += 1;
       }
     }
 
