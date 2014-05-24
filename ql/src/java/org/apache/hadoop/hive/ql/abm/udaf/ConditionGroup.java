@@ -185,7 +185,7 @@ public class ConditionGroup {
 
     // create a Merge class for every dimension
     for(int i = 0; i < this.dimension; i ++) {
-      this.merges.add(new Merge(this.conditions.get(i).get(0).getFlag()));
+      this.merges.add(new Merge(this.conditions.get(0).get(i).getFlag()));
     }
 
     // add the point to Merge class
