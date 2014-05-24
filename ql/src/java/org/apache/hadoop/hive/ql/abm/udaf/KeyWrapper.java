@@ -2,20 +2,12 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-public class KeyWrapper {
+public class KeyWrapper extends IntArrayList {
 
-  private final IntArrayList keyBuf;
-
-  public KeyWrapper() {
-    keyBuf = new IntArrayList();
-  }
+  private static final long serialVersionUID = 1L;
 
   public void newKey() {
-    keyBuf.clear();
-  }
-
-  public void addElement(int key) {
-    keyBuf.add(key);
+    clear();
   }
 
   /**
@@ -23,15 +15,7 @@ public class KeyWrapper {
    * @return
    */
   public IntArrayList copyKey() {
-    return keyBuf.clone();
-  }
-
-  /**
-   * Return the key kept internally.
-   * @return
-   */
-  public IntArrayList getKey() {
-    return keyBuf;
+    return clone();
   }
 
 }

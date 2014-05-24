@@ -23,6 +23,7 @@ public class ConditionGroup {
   private int groupID;
   private int dimension;
   private final List<List<Condition>> conditions;
+  // Condition: List<ids>, List<List<Range>>
   private List<Merge> merges;
   private List<Integer> keys;
 
@@ -172,8 +173,7 @@ public class ConditionGroup {
     return this.conditions;
   }
 
-  public void sort()
-  {
+  public void sort() {
     if(this.merges == null)
     {
       this.merges = new ArrayList<Merge>();
@@ -204,8 +204,7 @@ public class ConditionGroup {
 
   }
 
-  public void genConditions(List<Integer> inputKeys, ConditionList condList)
-  {
+  public void genConditions(List<Integer> inputKeys, ConditionList condList) {
     if(this.dimension == 0) {
       return;
     }
@@ -216,14 +215,12 @@ public class ConditionGroup {
     this.merges.get(0).print();
 
     // start from the first dimension
-    for(int i = 0; i < this.merges.get(0).intervalSize(); i ++)
-    {
+    for(int i = 0; i < this.merges.get(0).intervalSize(); i ++) {
       lineage.clear();
       condList.addCondition(0, this.merges.get(0).getCondition(keys.get(0), i));
       this.merges.get(0).getLineage(lineage, i);
 
-      if(this.dimension > 1)
-      {
+      if(this.dimension > 1) {
         int partitionNumber = genCondition(condList, 2, lineage);
         System.out.println("PartitionNumber: " + partitionNumber);
         for(int j = 1; j < partitionNumber; j ++) {
@@ -239,15 +236,13 @@ public class ConditionGroup {
    * @param currentDim : current dimension
    * @param lineage : lineage from last dimension
    */
-  public int genCondition(ConditionList condList, int currentDim, IntArrayList lineage)
-  {
+  public int genCondition(ConditionList condList, int currentDim, IntArrayList lineage) {
     /*
      * for debug
      * print out the currentDim and lineage
      */
     System.out.println("genCondition: " + currentDim);
-    for(int i = 0; i < lineage.size(); i ++)
-    {
+    for(int i = 0; i < lineage.size(); i ++) {
        System.out.print(lineage.getInt(i) + "\t");
     }
     System.out.println();
@@ -257,8 +252,7 @@ public class ConditionGroup {
     Merge currentMerge = this.merges.get(currentDim - 1);
     IntArrayList matchedLineage = null;
 
-    for(int i = 0; i < currentMerge.intervalSize(); i ++)
-    {
+    for(int i = 0; i < currentMerge.intervalSize(); i ++) {
       IntArrayList tmpLineage = currentMerge.matchLineage(lineage, i);
 
       if(tmpLineage.size() > 0)
