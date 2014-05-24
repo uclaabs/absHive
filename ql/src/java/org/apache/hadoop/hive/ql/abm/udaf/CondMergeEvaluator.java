@@ -179,19 +179,21 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator{
       List<Condition> inputCondition = new ArrayList<Condition>();
       List<Integer> inputGroupID = new ArrayList<Integer>();
 
-//      System.out.println("Iterate Start");
+
 
       int colSize = ((ListObjectInspector)ConditionList.objectInspectorType).getListLength(parameters[0]);
+      System.out.println("Iterate Start " + colSize);
+
       for(int i = 0; i <  colSize; i ++)
       {
         Object arrayObj = ((ListObjectInspector)ConditionList.objectInspectorType).getListElement(parameters[0], i);
         Condition newCond = new Condition(((ListObjectInspector)ConditionList.arrayObjectInspectorType).getListElement(arrayObj, 0));
-//        System.out.print(newCond.toString() + "\t");
+        System.out.print(newCond.toString() + "\t");
         inputCondition.add(newCond);
         inputGroupID.add(newCond.getID());
       }
 
-//      System.out.println();
+      System.out.println();
 
 
 

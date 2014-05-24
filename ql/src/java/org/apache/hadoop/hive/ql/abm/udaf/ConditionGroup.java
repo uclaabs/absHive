@@ -213,6 +213,8 @@ public class ConditionGroup {
     IntArrayList lineage = new IntArrayList();
     this.keys = new ArrayList<Integer>(inputKeys);
 
+    this.merges.get(0).print();
+
     // start from the first dimension
     for(int i = 0; i < this.merges.get(0).intervalSize(); i ++)
     {

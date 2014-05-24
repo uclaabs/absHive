@@ -136,17 +136,30 @@ public class Merge implements IntComparator, Swapper{
   public void getLineage(IntArrayList lineage, int i)
   {
 //    lineage.addAll(this.ids.subList(this.ind.getInt(i), this.ind.getInt(i + 1)));
-    for(int index = this.ind.getInt(i); index < this.ind.getInt(i + 1); index ++) {
-      lineage.add(this.ids.getInt(index));
+    int start;
+    if(i == 0) {
+      start = 0;
+    } else {
+      start = this.ind.getInt(i - 1) + 1;
     }
 
-
+    for(int index = start; index <= this.ind.getInt(i); index ++) {
+      lineage.add(this.ids.getInt(index));
+    }
   }
 
   public IntArrayList matchLineage(IntArrayList lineage, int i)
   {
     if(this.tags.get(i).size() == 0 && lineage.size() > 0) {
-      for(int index = this.ind.getInt(i); index < this.ind.getInt(i + 1); index ++)
+
+      int start;
+      if(i == 0) {
+        start = 0;
+      } else {
+        start = this.ind.getInt(i - 1) + 1;
+      }
+
+      for(int index = start; index <= this.ind.getInt(i); index ++)
       {
         int id = this.ids.getInt(index);
         if(lineage.contains(id))
@@ -158,6 +171,24 @@ public class Merge implements IntComparator, Swapper{
     }
 
     return this.tags.get(i);
+  }
+
+  public void print()
+  {
+    for(int i = 0; i < this.ids.size(); i ++) {
+      System.out.print(this.ids.getInt(i) + "\t");
+    }
+    System.out.println();
+
+    for(int i = 0; i < this.values.size(); i ++) {
+      System.out.print(this.values.getDouble(i) + "\t");
+    }
+    System.out.println();
+
+    for(int i = 0; i < this.ind.size(); i ++) {
+      System.out.print(this.ind.getInt(i) + "\t");
+    }
+    System.out.println();
   }
 
 //  public boolean getTag(int i)
