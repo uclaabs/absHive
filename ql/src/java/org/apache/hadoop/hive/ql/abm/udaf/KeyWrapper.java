@@ -3,33 +3,35 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 public class KeyWrapper {
-  private final IntArrayList lst;
+
+  private final IntArrayList keyBuf;
 
   public KeyWrapper() {
-    lst = new IntArrayList();
+    keyBuf = new IntArrayList();
   }
 
   public void newKey() {
-    lst.clear();
+    keyBuf.clear();
   }
 
-  public void addKey(Integer key) {
-    lst.add(key);
+  public void addElement(int key) {
+    keyBuf.add(key);
   }
 
   /**
-   * return a copy of internal lst
+   * Return a copy of the key.
    * @return
    */
   public IntArrayList copyKey() {
-    return lst.clone();
+    return keyBuf.clone();
   }
 
   /**
-   * return the internal lst
+   * Return the key kept internally.
    * @return
    */
   public IntArrayList getKey() {
-    return lst;
+    return keyBuf;
   }
+
 }
