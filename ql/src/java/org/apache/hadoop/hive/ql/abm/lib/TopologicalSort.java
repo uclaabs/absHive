@@ -80,14 +80,14 @@ public class TopologicalSort {
     topNodes.clear();
   }
 
-  public static <T> List<List<T>> getOrderByLevel(Map<T, List<T>> map) {
+  public static <T> List<List<T>> getOrderByLevel(Map<T, Set<T>> map) {
     Map<T, Node<T>> nodeMap = new HashMap<T, Node<T>>();
 
     for (T key : map.keySet()) {
       nodeMap.put(key, new Node<T>(key));
     }
 
-    for (Entry<T, List<T>> entry : map.entrySet()) {
+    for (Entry<T, Set<T>> entry : map.entrySet()) {
       Node<T> child = nodeMap.get(entry.getKey());
       for (T p : entry.getValue()) {
         Node<T> parent = nodeMap.get(p);
