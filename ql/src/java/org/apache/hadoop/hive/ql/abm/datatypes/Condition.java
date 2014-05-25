@@ -146,7 +146,7 @@ public class Condition {
     return res;
   }
 
-  public int getID()
+  public int getId()
   {
     return this.ids[0];
   }
@@ -156,8 +156,7 @@ public class Condition {
     return this.range;
   }
 
-  public boolean getFlag()
-  {
+  public boolean getFlag() {
     if(this.range[0] == Double.NEGATIVE_INFINITY) {
       return false;
     } else {
@@ -170,6 +169,5 @@ public class Condition {
   {
     return "(" + this.ids[0] + "--" + this.range[0] + "," + this.range[1] + ")";
   }
-
 
 }

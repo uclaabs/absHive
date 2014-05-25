@@ -98,7 +98,7 @@ public class ConditionList {
 
     for(partition[1] = partition[0]; partition[1] < conds.size(); partition[1] ++)
     {
-      if(conds.get(partition[1]).getID() != id)
+      if(conds.get(partition[1]).getId() != id)
       {
         partition[1] -= 1;
         break;
@@ -118,8 +118,8 @@ public class ConditionList {
     // otherwise, we need to find it and put it into idex
     for(Condition cond: this.conditions.get(array))
     {
-      if(cond.getID() == id) {
-        return cond.getID();
+      if(cond.getId() == id) {
+        return cond.getId();
       }
     }
 
