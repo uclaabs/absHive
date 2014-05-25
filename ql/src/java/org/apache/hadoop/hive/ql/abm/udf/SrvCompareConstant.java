@@ -1,20 +1,17 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.Condition;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.StandardStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
 
 public class SrvCompareConstant  extends GenericUDF {
 
   protected PrimitiveObjectInspector inputIDOI;
   protected PrimitiveObjectInspector inputValueOI;
-  protected StandardStructObjectInspector  structOI = null;
   protected Object ret = null;
 
   @Override
@@ -33,8 +30,7 @@ public class SrvCompareConstant  extends GenericUDF {
 
 
     ret = this.initRet();
-    structOI = ObjectInspectorFactory.getStandardStructObjectInspector(Condition.columnName, Condition.objectInspectorType);
-    return structOI;
+    return CondGroup.condGroupInspector;
   }
 
   @Override
@@ -47,8 +43,6 @@ public class SrvCompareConstant  extends GenericUDF {
 
     int id = ((IntObjectInspector)inputIDOI).get(arg[0].get());
     double value = Double.parseDouble(inputValueOI.getPrimitiveJavaObject(arg[1].get()).toString());
-    //double value = PrimitiveObjectInspectorUtils.getDouble(arg[1].get(), inputValueOI);
-    // double value = (Double) inputValueOI.getPrimitiveJavaObject(arg[1].get());
 
     this.updateRet(id, value);
     return this.ret;
@@ -57,8 +51,9 @@ public class SrvCompareConstant  extends GenericUDF {
 
   protected Object initRet()
   {
-    Condition cond = new Condition(true);
-    return cond.toArray();
+    CondGroup condGroup = new CondGroup();
+    condGroup.initialize();
+    return condGroup.toArray();
   }
 
   protected void updateRet(int id, double value)

@@ -1,74 +1,95 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.Condition;
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionList;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.StandardListObjectInspector;
 
 public class ConditionJoin extends GenericUDF {
 
-
-  private StandardListObjectInspector  outputOI = null;
-
-  protected boolean flag = false;
-  protected Object ret = null;
-
+  private Object[] ret = new Object[2];
+  private Object[] inputKeys = new Object[2];
+  private Object[] inputRanges = new Object[2];
+  
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
 
-    if (arguments.length > 2) {
-      throw new UDFArgumentException("This function takes at most two arguments: ConditionList, Condition");
+    if (arguments.length != 2) {
+      throw new UDFArgumentException("This function takes two arguments: CondGroup, CondGroup");
     }
-
-    if (arguments.length == 1)
-    {
-      flag = true;
-      Condition cond = new Condition(true);
-      cond.setID(-1);
-      cond.setRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-      ConditionList condList = new ConditionList(cond);
-      this.ret = condList.toArray();
-    }
-
-    // inputStructOI = ObjectInspectorFactory.getStandardStructObjectInspector(Condition.columnName, Condition.objectInspectorType);
-
-    outputOI = (StandardListObjectInspector) ConditionList.objectInspectorType;
-    return outputOI;
+    
+    Object[] keys = new Object[1];
+    Object[] ranges = new Object[1];;
+    ret[0] = keys;
+    ret[1] = ranges;
+    
+    return CondGroup.condGroupInspector;
   }
 
   @Override
   public String getDisplayString(String[] arg0) {
-    return "Function for Srv Comparison";
+    return "Function for Cond Group Join";
+  }
+  
+  protected void parseCondGroupObj(Object condGroupObjs, int i)
+  {
+    Object[] condGroupObj = (Object[]) condGroupObjs;
+    Object[] keyObjs = (Object[])condGroupObj[0];
+    Object[] rangeObjs = (Object[])condGroupObj[1];
+    
+    inputKeys[i] = keyObjs[0];
+    inputRanges[i] = rangeObjs[0];
+  }
+  
+  protected int getLength(int i)
+  {
+    if(inputKeys[i] == null)
+      return 0;
+    else
+      return ((Object[])inputKeys[i]).length;
   }
 
   @Override
-  public Object evaluate(DeferredObject[] arg0) throws HiveException {
+  public Object evaluate(DeferredObject[] arg) throws HiveException {
 
-    if(flag)
-    {
-      Object condObj = arg0[0].get();
-      ConditionList.update(this.ret, condObj);
-    }
-    else
-    {
-      Object condListObj = arg0[0].get();
-      Object[] condObj = {arg0[1].get()};
-
-      int matrixSize = outputOI.getListLength(condListObj);
-      Object[] res = new Object[matrixSize + 1];
-      for(int i = 0; i < matrixSize; i ++) {
-        res[i] = outputOI.getListElement(condListObj, i);
-      }
-      res[matrixSize] = condObj;
-      this.ret = res;
-    }
-
+    
+   int size0, size1;
+   
+   parseCondGroupObj(arg[0].get(), 0);
+   parseCondGroupObj(arg[1].get(), 1);
+   
+   size0 = getLength(0);
+   size1 = getLength(1);
+   
+   // System.out.println(size0 + "\t" + size1);
+   
+   Object[] keys = new Object[size0 + size1];
+   Object[] ranges = new Object[size0 + size1];
+   
+   Object[] keyObj0 = (Object[]) inputKeys[0];
+   Object[] keyObj1 = (Object[]) inputKeys[1];
+   Object[] rangeObj0 = (Object[]) inputRanges[0];
+   Object[] rangeObj1 = (Object[]) inputRanges[1];
+   
+   for(int i = 0; i < size0; i ++)
+   {
+     keys[i] = keyObj0[i];
+     ranges[i] = rangeObj0[i];
+   }
+   
+   for(int i = 0; i < size1; i ++)
+   {
+     keys[i + size0] = keyObj1[i];
+     ranges[i + size0] = rangeObj1[i];
+   }
+    
+   ((Object[])ret[0])[0] = keys;
+   ((Object[])ret[1])[0] = ranges;
+   
+   // System.out.println("Cond Join Finish");
+   
     return this.ret;
-
-
   }
 
 

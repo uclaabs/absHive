@@ -1,6 +1,6 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.Condition;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
 
 
 public class SrvGreaterConstant extends SrvCompareConstant {
@@ -8,7 +8,7 @@ public class SrvGreaterConstant extends SrvCompareConstant {
   @Override
   protected void updateRet(int id, double value)
   {
-    Condition.update(this.ret, id, value, Double.POSITIVE_INFINITY);
+    CondGroup.update(this.ret, id, value, Double.POSITIVE_INFINITY);
   }
 
 }
