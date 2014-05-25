@@ -1,110 +1,124 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.algebra.Transform;
+import org.apache.hadoop.hive.ql.abm.lib.TopologicalSort;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
+import org.apache.hadoop.hive.ql.exec.SelectOperator;
 
-public class ConditionAnnotation implements Comparator<GroupByOperator> {
+public class ConditionAnnotation {
 
-  private final HashMap<GroupByOperator, Integer> positions =
-      new HashMap<GroupByOperator, Integer>();
   private final HashMap<GroupByOperator, TreeSet<AggregateInfo>> aggregates =
       new HashMap<GroupByOperator, TreeSet<AggregateInfo>>();
-  private final TreeSet<GroupByOperator> topLevel = new TreeSet<GroupByOperator>(this);
+  private final HashMap<GroupByOperator, Transform[]> dependencies =
+      new HashMap<GroupByOperator, Transform[]>();
   private final ArrayList<Transform> transforms = new ArrayList<Transform>();
-  private final HashMap<GroupByOperator, GroupByOperator[]> dependencies =
-      new HashMap<GroupByOperator, GroupByOperator[]>();
-  private final HashSet<GroupByOperator> continuousGbys = new HashSet<GroupByOperator>();
 
-  public void groupByAt(GroupByOperator gby, boolean continuous) {
-    if (!topLevel.isEmpty()) {
-      dependencies.put(gby, topLevel.toArray(new GroupByOperator[topLevel.size()]));
-      topLevel.clear();
-    }
-    if (continuous) {
-      continuousGbys.add(gby);
-    }
+  private final HashSet<GroupByOperator> discrete = new HashSet<GroupByOperator>();
+  private final HashMap<GroupByOperator, SelectOperator> inputs =
+      new HashMap<GroupByOperator, SelectOperator>();
+  private final HashMap<GroupByOperator, SelectOperator> outputs =
+      new HashMap<GroupByOperator, SelectOperator>();
+
+  // <-- Used by TraceProcCtx
+
+  public void groupByAt(GroupByOperator gby) {
+    dependencies.put(gby, transforms.toArray(new Transform[transforms.size()]));
+    transforms.clear();
   }
 
-  public void addTransform(Transform trans) {
+  public void conditionOn(Transform trans) {
     transforms.add(trans);
-  }
-
-  public void conditionOn(AggregateInfo aggr) {
-    GroupByOperator gby = aggr.getGroupByOperator();
-    TreeSet<AggregateInfo> buf = aggregates.get(gby);
-    if (buf == null) {
-      buf = new TreeSet<AggregateInfo>();
-      aggregates.put(gby, buf);
-
-      positions.put(gby, positions.size());
-      topLevel.add(gby);
+    for (AggregateInfo ai : trans.getAggregatesInvolved()) {
+      GroupByOperator gby = ai.getGroupByOperator();
+      TreeSet<AggregateInfo> buf = aggregates.get(gby);
+      if (buf == null) {
+        buf = new TreeSet<AggregateInfo>();
+        aggregates.put(gby, buf);
+      }
+      buf.add(ai);
     }
-    buf.add(aggr);
   }
 
-  @SuppressWarnings("unchecked")
   public void combine(ConditionAnnotation other) {
-    for (GroupByOperator gby : other.positions.keySet()) {
-      assert !positions.containsKey(gby);
-      positions.put(gby, positions.size());
-    }
-
-    for (Map.Entry<GroupByOperator, TreeSet<AggregateInfo>> entry : other.aggregates.entrySet()) {
-      aggregates.put(entry.getKey(), (TreeSet<AggregateInfo>) entry.getValue().clone());
-    }
-
-    topLevel.addAll(other.topLevel);
-
+    aggregates.putAll(other.aggregates);
     transforms.addAll(other.transforms);
+    dependencies.putAll(other.dependencies);
 
-    for (Map.Entry<GroupByOperator, GroupByOperator[]> entry : other.dependencies.entrySet()) {
-      dependencies.put(entry.getKey(), entry.getValue().clone());
-    }
-
-    continuousGbys.addAll(other.continuousGbys);
+    discrete.addAll(other.discrete);
   }
 
-  public int getInputSize(GroupByOperator gby) {
+  // -->
+
+  // <-- Used by RewriteProcCtx
+
+  public void setDiscrete(GroupByOperator gby) {
+    discrete.add(gby);
+  }
+
+  public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
+    input.getConf().cache(getInputSize(gby),
+        AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString());
+    inputs.put(gby, input);
+  }
+
+  public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
+    output.getConf().cache(getOutputSize(gby),
+        AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString());
+    outputs.put(gby, output);
+  }
+
+  private int getInputSize(GroupByOperator gby) {
     int sz = gby.getConf().getKeys().size();
     for (AggregateInfo ai : aggregates.get(gby)) {
       if (!ai.getUdafType().equals(UdafType.COUNT)) {
         ++sz;
       }
     }
-    // For tid
-    ++sz;
+    // For tid and condition
+    sz += 2;
     return sz;
   }
 
-  public int getOutputSize(GroupByOperator gby) {
+  private int getOutputSize(GroupByOperator gby) {
     int sz = gby.getConf().getKeys().size() + aggregates.get(gby).size();
-    // For the mandatory count(*)
-    --sz;
-    if (continuousGbys.contains(gby)) {
+    if (!discrete.contains(gby)) {
       // For condition, group-by-id and lineage
       sz += 3;
     } else {
-      // For condition, group-by-id
+      // For condition and group-by-id
       sz += 2;
     }
     return sz;
   }
 
-  public Set<GroupByOperator> getAllGroupByOps() {
-    return positions.keySet();
+  public void f() {
+    // TODO:
+    Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
+    TopologicalSort.getOrderByLevel(map);
   }
 
-  @Override
-  public int compare(GroupByOperator o1, GroupByOperator o2) {
-    return positions.get(o1) - positions.get(o2);
+  private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
+    Map<GroupByOperator, Set<GroupByOperator>> map =
+        new HashMap<GroupByOperator, Set<GroupByOperator>>();
+    for (Map.Entry<GroupByOperator, Transform[]> entry : dependencies.entrySet()) {
+      Set<GroupByOperator> parents = new HashSet<GroupByOperator>();
+      for (Transform trans : entry.getValue()) {
+        for (AggregateInfo ai : trans.getAggregatesInvolved()) {
+          parents.add(ai.getGroupByOperator());
+        }
+      }
+    }
+    return map;
   }
+
+  // -->
 
 }

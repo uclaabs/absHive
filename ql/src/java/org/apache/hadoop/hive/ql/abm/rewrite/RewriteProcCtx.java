@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
@@ -33,15 +32,13 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
 
-  private final HashMap<GroupByOperator, SelectOperator> inputs =
-      new HashMap<GroupByOperator, SelectOperator>();
-  private final HashMap<GroupByOperator, SelectOperator> outputs =
-      new HashMap<GroupByOperator, SelectOperator>();
+  private final ConditionAnnotation condAnno;
 
   private final TraceProcCtx tctx;
 
   public RewriteProcCtx(TraceProcCtx ctx) {
     tctx = ctx;
+    condAnno = tctx.getCondition(tctx.getSinkOp());
   }
 
   public AggregateInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
@@ -147,24 +144,16 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return ret;
   }
 
-  public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
-    input.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getInputSize(gby),
-        AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString());
-    inputs.put(gby, input);
+  public void setDiscrete(GroupByOperator gby) {
+    condAnno.setDiscrete(gby);
   }
 
-  public SelectOperator getGroupByInput(GroupByOperator gby) {
-    return inputs.get(gby);
+  public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
+    condAnno.putGroupByInput(gby, input);
   }
 
   public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
-    output.getConf().cache(tctx.getCondition(tctx.getSinkOp()).getOutputSize(gby),
-        AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString());
-    outputs.put(gby, output);
-  }
-
-  public SelectOperator getGroupByOutput(GroupByOperator gby) {
-    return outputs.get(gby);
+    condAnno.putGroupByOutput(gby, output);
   }
 
   public ArrayList<ExprNodeDesc> getTransform(Operator<? extends OperatorDesc> filter) {

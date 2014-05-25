@@ -595,6 +595,11 @@ public class RewriteProcFactory {
 
       boolean continuous = firstGby ? ctx.withTid(parent) : (ctx.getLineageColumnIndex(parent) != null);
 
+      // Set this GBY as discrete, and thus we know the schema of the cached input and output.
+      if (!firstGby && !continuous) {
+        ctx.setDiscrete(gby);
+      }
+
       // Insert Select as input and cache it
       if (firstGby && continuous) {
         insertSelect();
