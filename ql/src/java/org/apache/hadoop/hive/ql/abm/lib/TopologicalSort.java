@@ -118,18 +118,18 @@ public class TopologicalSort {
   }
 
   public static void main(String[] args) {
-    Map<Integer, List<Integer>> map = new HashMap<Integer, List<Integer>>();
+    Map<Integer, Set<Integer>> map = new HashMap<Integer, Set<Integer>>();
 
-    // map.put(3, Arrays.asList(new Integer[]{}));
-    // map.put(4, Arrays.asList(new Integer[]{}));
-    // map.put(2, Arrays.asList(new Integer[]{3, 4}));
-    // map.put(6, Arrays.asList(new Integer[]{4}));
-    // map.put(7, Arrays.asList(new Integer[]{2, 6}));
-    // map.put(8, Arrays.asList(new Integer[]{4}));
+    // map.put(3, new HashSet<Integer>(Arrays.asList(new Integer[]{})));
+    // map.put(4, new HashSet<Integer>(Arrays.asList(new Integer[]{})));
+    // map.put(2, new HashSet<Integer>(Arrays.asList(new Integer[]{3, 4})));
+    // map.put(6, new HashSet<Integer>(Arrays.asList(new Integer[]{4})));
+    // map.put(7, new HashSet<Integer>(Arrays.asList(new Integer[]{2, 6})));
+    // map.put(8, new HashSet<Integer>(Arrays.asList(new Integer[]{4})));
 
-    map.put(1, Arrays.asList(new Integer[] {}));
-    map.put(2, Arrays.asList(new Integer[] {}));
-    map.put(0, Arrays.asList(new Integer[] {1, 2}));
+    map.put(1, new HashSet<Integer>(Arrays.asList(new Integer[] {})));
+    map.put(2, new HashSet<Integer>(Arrays.asList(new Integer[] {})));
+    map.put(0, new HashSet<Integer>(Arrays.asList(new Integer[] {1, 2})));
 
     System.out.println(TopologicalSort.getOrderByLevel(map));
   }
