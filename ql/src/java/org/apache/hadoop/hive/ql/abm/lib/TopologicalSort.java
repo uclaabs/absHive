@@ -9,32 +9,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-public class TopologicalSort<T> {
+public class TopologicalSort {
 
-  class Node {
+  private static class Node<T> {
     T val;
-    Set<Node> parents = new HashSet<Node>();
-    Set<Node> children = new HashSet<Node>();
-    int level = 0;
+    Set<Node<T>> parents = new HashSet<Node<T>>();
+    Set<Node<T>> children = new HashSet<Node<T>>();
 
     public Node(T val) {
       this.val = val;
     }
 
-    public void addParent(Node e) {
+    public void addParent(Node<T> e) {
       parents.add(e);
     }
 
-    public void addChild(Node e) {
+    public void addChild(Node<T> e) {
       children.add(e);
     }
 
-    public void removeParent(Node e) {
+    public void removeParent(Node<T> e) {
       parents.remove(e);
-    }
-
-    public T getValue() {
-      return val;
     }
 
     @Override
@@ -45,8 +40,7 @@ public class TopologicalSort<T> {
       if (!(aThat instanceof TopologicalSort.Node)) {
         return false;
       }
-      @SuppressWarnings("unchecked")
-      Node that = (Node) aThat;
+      Node<?> that = (Node<?>) aThat;
       return that.val.equals(this.val);
     }
 
@@ -56,14 +50,9 @@ public class TopologicalSort<T> {
     }
   }
 
-  Map<T, Node> nodeMap = new HashMap<T, Node>();
-
-  public TopologicalSort() {
-  }
-
-  private List<Node> getTopNodes() {
-    List<Node> res = new ArrayList<Node>();
-    for (Node v : nodeMap.values()) {
+  private static <T> List<Node<T>> getTopNodes(Map<T, Node<T>> nodeMap) {
+    List<Node<T>> res = new ArrayList<Node<T>>();
+    for (Node<T> v : nodeMap.values()) {
       if (v.parents.isEmpty()) {
         res.add(v);
       }
@@ -71,17 +60,17 @@ public class TopologicalSort<T> {
     return res;
   }
 
-  private List<T> convert(List<Node> nodes) {
+  private static <T> List<T> convert(List<Node<T>> nodes) {
     List<T> res = new ArrayList<T>();
-    for (Node node : nodes) {
+    for (Node<T> node : nodes) {
       res.add(node.val);
     }
     return res;
   }
 
-  private void removeParentsLinks(List<Node> topNodes, List<Node> buf2) {
-    for (Node topNode : topNodes) {
-      for (Node child : topNode.children) {
+  private static <T> void removeParentsLinks(List<Node<T>> topNodes, List<Node<T>> buf2) {
+    for (Node<T> topNode : topNodes) {
+      for (Node<T> child : topNode.children) {
         child.removeParent(topNode);
         if (child.parents.isEmpty()) {
           buf2.add(child);
@@ -91,15 +80,17 @@ public class TopologicalSort<T> {
     topNodes.clear();
   }
 
-  public List<List<T>> getOrderByLevel(Map<T, List<T>> map) {
+  public static <T> List<List<T>> getOrderByLevel(Map<T, List<T>> map) {
+    Map<T, Node<T>> nodeMap = new HashMap<T, Node<T>>();
+
     for (T key : map.keySet()) {
-      nodeMap.put(key, new Node(key));
+      nodeMap.put(key, new Node<T>(key));
     }
 
     for (Entry<T, List<T>> entry : map.entrySet()) {
-      Node child = nodeMap.get(entry.getKey());
+      Node<T> child = nodeMap.get(entry.getKey());
       for (T p : entry.getValue()) {
-        Node parent = nodeMap.get(p);
+        Node<T> parent = nodeMap.get(p);
         parent.addChild(child);
         child.addParent(parent);
       }
@@ -107,9 +98,9 @@ public class TopologicalSort<T> {
 
     List<List<T>> res = new ArrayList<List<T>>();
 
-    List<Node> buf1 = getTopNodes();
-    List<Node> buf2 = new ArrayList<Node>();
-    List<Node> tmp = null;
+    List<Node<T>> buf1 = getTopNodes(nodeMap);
+    List<Node<T>> buf2 = new ArrayList<Node<T>>();
+    List<Node<T>> tmp = null;
 
     while (buf1.size() > 0) {
       List<T> nodes = convert(buf1);
@@ -132,7 +123,7 @@ public class TopologicalSort<T> {
     // map.put(3, Arrays.asList(new Integer[]{}));
     // map.put(4, Arrays.asList(new Integer[]{}));
     // map.put(2, Arrays.asList(new Integer[]{3, 4}));
-    // map.put(6, Arrays.asList(new Integer[]{2, 4}));
+    // map.put(6, Arrays.asList(new Integer[]{4}));
     // map.put(7, Arrays.asList(new Integer[]{2, 6}));
     // map.put(8, Arrays.asList(new Integer[]{4}));
 
@@ -140,7 +131,7 @@ public class TopologicalSort<T> {
     map.put(2, Arrays.asList(new Integer[] {}));
     map.put(0, Arrays.asList(new Integer[] {1, 2}));
 
-    System.out.println(new TopologicalSort<Integer>().getOrderByLevel(map));
+    System.out.println(TopologicalSort.getOrderByLevel(map));
   }
 
 }
