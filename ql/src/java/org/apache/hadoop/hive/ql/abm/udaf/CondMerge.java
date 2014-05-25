@@ -16,8 +16,8 @@ public class CondMerge extends AbstractGenericUDAFResolver {
 
     if(parameters.length == 1)
     {
-      if (parameters[0].getCategory() != ObjectInspector.Category.LIST) {
-        throw new UDFArgumentException("Condition_merge only process condition list!; Current Type is: " + parameters[0].getCategory());
+      if (parameters[0].getCategory() != ObjectInspector.Category.STRUCT) {
+        throw new UDFArgumentException("Condition_merge only process condition struct!; Current Type is: " + parameters[0].getCategory());
       }
       return new CondMergeEvaluator();
     } else {
