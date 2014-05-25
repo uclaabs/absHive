@@ -27,19 +27,16 @@ public class Merge {
     }
 
     Sorter sorter = SorterFactory.getSorter(conditions);
-    
+
     Arrays.quickSort(0, len, sorter, sorter);
     IntArrayList indexes = sorter.getIndexes();
     dimIndexes.add(indexes);
 
-//    System.out.println(len);
-    
     IntArrayList ends = new IntArrayList(len);
     for (int i = 0; i < len;) {
       int j = i + 1;
       for (; j < len && sorter.compare(indexes.getInt(j - 1), indexes.getInt(j)) == 0; ++j) {
       }
-      System.out.println(j + "\t" + ends.size());
       ends.add(j);
       i = j;
     }
@@ -54,15 +51,9 @@ public class Merge {
   private void enumerate(int level, Int2IntOpenHashMap lineage) {
     boolean leaf = (level == dimIndexes.size() - 1);
 
-    System.out.println("Enumerate:" + leaf + "\t" + level + "\t" + dimIndexes.size());
-    
     int parent = level - 1;
     IntArrayList indexes = dimIndexes.get(level);
     IntArrayList ends = dimEnds.get(level);
-    
-    for(Integer t: indexes)
-      System.out.print(t + "\t");
-    System.out.println();
 
     if (!leaf) {
       for (int i = 0; i < ends.size() ; ++i) {
@@ -77,7 +68,7 @@ public class Merge {
         }
 
         if (update) {
-          // TODO: x.partialTerminate(i, j)
+          // partial terminate
           op.partialTerminate(level, indexes.getInt(start), (end == indexes.size()) ? end : indexes.getInt(end));
           enumerate(level + 1, lineage);
 
@@ -89,18 +80,11 @@ public class Merge {
         }
       }
     } else {
-      System.out.println("Get to leaf: level" + level + "\t" + ends.size() );
-      
       for (int i = 0; i < ends.size(); ++i) {
-        
-        
-        
         boolean update = false;
         int start = (i == 0) ? 0 : ends.getInt(i-1);
         int end = ends.getInt(i);
-        
-        System.out.println(i + "\t" + start + "\t" + end);
-        
+
         for (int k = start; k < end; ++k) {
           if (level == 0 || lineage.get(indexes.getInt(k)) == parent) {
             lineage.put(indexes.getInt(k), level);
@@ -111,37 +95,13 @@ public class Merge {
         }
 
         if (update) {
-          // TODO: partial terminate
-          System.out.println("Computation Terminal: " + indexes.getInt(start) + "\t" + indexes.getInt(end));
-          
+          // partial terminate
           op.partialTerminate(level, indexes.getInt(start), (end == indexes.size()) ? end : indexes.getInt(end));
-          // TODO: terminate
+          // terminate
           op.terminate();
         }
       }
     }
   }
 
-
 }
-
-//class Indexes extends IntArrayList implements Swapper {
-//
-//  private static final long serialVersionUID = 1L;
-//
-//  public Indexes(int size) {
-//    super(size);
-//    // initialization
-//    for (int i = 0; i < size; ++i) {
-//      add(i);
-//    }
-//  }
-//
-//  @Override
-//  public void swap(int arg0, int arg1) {
-//    int tmpId = get(arg0);
-//    set(arg0, get(arg1));
-//    set(arg1, tmpId);
-//  }
-//
-//}
