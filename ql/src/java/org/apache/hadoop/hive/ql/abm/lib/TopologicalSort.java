@@ -79,18 +79,16 @@ public class TopologicalSort<T> {
 		return res;
 	}
 
-	private void removeAllKeysFromMap(List<T> keys) {
-		for (T key: keys) {
-			nodeMap.remove(key);
-		}
-	}
-
-	private void removeParentsLinks(List<Node> topNodes) {
+	private void removeParentsLinks(List<Node> topNodes, List<Node> buf2) {
 		for (Node topNode: topNodes) {
 			for (Node child: topNode.children) {
 				child.removeParent(topNode);
+				if (child.parents.size() == 0) {
+				  buf2.add(child);
+				}
 			}
 		}
+		topNodes.clear();
 	}
 
 	public List<List<T>> getOrderByLevel(Map<T, List<T>> map) {
@@ -108,14 +106,19 @@ public class TopologicalSort<T> {
 		}
 
 		List<List<T>> res = new ArrayList<List<T>>();
-		while (nodeMap.size() > 0) {
-			List<Node> topNodes = getTopNodes();
-			List<T> nodes = convert(topNodes);
 
-			removeParentsLinks(topNodes);
-			removeAllKeysFromMap(nodes);
+		List<Node> buf1 = getTopNodes();
+		List<Node> buf2 = new ArrayList<Node>();
+		List<Node> tmp = null;
+
+		while (buf1.size() > 0) {
+			List<T> nodes = convert(buf1);
+			removeParentsLinks(buf1, buf2);
 			res.add(nodes);
 
+			tmp = buf1;
+			buf1 = buf2;
+			buf2 = tmp;
 			//System.out.println(topNodes.size());
 			//System.out.println(topNodes);
 		}
@@ -125,17 +128,17 @@ public class TopologicalSort<T> {
 
 	public static void main(String[] args) {
 		Map<Integer, List<Integer>> map = new HashMap<Integer, List<Integer>>();
-
+		/*
 		map.put(3, Arrays.asList(new Integer[]{}));
 		map.put(4, Arrays.asList(new Integer[]{}));
 		map.put(2, Arrays.asList(new Integer[]{3, 4}));
 		map.put(6, Arrays.asList(new Integer[]{2, 4}));
 		map.put(7, Arrays.asList(new Integer[]{2, 6}));
 		map.put(8, Arrays.asList(new Integer[]{4}));
-
-		//map.put(1, Arrays.asList(new Integer[]{}));
-		//map.put(2, Arrays.asList(new Integer[]{}));
-		//map.put(0, Arrays.asList(new Integer[]{1, 2}));
+		 */
+		map.put(1, Arrays.asList(new Integer[]{}));
+		map.put(2, Arrays.asList(new Integer[]{}));
+		map.put(0, Arrays.asList(new Integer[]{1, 2}));
 
 		System.out.println(new TopologicalSort<Integer>().getOrderByLevel(map));
 	}
