@@ -12,6 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.ErrorMsg;
+import org.apache.hadoop.hive.ql.abm.rewrite.ErrorMeasure;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
@@ -35,9 +36,11 @@ public final class AbmUtilities {
 
   private static String sampledTable;
   private static String queryResultFileFormat;
-  private static String label;
   private static final Map<String, Set<String>> schemaPrimaryKeyMap = new HashMap<String, Set<String>>();
+  private static ErrorMeasure measure;
   private static final ArrayList<String> fieldNames = new ArrayList<String>();
+
+  private static String label;
 
   public static void setAbmMode(HiveConf conf) throws SemanticException {
     if (conf.getBoolVar(HiveConf.ConfVars.HIVE_ABM)) {
@@ -74,11 +77,14 @@ public final class AbmUtilities {
       // Configure sampled table
       sampledTable = conf.getVar(HiveConf.ConfVars.HIVE_ABM_SAMPLED_TABLE);
 
-      // Label -- only for debugging purpose
-      label = conf.getVar(HiveConf.ConfVars.HIVE_ABM_LABEL);
-
       // QueryResultFileFormat: for caching Select outputs
       queryResultFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
+
+      // Error measure
+      measure = ErrorMeasure.get(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_MEASURE));
+
+      // Label -- only for debugging purpose
+      label = conf.getVar(HiveConf.ConfVars.HIVE_ABM_LABEL);
     } else {
       inAbmMode = false;
       for (Map.Entry<HiveConf.ConfVars, Boolean> entry : prevSetting.entrySet()) {
@@ -179,6 +185,10 @@ public final class AbmUtilities {
 
   public static String getQueryResultFileFormat() {
     return queryResultFileFormat;
+  }
+
+  public static ErrorMeasure getErrorMeasure() {
+    return measure;
   }
 
 }

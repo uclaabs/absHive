@@ -14,7 +14,6 @@ import org.apache.hadoop.hive.ql.abm.lib.TopologicalSort;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeNullDesc;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 
 public class ConditionAnnotation {
@@ -71,8 +70,6 @@ public class ConditionAnnotation {
   }
 
   public void f() {
-    Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
-    List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
     int numGbys = dependencies.size();
 
     // Assign ids to GroupByOperators
@@ -86,16 +83,14 @@ public class ConditionAnnotation {
       }
     }
 
-    // No input cached for discrete GBYs
+    // Continuous input (no input cached for discrete GBYs)
     ArrayList<ArrayList<ExprNodeDesc>> allIKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
     ArrayList<ArrayList<ExprNodeDesc>> allIVals = new ArrayList<ArrayList<ExprNodeDesc>>();
     ArrayList<ExprNodeDesc> allITids = new ArrayList<ExprNodeDesc>();
-    ArrayList<ExprNodeDesc> allIConds = new ArrayList<ExprNodeDesc>();
     for (GroupByOperator gby : getAllContinousGbys()) {
       ArrayList<ExprNodeDesc> keys = new ArrayList<ExprNodeDesc>();
       ArrayList<ExprNodeDesc> vals = new ArrayList<ExprNodeDesc>();
       ExprNodeDesc tid = null;
-      ExprNodeDesc cond = null;
       GroupByDesc desc = gby.getConf();
       SelectOperator input = inputs.get(gby);
 
@@ -108,18 +103,11 @@ public class ConditionAnnotation {
           vals.add(Utils.generateColumnDescs(input, i++).get(0));
         }
       }
-      tid = Utils.generateColumnDescs(input, i++).get(0);
-      if (dependencies.get(gby).length != 0) {
-        cond = Utils.generateColumnDescs(input, i).get(0);
-      } else {
-        cond = new ExprNodeNullDesc();
-        ;
-      }
+      tid = Utils.generateColumnDescs(input, i).get(0);
 
       allIKeys.add(keys);
       allIVals.add(vals);
       allITids.add(tid);
-      allIConds.add(cond);
     }
 
     // Continuous output
@@ -184,7 +172,12 @@ public class ConditionAnnotation {
       allODGbyIds.add(gbyId);
     }
 
-    // TODO
+    Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
+    List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
+    // TODO: GBYs' dependency structure
+    // TODO: Detailed structure (of each predicate) of every condition column
+
+    // TODO: Type of each aggregate
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
@@ -205,10 +198,14 @@ public class ConditionAnnotation {
     return inputs.keySet();
   }
 
+  private Set<GroupByOperator> discrete = null;
+
   private Set<GroupByOperator> getAllDiscreteGbys() {
-    HashSet<GroupByOperator> ret = new HashSet<GroupByOperator>(outputs.keySet());
-    ret.removeAll(getAllContinousGbys());
-    return ret;
+    if (discrete == null) {
+      discrete = new HashSet<GroupByOperator>(outputs.keySet());
+      discrete.removeAll(getAllContinousGbys());
+    }
+    return discrete;
   }
 
   // -->

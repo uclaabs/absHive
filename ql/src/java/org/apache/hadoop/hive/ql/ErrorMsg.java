@@ -428,17 +428,18 @@ public enum ErrorMsg {
   SCHEMA_MISSING_ABM(40014,
       "Missing or corrupted schema (primary key) file in analytical bootstrap mode. "
           + "It should be set through hive.abm.schema."),
+  INVALID_MEASURE(40015, "Invalid error measure."),
 
-  MIN_MAX_NOT_ABM_ELIGIBLE(40015,
+  MIN_MAX_NOT_ABM_ELIGIBLE(40020,
       "Extreme aggregates (MIN/MAX) are not eligible to apply analytical bootstrap method"),
-  EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE(40016,
+  EQUAL_OF_AGGR_NOT_ABM_ELIGIBLE(40021,
       "Equality test on aggregates are not eligible to apply analytical bootstrap method"),
-  AGGR_OF_AGGR_NOT_ABM_ELIGIBLE(40017,
+  AGGR_OF_AGGR_NOT_ABM_ELIGIBLE(40022,
       "Aggregates of aggregates are not eligible to apply analytical bootstrap method"),
-  DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE(40018,
+  DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE(40023,
       "Distinct aggregates are not ptime eligible to apply analytical bootstrap method"),
-  QUERY_NOT_ABM_ELIGIBLE(40019, "The query is not eligible to apply analytical bootstrap method"),
-  QUERY_NOT_ABM_PTIME_ELIGIBLE(40020,
+  QUERY_NOT_ABM_ELIGIBLE(40024, "The query is not eligible to apply analytical bootstrap method"),
+  QUERY_NOT_ABM_PTIME_ELIGIBLE(40025,
       "The query is not ptime eligible to apply analytical bootstrap method"),
 
   ;

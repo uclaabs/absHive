@@ -14,6 +14,7 @@ import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.lib.PostOrderPlanWalker;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
+import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.FunctionInfo;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
@@ -86,6 +87,8 @@ public class RewriteProcFactory {
   private static final String LIN_SUM = "lin_sum";
 
   private static final String GEN_ID = "gen_id";
+
+  private static final String EXIST_PROB = "exist_prob";
 
   public static GenericUDF getUdf(String udfName) {
     // Remember to register the functions:
@@ -391,6 +394,108 @@ public class RewriteProcFactory {
 
   }
 
+  public static class FileSinkProcessor extends RewriteProcessor {
+
+    private FileSinkOperator fs = null;
+    private ArrayList<ColumnInfo> signature = null;
+    private RowResolver rowResolver = null;
+
+    private Operator<? extends OperatorDesc> parent = null;
+    private ArrayList<ColumnInfo> parentSignature = null;
+    private RowResolver parentRR = null;
+
+    @Override
+    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
+        Object... nodeOutputs) throws SemanticException {
+      super.process(nd, stack, procCtx, nodeOutputs);
+
+      int probIndex = insertSelect();
+      initialize(nd, procCtx);
+
+      // Propagates the correct types
+      for (int i = 0; i < signature.size(); ++i) {
+        AggregateInfo linfo = ctx.getLineage(parent, signature.get(i).getInternalName());
+        if (linfo != null) {
+          signature.get(i).setType(parentSignature.get(i).getType());
+        }
+      }
+      // Add the probability column
+      forwardColumn(probIndex);
+
+      return null;
+    }
+
+    @Override
+    protected void initialize(Node nd, NodeProcessorCtx procCtx) {
+      super.initialize(nd, procCtx);
+
+      fs = (FileSinkOperator) nd;
+      rowResolver = ctx.getOpParseContext(fs).getRowResolver();
+      signature = fs.getSchema().getSignature();
+
+      parent = fs.getParentOperators().get(0);
+      parentSignature = parent.getSchema().getSignature();
+      parentRR = ctx.getOpParseContext(parent).getRowResolver();
+    }
+
+    // Insert Select as input and cache it
+    private int insertSelect() throws UDFArgumentException {
+      SelectFactory selFactory = new SelectFactory(ctx);
+
+      // Forward original columns
+      HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(parent);
+      for (int i = 0; i < parentSignature.size(); ++i) {
+        if (!toSkip.contains(i)) {
+          String internalName = parentSignature.get(i).getInternalName();
+          AggregateInfo linfo = ctx.getLineage(parent, internalName);
+          if (linfo != null) {
+            GenericUDF udf = getUdf(getMeasureFuncName(AbmUtilities.getErrorMeasure()));
+            ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
+            // TODO: params.add();
+            selFactory.addColumn(
+                ExprNodeGenericFuncDesc.newInstance(udf, params),
+                internalName);
+          } else {
+            selFactory.forwardColumn(parent, i, true);
+          }
+        }
+      }
+
+      int probIndex = selFactory.addColumn(
+          ExprNodeGenericFuncDesc.newInstance(getUdf(EXIST_PROB), new ArrayList<ExprNodeDesc>()));
+
+      // Create SEL
+      SelectOperator sel = selFactory.getSelectOperator();
+
+      // Change the connection
+      sel.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(fs
+          .getParentOperators()));
+      sel.setChildOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(fs)));
+      for (Operator<? extends OperatorDesc> par : fs.getParentOperators()) {
+        List<Operator<? extends OperatorDesc>> children = par.getChildOperators();
+        children.set(children.indexOf(fs), sel);
+      }
+      fs.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
+
+      // TODO: Set SelectOperator
+
+      return probIndex;
+    }
+
+    private String getMeasureFuncName(ErrorMeasure measure) {
+      return measure.toString();
+    }
+
+    private int forwardColumn(int index) {
+      ColumnInfo ci = parentSignature.get(index);
+      String[] name = parentRR.reverseLookup(ci.getInternalName());
+      rowResolver.put(name[0], name[1], ci);
+
+      return signature.size() - 1;
+    }
+
+  }
+
   /**
    *
    * DefaultProcessor implicitly forwards the condition column if exists,
@@ -593,7 +698,8 @@ public class RewriteProcFactory {
         return null;
       }
 
-      boolean continuous = firstGby ? ctx.withTid(parent) : (ctx.getLineageColumnIndex(parent) != null);
+      boolean continuous = firstGby ? ctx.withTid(parent)
+          : (ctx.getLineageColumnIndex(parent) != null);
 
       // Insert Select as input and cache it
       if (firstGby && continuous) {

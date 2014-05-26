@@ -782,6 +782,8 @@ public class HiveConf extends Configuration {
 
     // Label, for debugging
     HIVE_ABM_LABEL("hive.abm.label", ""),
+
+    HIVE_ABM_MEASURE("hive.abm.measure", 2)
     ;
 
     public final String varname;
