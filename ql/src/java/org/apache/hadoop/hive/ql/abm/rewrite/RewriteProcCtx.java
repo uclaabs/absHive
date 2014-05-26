@@ -144,10 +144,6 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return ret;
   }
 
-  public void setDiscrete(GroupByOperator gby) {
-    condAnno.setDiscrete(gby);
-  }
-
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
     condAnno.putGroupByInput(gby, input);
   }

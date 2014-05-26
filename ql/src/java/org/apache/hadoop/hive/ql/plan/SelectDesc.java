@@ -19,7 +19,6 @@
 package org.apache.hadoop.hive.ql.plan;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
@@ -44,7 +43,6 @@ public class SelectDesc extends AbstractOperatorDesc {
   // ABM
   private boolean cache = false;
   private TableDesc tableDesc = null;
-  private BitSet colsToCache = null;
   private String tableName = null;
 
   public SelectDesc() {
@@ -147,11 +145,10 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.selStarNoCompute = selStarNoCompute;
   }
 
-  public void cache(int numColsToCache, String tableName) {
+  public void cache(String tableName) {
     cache = true;
     assert !selStarNoCompute;
     tableDesc = generateTableDescToCache();
-    colsToCache = generateColsToCache(numColsToCache);
     this.tableName = tableName;
   }
 
@@ -177,14 +174,6 @@ public class SelectDesc extends AbstractOperatorDesc {
         AbmUtilities.getQueryResultFileFormat());
   }
 
-  private BitSet generateColsToCache(int numColsToCache) {
-    BitSet colsUsed = new BitSet();
-    for (int i = 0; i < numColsToCache; ++i) {
-      colsUsed.set(i);
-    }
-    return colsUsed;
-  }
-
   public void setCache(boolean cache) {
     this.cache = cache;
   }
@@ -199,14 +188,6 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   public TableDesc getTableDesc() {
     return tableDesc;
-  }
-
-  public void setColsToCache(BitSet colsToCache) {
-    this.colsToCache = colsToCache;
-  }
-
-  public BitSet getColsToCache() {
-    return colsToCache;
   }
 
   public void setTableName(String tableName) {

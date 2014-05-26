@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -12,6 +13,9 @@ import org.apache.hadoop.hive.ql.abm.algebra.Transform;
 import org.apache.hadoop.hive.ql.abm.lib.TopologicalSort;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeNullDesc;
+import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 
 public class ConditionAnnotation {
 
@@ -21,7 +25,6 @@ public class ConditionAnnotation {
       new HashMap<GroupByOperator, Transform[]>();
   private final ArrayList<Transform> transforms = new ArrayList<Transform>();
 
-  private final HashSet<GroupByOperator> discrete = new HashSet<GroupByOperator>();
   private final HashMap<GroupByOperator, SelectOperator> inputs =
       new HashMap<GroupByOperator, SelectOperator>();
   private final HashMap<GroupByOperator, SelectOperator> outputs =
@@ -51,58 +54,137 @@ public class ConditionAnnotation {
     aggregates.putAll(other.aggregates);
     transforms.addAll(other.transforms);
     dependencies.putAll(other.dependencies);
-
-    discrete.addAll(other.discrete);
   }
 
   // -->
 
   // <-- Used by RewriteProcCtx
 
-  public void setDiscrete(GroupByOperator gby) {
-    discrete.add(gby);
-  }
-
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
-    input.getConf().cache(getInputSize(gby),
-        AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString());
+    input.getConf().cache(AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString());
     inputs.put(gby, input);
   }
 
   public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
-    output.getConf().cache(getOutputSize(gby),
-        AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString());
+    output.getConf().cache(AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString());
     outputs.put(gby, output);
   }
 
-  private int getInputSize(GroupByOperator gby) {
-    int sz = gby.getConf().getKeys().size();
-    for (AggregateInfo ai : aggregates.get(gby)) {
-      if (!ai.getUdafType().equals(UdafType.COUNT)) {
-        ++sz;
+  public void f() {
+    Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
+    List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
+    int numGbys = dependencies.size();
+
+    // Assign ids to GroupByOperators
+    HashMap<GroupByOperator, Integer> gby2Id = new HashMap<GroupByOperator, Integer>();
+    GroupByOperator[] id2Gby = new GroupByOperator[numGbys];
+    int index = 0;
+    for (List<GroupByOperator> level : sorted) {
+      for (GroupByOperator gby : level) {
+        gby2Id.put(gby, gby2Id.size());
+        id2Gby[index++] = gby;
       }
     }
-    // For tid and condition
-    sz += 2;
-    return sz;
-  }
 
-  private int getOutputSize(GroupByOperator gby) {
-    int sz = gby.getConf().getKeys().size() + aggregates.get(gby).size();
-    if (!discrete.contains(gby)) {
-      // For condition, group-by-id and lineage
-      sz += 3;
-    } else {
-      // For condition and group-by-id
-      sz += 2;
+    // No input cached for discrete GBYs
+    ArrayList<ArrayList<ExprNodeDesc>> allIKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ArrayList<ExprNodeDesc>> allIVals = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ExprNodeDesc> allITids = new ArrayList<ExprNodeDesc>();
+    ArrayList<ExprNodeDesc> allIConds = new ArrayList<ExprNodeDesc>();
+    for (GroupByOperator gby : getAllContinousGbys()) {
+      ArrayList<ExprNodeDesc> keys = new ArrayList<ExprNodeDesc>();
+      ArrayList<ExprNodeDesc> vals = new ArrayList<ExprNodeDesc>();
+      ExprNodeDesc tid = null;
+      ExprNodeDesc cond = null;
+      GroupByDesc desc = gby.getConf();
+      SelectOperator input = inputs.get(gby);
+
+      int i = 0;
+      for (; i < desc.getKeys().size(); ++i) {
+        keys.add(Utils.generateColumnDescs(input, i).get(0));
+      }
+      for (AggregateInfo ai : aggregates.get(gby)) {
+        if (!ai.getUdafType().equals(UdafType.COUNT)) {
+          vals.add(Utils.generateColumnDescs(input, i++).get(0));
+        }
+      }
+      tid = Utils.generateColumnDescs(input, i++).get(0);
+      if (dependencies.get(gby).length != 0) {
+        cond = Utils.generateColumnDescs(input, i).get(0);
+      } else {
+        cond = new ExprNodeNullDesc();
+        ;
+      }
+
+      allIKeys.add(keys);
+      allIVals.add(vals);
+      allITids.add(tid);
+      allIConds.add(cond);
     }
-    return sz;
-  }
 
-  public void f() {
-    // TODO:
-    Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
-    TopologicalSort.getOrderByLevel(map);
+    // Continuous output
+    ArrayList<ArrayList<ExprNodeDesc>> allOCKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ArrayList<ExprNodeDesc>> allOCAggrs = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ExprNodeDesc> allOCLins = new ArrayList<ExprNodeDesc>();
+    ArrayList<ExprNodeDesc> allOCConds = new ArrayList<ExprNodeDesc>();
+    ArrayList<ExprNodeDesc> allOCGbyIds = new ArrayList<ExprNodeDesc>();
+    for (GroupByOperator gby : getAllContinousGbys()) {
+      ArrayList<ExprNodeDesc> keys = new ArrayList<ExprNodeDesc>();
+      ArrayList<ExprNodeDesc> aggrs = new ArrayList<ExprNodeDesc>();
+      ExprNodeDesc lin = null;
+      ExprNodeDesc cond = null;
+      ExprNodeDesc gbyId = null;
+      GroupByDesc desc = gby.getConf();
+      SelectOperator output = outputs.get(gby);
+
+      int i = 0;
+      for (; i < desc.getKeys().size(); ++i) {
+        keys.add(Utils.generateColumnDescs(output, i).get(0));
+      }
+      for (int j = 0, sz = aggregates.get(gby).size(); j < sz; ++j) {
+        aggrs.add(Utils.generateColumnDescs(output, i++).get(0));
+      }
+      lin = Utils.generateColumnDescs(output, i++).get(0);
+      cond = Utils.generateColumnDescs(output, i++).get(0);
+      gbyId = Utils.generateColumnDescs(output, i).get(0);
+
+      allOCKeys.add(keys);
+      allOCAggrs.add(aggrs);
+      allOCLins.add(lin);
+      allOCConds.add(cond);
+      allOCGbyIds.add(gbyId);
+    }
+
+    // Discrete output
+    ArrayList<ArrayList<ExprNodeDesc>> allODKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ArrayList<ExprNodeDesc>> allODAggrs = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ExprNodeDesc> allODConds = new ArrayList<ExprNodeDesc>();
+    ArrayList<ExprNodeDesc> allODGbyIds = new ArrayList<ExprNodeDesc>();
+    for (GroupByOperator gby : getAllDiscreteGbys()) {
+      ArrayList<ExprNodeDesc> keys = new ArrayList<ExprNodeDesc>();
+      ArrayList<ExprNodeDesc> aggrs = new ArrayList<ExprNodeDesc>();
+      ExprNodeDesc cond = null;
+      ExprNodeDesc gbyId = null;
+      GroupByDesc desc = gby.getConf();
+      SelectOperator output = outputs.get(gby);
+
+      int i = 0;
+      for (; i < desc.getKeys().size(); ++i) {
+        keys.add(Utils.generateColumnDescs(output, i).get(0));
+      }
+      for (int j = 0, sz = aggregates.get(gby).size(); j < sz; ++j) {
+        aggrs.add(Utils.generateColumnDescs(output, i++).get(0));
+      }
+      cond = Utils.generateColumnDescs(output, i++).get(0);
+      gbyId = Utils.generateColumnDescs(output, i).get(0);
+
+      allODKeys.add(keys);
+      allODAggrs.add(aggrs);
+      allODConds.add(cond);
+      allODGbyIds.add(gbyId);
+    }
+
+    // TODO
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
@@ -117,6 +199,16 @@ public class ConditionAnnotation {
       }
     }
     return map;
+  }
+
+  private Set<GroupByOperator> getAllContinousGbys() {
+    return inputs.keySet();
+  }
+
+  private Set<GroupByOperator> getAllDiscreteGbys() {
+    HashSet<GroupByOperator> ret = new HashSet<GroupByOperator>(outputs.keySet());
+    ret.removeAll(getAllContinousGbys());
+    return ret;
   }
 
   // -->
