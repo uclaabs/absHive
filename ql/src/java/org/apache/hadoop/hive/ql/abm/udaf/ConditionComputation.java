@@ -37,6 +37,13 @@ public class ConditionComputation extends UDAFComputation {
   public void iterate(int index) {
   }
 
+  
+  @Override
+  public void partialUpdate(int level, int start, int end) {
+    // TODO Auto-generated method stub
+    
+  }
+  
   @Override
   public void partialTerminate(int level, int start, int end) {
     if (this.flag) {
@@ -48,6 +55,8 @@ public class ConditionComputation extends UDAFComputation {
           : this.rangeMatrix.get(level).get(end).getValue(this.flag);
       newCondRanges[level * 2 + 1] = this.rangeMatrix.get(level).get(start).getValue(this.flag);
     }
+    
+    System.out.println("Range Added: " + newCondRanges[level * 2] + "\t" + newCondRanges[level * 2 + 1]);
   }
 
   @Override
@@ -58,6 +67,14 @@ public class ConditionComputation extends UDAFComputation {
       ;
     }
   }
+
+  @Override
+  public void extend() {
+    // TODO Auto-generated method stub
+    
+  }
+
+
 
 
 

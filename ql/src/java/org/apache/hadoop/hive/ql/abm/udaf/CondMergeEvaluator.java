@@ -3,7 +3,7 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -117,7 +117,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
   @Override
   public AggregationBuffer getNewAggregationBuffer() throws HiveException {
     MyAggregationBuffer myagg = new MyAggregationBuffer();
-    myagg.groups = new HashMap<IntArrayList, List<List<ConditionRange>>>();
+    myagg.groups = new LinkedHashMap<IntArrayList, List<List<ConditionRange>>>();
     myagg.d = 0;
     return myagg;
   }

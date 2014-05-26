@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 import org.apache.hadoop.hive.ql.abm.udaf.SorterFactory.Sorter;
@@ -47,40 +48,171 @@ public class Merge {
 
   public void enumerate(UDAFComputation compute) {
     this.op = compute;
-    enumerate(0, new Int2IntOpenHashMap());
+    enumerate(1, new Int2IntOpenHashMap());
   }
-
+  
   private void enumerate(int level, Int2IntOpenHashMap lineage) {
-    boolean leaf = (level == dimIndexes.size() - 1);
+    boolean leaf = (level == dimIndexes.size());
 
     int parent = level - 1;
-    IntArrayList indexes = dimIndexes.get(level);
-    IntArrayList ends = dimEnds.get(level);
+    int fstart = -1, fend = -1;
+    
+    IntArrayList indexes = dimIndexes.get(level - 1);
+    IntArrayList ends = dimEnds.get(level - 1);
     
     System.out.println("Current Level " + level);
-    
     for(Integer index: indexes)
       System.out.print(index + "\t");
     System.out.println();
     for(Integer end: ends)
       System.out.print(end + "\t");
     System.out.println();
+    for(Map.Entry<Integer, Integer> entry: lineage.entrySet())
+      System.out.println(entry.getKey() + "\t" + entry.getValue());
 
     if (!leaf) {
       for (int i = 0; i < ends.size() ; ++i) {
         boolean update = false;
+        boolean propagate = false;
         int start = (i == 0) ? 0 : ends.getInt(i-1) ;
         int end = ends.getInt(i);
         for (int k = start; k < end; ++k) {
-          if (level == 0 || lineage.get(indexes.getInt(k)) == parent) {
+          if (level == 1 || lineage.get(indexes.getInt(k)) == parent) {
+            // if we already find a match, then we need to push the previous matched lineage to next level
+            if(fstart >= 0 && !propagate) {
+              //TODO op.partialTerminate
+              System.out.println("Fstart-Fend " + fstart + "\t" + fend);
+              
+              op.partialTerminate(level - 1, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+              
+              System.out.println();
+              System.out.println("before enumerate");
+              for(Map.Entry<Integer, Integer> entry: lineage.entrySet())
+                System.out.println(entry.getKey() + "\t" + entry.getValue());
+              System.out.println();
+              
+              enumerate(level + 1, lineage);
+              
+              for (int l = 0; l < fend; ++l) {
+                if (lineage.get(indexes.getInt(l)) > level) {
+                  lineage.put(indexes.getInt(l), level);
+                }
+              }
+              
+              System.out.println();
+              System.out.println("after enumerate");
+              for(Map.Entry<Integer, Integer> entry: lineage.entrySet())
+                System.out.println(entry.getKey() + "\t" + entry.getValue());
+              System.out.println();
+              
+              propagate = true;
+            }
+            System.out.println("None leaf lineage match: " + indexes.getInt(k) + "\t" + level);
             lineage.put(indexes.getInt(k), level);
             update = true;
           }
+        } 
+        if (update) {
+          fstart = start;
+          fend = end;
         }
+        else{
+          // if no match found in this interval, there are two cases
+          // 1. we haven't found any match, then do nothing
+          // 2. we have found a match, then update pair (fstart, fend)
+          if(fstart >= 0)
+            fend = end;
+        }
+      }
+      // check if there is unprocessed pair
+      if(fstart >= 0){
+        op.partialTerminate(level - 1, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+        enumerate(level + 1, lineage);
+        for (int l = 0; l < fend; ++l) {
+          if (lineage.get(indexes.getInt(l)) > level) {
+            lineage.put(indexes.getInt(l), level);
+          }
+        }
+      }
+    } else {
+      for (int i = 0; i < ends.size() ; ++i) {
+        
+        System.out.println("Iterate " + i);
+        
+        boolean update = false;
+        boolean propagate = false;
+        int start = (i == 0) ? 0 : ends.getInt(i-1) ;
+        int end = ends.getInt(i);
+        for (int k = start; k < end; ++k) {
+          if (level == 1 || lineage.get(indexes.getInt(k)) == parent) {
+            // if we already find a match, then we need to output the result of this match
+            if(fstart >= 0 && !propagate) {
+              // partial terminate
+              op.partialTerminate(level - 1, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+              // terminate
+              op.terminate();
+              propagate = true;
+            }
+            System.out.println("lineage match: " + indexes.getInt(k) + "\t" + level);
+            lineage.put(indexes.getInt(k), level);
+            // TODO: call op.iterate
+            op.iterate(indexes.getInt(k));
+            update = true;
+          }
+        } 
+        if (update) {
+          fstart = start;
+          fend = end;
+        }
+        else{
+          // if no match found in this interval, there are two cases
+          // 1. we haven't found any match, then do nothing
+          // 2. we have found a match, then update pair (fstart, fend)
+          if(fstart >= 0)
+            fend = end;
+        }
+      }
+      
+      // check if there is unprocessed pair
+      if(fstart >= 0){
+        // partial terminate
+        op.partialTerminate(level - 1 , indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+        // terminate
+        op.terminate();
+      }
+    }
+  }
+  
+  private void oldEnumerate(int level, Int2IntOpenHashMap lineage) {
+    boolean leaf = (level == dimIndexes.size() - 1);
+    int parent = level - 1;
+    IntArrayList indexes = dimIndexes.get(level);
+    IntArrayList ends = dimEnds.get(level);
+
+    if (!leaf) {
+      for (int i = 0; i < ends.size() ; ++i) {
+        
+        boolean update = false;
+        int start = (i == 0) ? 0 : ends.getInt(i-1) ;
+        int end = ends.getInt(i);
+        
+        for (int k = start; k < end; ++k) {
+          if (level == 0 || lineage.get(indexes.getInt(k)) == parent) {
+            
+            lineage.put(indexes.getInt(k), level);
+            update = true;
+          }
+        } 
 
         if (update) {
+
           // partial terminate
-          op.partialTerminate(level, indexes.getInt(start), (end == indexes.size()) ? end : indexes.getInt(end));
+          op.partialTerminate(level - 1, indexes.getInt(start), (end == indexes.size()) ? end : indexes.getInt(end));
+          
+          System.out.println("Lineage passed to next level:");
+          for(Map.Entry<Integer, Integer> entry: lineage.entrySet())
+            System.out.println(entry.getKey() + "\t" + entry.getValue());
+          
           enumerate(level + 1, lineage);
 
           for (int k = (i == 0) ? 0 : ends.getInt(i-1) + 1; k < ends.getInt(i); ++k) {
@@ -92,7 +224,7 @@ public class Merge {
       }
     } else {
       for (int i = 0; i < ends.size(); ++i) {
-        boolean update = false;
+        int update = 0;
         int start = (i == 0) ? 0 : ends.getInt(i-1);
         int end = ends.getInt(i);
 
@@ -101,13 +233,13 @@ public class Merge {
             lineage.put(indexes.getInt(k), level);
             // TODO: iterate(i)
             op.iterate(indexes.getInt(k));
-            update = true;
+            update ++;
           }
         }
 
-        if (update) {
+        if (update > 0) {
           // partial terminate
-          op.partialTerminate(level, indexes.getInt(start), (end == indexes.size()) ? end : indexes.getInt(end));
+          op.partialTerminate(level - 1, indexes.getInt(start), (end == indexes.size()) ? end : indexes.getInt(end));
           // terminate
           op.terminate();
         }
