@@ -246,6 +246,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
     ConditionComputation condComputation = new ConditionComputation();
     condComputation.setCondGroup(myCondGroup, myagg.d);
 
+    System.out.println("Terminate Start Here");
+    
     for (Map.Entry<IntArrayList, List<List<ConditionRange>>> entry : myagg.groups.entrySet()) {
       IntArrayList keyArray = entry.getKey();
       List<List<ConditionRange>> rangeMatrix = entry.getValue();
@@ -256,6 +258,11 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
       Merge merge = new Merge();
       for(List<ConditionRange> rangeArray:rangeMatrix) {
+        
+        for(ConditionRange range: rangeArray)
+          System.out.print(range.toString());
+        System.out.println();
+        
         merge.addDimension(rangeArray);
       }
 

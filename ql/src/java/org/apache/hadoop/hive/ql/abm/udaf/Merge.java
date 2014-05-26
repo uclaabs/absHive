@@ -35,11 +35,13 @@ public class Merge {
     IntArrayList ends = new IntArrayList(len);
     for (int i = 0; i < len;) {
       int j = i + 1;
-      for (; j < len && sorter.compare(indexes.getInt(j - 1), indexes.getInt(j)) == 0; ++j) {
+      for (; j < len && sorter.compare((j - 1), j) == 0; ++j) {
       }
       ends.add(j);
       i = j;
     }
+    
+    
     dimEnds.add(ends);
   }
 
@@ -54,6 +56,15 @@ public class Merge {
     int parent = level - 1;
     IntArrayList indexes = dimIndexes.get(level);
     IntArrayList ends = dimEnds.get(level);
+    
+    System.out.println("Current Level " + level);
+    
+    for(Integer index: indexes)
+      System.out.print(index + "\t");
+    System.out.println();
+    for(Integer end: ends)
+      System.out.print(end + "\t");
+    System.out.println();
 
     if (!leaf) {
       for (int i = 0; i < ends.size() ; ++i) {
