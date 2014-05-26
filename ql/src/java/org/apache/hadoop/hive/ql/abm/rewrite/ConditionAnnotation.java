@@ -70,6 +70,8 @@ public class ConditionAnnotation {
   }
 
   public void f() {
+    Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
+    List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
     int numGbys = dependencies.size();
 
     // Assign ids to GroupByOperators
@@ -172,8 +174,6 @@ public class ConditionAnnotation {
       allODGbyIds.add(gbyId);
     }
 
-    Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
-    List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
     // TODO: GBYs' dependency structure
     // TODO: Detailed structure (of each predicate) of every condition column
 
