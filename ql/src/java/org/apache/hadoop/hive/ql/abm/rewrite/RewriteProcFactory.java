@@ -1206,6 +1206,10 @@ public class RewriteProcFactory {
 
   }
 
+  public static NodeProcessor getFileSinkProc() {
+    return new FileSinkProcessor();
+  }
+
   public static NodeProcessor getTableScanProc() {
     return new TableScanProcessor();
   }
@@ -1250,6 +1254,8 @@ public class RewriteProcFactory {
         getJoinProc());
     opRules.put(new RuleRegExp("R6", TableScanOperator.getOperatorName() + "%"),
         getTableScanProc());
+    opRules.put(new RuleRegExp("R7", FileSinkOperator.getOperatorName() + "%"),
+        getFileSinkProc());
 
     // The dispatcher fires the processor corresponding to the closest matching rule
     // and passes the context along
