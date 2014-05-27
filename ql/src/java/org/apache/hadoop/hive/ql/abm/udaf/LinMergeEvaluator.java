@@ -90,9 +90,9 @@ public class LinMergeEvaluator extends GenericUDAFInstructionSetEvaluator {
    */
   private boolean needsCopy(int index) {
     //look ahead to decide needs copying or not
-    if (index + 1 < instruction.size()) {
-      return instruction.getBase(index) == instruction.getBase(index + 1);
-    }
+//    if (index + 1 < instruction.size()) {
+//      return instruction.getBase(index) == instruction.getBase(index + 1);
+//    }
 
     //the last ins
     return false;
@@ -101,37 +101,37 @@ public class LinMergeEvaluator extends GenericUDAFInstructionSetEvaluator {
   private void processInstructionForMapper(LinMergeAggregationBuffer myagg, int key, DoubleArrayList value) {
     List<IntArrayList> tmpDiffList = new ArrayList<IntArrayList>();
 
-    /**
-     * Example. instruction sequence:
-     * 1,0 -> 1,-1 -> 2,-1 -> 2,0 -> 3,0 -> 4,0 -> ...
-     */
-    for (int i=0; i<instruction.size(); i++) {
-      int baseIndex = instruction.getBase(i);
-      int deltaIndex = instruction.getDelta(i);
-
-      assert(baseIndex < myagg.diffList.size());
-      assert((deltaIndex == 0) || (deltaIndex == -1));
-
-      IntArrayList list = null;
-      if (baseIndex != -1) {
-        if (deltaIndex == 0) {
-          list = myagg.mapperMerge(needsCopy(baseIndex), baseIndex, key, value);
-        }
-        else {
-          list = myagg.mapperMergeEmpty(needsCopy(baseIndex), baseIndex, key, value);
-        }
-      }
-      else {
-        if (deltaIndex == 0) {
-          list = myagg.mapperCreate(key, value);
-        }
-        else {
-          assert(false);
-        }
-      }
-
-      tmpDiffList.add(list);
-    }
+//    /**
+//     * Example. instruction sequence:
+//     * 1,0 -> 1,-1 -> 2,-1 -> 2,0 -> 3,0 -> 4,0 -> ...
+//     */
+//    for (int i=0; i<instruction.size(); i++) {
+//      int baseIndex = instruction.getBase(i);
+//      int deltaIndex = instruction.getDelta(i);
+//
+//      assert(baseIndex < myagg.diffList.size());
+//      assert((deltaIndex == 0) || (deltaIndex == -1));
+//
+//      IntArrayList list = null;
+//      if (baseIndex != -1) {
+//        if (deltaIndex == 0) {
+//          list = myagg.mapperMerge(needsCopy(baseIndex), baseIndex, key, value);
+//        }
+//        else {
+//          list = myagg.mapperMergeEmpty(needsCopy(baseIndex), baseIndex, key, value);
+//        }
+//      }
+//      else {
+//        if (deltaIndex == 0) {
+//          list = myagg.mapperCreate(key, value);
+//        }
+//        else {
+//          assert(false);
+//        }
+//      }
+//
+//      tmpDiffList.add(list);
+//    }
 
     myagg.diffList = tmpDiffList;
   }
@@ -139,39 +139,39 @@ public class LinMergeEvaluator extends GenericUDAFInstructionSetEvaluator {
   private void processInstructionForReducer(LinMergeAggregationBuffer myagg, EWAHCompressedBitmap rightKeys, List<DoubleArrayList> rightValues, List<EWAHCompressedBitmap> rightDiffList) {
     //merge diff list
     List<IntArrayList> tmpDiffList = new ArrayList<IntArrayList>();
-    /**
-     * Example. instruction sequence:
-     * 1,2 -> 1,3 -> 2,2 -> 2,3 -> 3,3 -> 4,2 -> ...
-     */
-    for (int i=0; i<instruction.size(); i++) {
-      int baseIndex = instruction.getBase(i);
-      int deltaIndex = instruction.getDelta(i);
-
-      assert(baseIndex < myagg.diffList.size());
-      assert(deltaIndex < rightDiffList.size());
-
-      IntArrayList list = null;
-      if (baseIndex != -1) {
-        if (deltaIndex != -1) {
-          list = myagg.reducerMerge(needsCopy(baseIndex), baseIndex, rightDiffList.get(deltaIndex).iterator());
-        }
-        else {
-          list = myagg.reducerMergeRightAll(needsCopy(baseIndex), baseIndex, rightKeys.iterator());
-        }
-      }
-      else {
-        if (deltaIndex != -1) {
-          list = myagg.reducerMergeLeftAll(rightDiffList.get(deltaIndex).iterator());
-        }
-        else {
-          assert(false);
-        }
-      }
-
-      tmpDiffList.add(list);
-    }
-
-    myagg.diffList = tmpDiffList;
+//    /**
+//     * Example. instruction sequence:
+//     * 1,2 -> 1,3 -> 2,2 -> 2,3 -> 3,3 -> 4,2 -> ...
+//     */
+//    for (int i=0; i<instruction.size(); i++) {
+//      int baseIndex = instruction.getBase(i);
+//      int deltaIndex = instruction.getDelta(i);
+//
+//      assert(baseIndex < myagg.diffList.size());
+//      assert(deltaIndex < rightDiffList.size());
+//
+//      IntArrayList list = null;
+//      if (baseIndex != -1) {
+//        if (deltaIndex != -1) {
+//          list = myagg.reducerMerge(needsCopy(baseIndex), baseIndex, rightDiffList.get(deltaIndex).iterator());
+//        }
+//        else {
+//          list = myagg.reducerMergeRightAll(needsCopy(baseIndex), baseIndex, rightKeys.iterator());
+//        }
+//      }
+//      else {
+//        if (deltaIndex != -1) {
+//          list = myagg.reducerMergeLeftAll(rightDiffList.get(deltaIndex).iterator());
+//        }
+//        else {
+//          assert(false);
+//        }
+//      }
+//
+//      tmpDiffList.add(list);
+//    }
+//
+//    myagg.diffList = tmpDiffList;
 
     //merge tuple list
     Iterator<Integer> iter = rightKeys.iterator();
