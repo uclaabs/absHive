@@ -46,6 +46,10 @@ import org.apache.hadoop.hive.ql.abm.fake.LinSum;
 import org.apache.hadoop.hive.ql.abm.fake.SrvAvg;
 import org.apache.hadoop.hive.ql.abm.fake.SrvCount;
 import org.apache.hadoop.hive.ql.abm.fake.SrvSum;
+import org.apache.hadoop.hive.ql.abm.fake.udf.Conf_Inv;
+import org.apache.hadoop.hive.ql.abm.fake.udf.Exist_prob;
+import org.apache.hadoop.hive.ql.abm.fake.udf.Mean;
+import org.apache.hadoop.hive.ql.abm.fake.udf.Variance;
 import org.apache.hadoop.hive.ql.abm.fake.udf.four.SrvGreaterEqualFour;
 import org.apache.hadoop.hive.ql.abm.fake.udf.three.SrvGreaterThree;
 import org.apache.hadoop.hive.ql.abm.fake.udf.three.SrvLessEqualThree;
@@ -428,7 +432,12 @@ public final class FunctionRegistry {
     registerGenericUDAF("case_count", new CaseCount());
 
 
-    //UDFs
+    //computation UDFs
+    registerGenericUDF("mean", Mean.class);
+    registerGenericUDF("variance", Variance.class);
+    registerGenericUDF("conf_inv_5_95", Conf_Inv.class);
+    registerGenericUDF("exist_prob", Exist_prob.class);
+
     registerGenericUDF("gen_id", GenRowId.class);
     registerGenericUDF("cond_join" , ConditionJoin.class);
     //registerGenericUDF("cond_join" , CondJoin.class);
@@ -437,10 +446,10 @@ public final class FunctionRegistry {
     registerGenericUDF("srv_equal_or_greater_than" , SrvGreaterEqualConstant.class);
     registerGenericUDF("srv_less_than" , SrvLessConstant.class);
     registerGenericUDF("srv_greater_than" , SrvGreaterConstant.class);
-    //registerGenericUDF("srv_equal_or_less_than" , SrvLessEqualThree.class);
-    //registerGenericUDF("srv_equal_or_greater_than" , SrvGreaterEqualThree.class);
-    //registerGenericUDF("srv_less_than" , SrvLessThree.class);
-    //registerGenericUDF("srv_greater_than" , SrvGreaterThree.class);
+//    registerGenericUDF("srv_equal_or_less_than" , SrvLessEqualThree.class);
+//    registerGenericUDF("srv_equal_or_greater_than" , SrvGreaterEqualThree.class);
+//    registerGenericUDF("srv_less_than" , SrvLessThree.class);
+//    registerGenericUDF("srv_greater_than" , SrvGreaterThree.class);
 
     registerGenericUDF("srv_equal_or_greater_than_srv" , SrvGreaterEqualFour.class);
     registerGenericUDF("srv_equal_or_less_than_srv" , SrvLessEqualThree.class);

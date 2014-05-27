@@ -14,16 +14,18 @@ public class CondMerge extends AbstractGenericUDAFResolver {
   public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters)
       throws SemanticException {
 
-    if(parameters.length == 1)
+    // TODO: need a version of parameters.length == 0
+    if (parameters.length == 1)
     {
       if (parameters[0].getCategory() != ObjectInspector.Category.STRUCT) {
         throw new UDFArgumentException("Condition_merge only process condition struct!; Current Type is: " + parameters[0].getCategory());
       }
       return new CondMergeEvaluator();
     } else {
-      throw new UDFArgumentException("Condition_merge takes only at most one argument!");
+      //ignore now
+      //throw new UDFArgumentException("Condition_merge takes only at most one argument!");
+      return new CondMergeEvaluator();
     }
-
   }
 
 }
