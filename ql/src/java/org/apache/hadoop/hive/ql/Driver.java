@@ -113,7 +113,7 @@ public class Driver implements CommandProcessor {
   static final private LogHelper console = new LogHelper(LOG);
 
   private static final Object compileMonitor = new Object();
-  
+
   private int maxRows = 100;
   ByteStream.Output bos = new ByteStream.Output();
 
@@ -495,6 +495,7 @@ public class Driver implements CommandProcessor {
 
       return 0;
     } catch (Exception e) {
+      e.printStackTrace();
       ErrorMsg error = ErrorMsg.getErrorMsg(e.getMessage());
       errorMessage = "FAILED: " + e.getClass().getSimpleName();
       if (error != ErrorMsg.GENERIC_ERROR) {
