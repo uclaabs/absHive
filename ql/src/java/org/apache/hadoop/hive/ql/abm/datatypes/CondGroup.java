@@ -44,10 +44,7 @@ public class CondGroup
     this.ranges.add(rangeMatrix);
   }
   
-  public List<List<ConditionRange>> getRangeMatrix()
-  {
-    return this.ranges.get(cnt);
-  }
+
 
   public void initialize()
   {
@@ -116,5 +113,16 @@ public class CondGroup
   {
     return this.ranges;
   }
+  
+  public List<List<ConditionRange>> getRangeMatrix()
+  {
+    return this.ranges.get(cnt);
+  }
+  
+  public List<List<ConditionRange>> getRangeMatrix(int i)
+  {
+    return this.ranges.get(i);
+  }
+  
 
 }

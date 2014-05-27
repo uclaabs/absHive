@@ -24,6 +24,7 @@ public class SorterFactory {
   
   public static abstract class Sorter implements IntComparator, Swapper{
     public abstract IntArrayList getIndexes();
+    public abstract boolean getFlag();
   }
 
   private static class AscendSorter extends Sorter {
@@ -73,6 +74,11 @@ public class SorterFactory {
     public IntArrayList getIndexes()
     {
       return this.indexes;
+    }
+    
+    public boolean getFlag()
+    {
+      return this.flag;
     }
 
   }

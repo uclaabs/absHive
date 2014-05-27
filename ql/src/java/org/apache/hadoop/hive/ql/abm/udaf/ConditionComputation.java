@@ -13,7 +13,7 @@ public class ConditionComputation extends UDAFComputation {
   private CondGroup condGroup = null;
   private List<List<ConditionRange>> rangeMatrix = null;
   private double[] newCondRanges = null;
-  private boolean flag = true;
+  private List<Boolean> flags = null;
   private int dimension = 0;
 
 
@@ -26,13 +26,8 @@ public class ConditionComputation extends UDAFComputation {
   public void setFields(IntArrayList keyArray, List<List<ConditionRange>> rangeMatrix) {
     this.rangeMatrix = rangeMatrix;
     this.condGroup.addGroup(keyArray);
-
-    if (this.rangeMatrix.size() > 0) {
-      if (this.rangeMatrix.get(0).size() > 0) {
-        this.flag = this.rangeMatrix.get(0).get(0).getFlag();
-      }
-    }
   }
+  
 
   @Override
   public void iterate(int index) {
@@ -47,16 +42,17 @@ public class ConditionComputation extends UDAFComputation {
   
   @Override
   public void partialTerminate(int level, int start, int end) {
-    if (this.flag) {
-      newCondRanges[level * 2] = this.rangeMatrix.get(level).get(start).getValue(this.flag);
+    
+    boolean flag = this.flags.get(level);
+    if (flag) {
+      newCondRanges[level * 2] = this.rangeMatrix.get(level).get(start).getValue(flag);
       newCondRanges[level * 2 + 1] = (end == this.rangeMatrix.get(level).size()) ? Double.POSITIVE_INFINITY
-          : this.rangeMatrix.get(level).get(end).getValue(this.flag);
+          : this.rangeMatrix.get(level).get(end).getValue(flag);
     } else {
       newCondRanges[level * 2] = (end == this.rangeMatrix.get(level).size()) ? Double.NEGATIVE_INFINITY
-          : this.rangeMatrix.get(level).get(end).getValue(this.flag);
-      newCondRanges[level * 2 + 1] = this.rangeMatrix.get(level).get(start).getValue(this.flag);
+          : this.rangeMatrix.get(level).get(end).getValue(flag);
+      newCondRanges[level * 2 + 1] = this.rangeMatrix.get(level).get(start).getValue(flag);
     }
-    
     System.out.println("Range Added: " + newCondRanges[level * 2] + "\t" + newCondRanges[level * 2 + 1]);
   }
 
@@ -65,7 +61,6 @@ public class ConditionComputation extends UDAFComputation {
     for (int i = 0; i < this.dimension; i++) {
       this.condGroup.getRangeMatrix().get(i)
           .add(new ConditionRange(newCondRanges[2 * i], newCondRanges[2 * i + 1]));
-      ;
     }
   }
 
@@ -78,7 +73,22 @@ public class ConditionComputation extends UDAFComputation {
     for(List<Integer> currentKeys: this.condGroup.getKeys())
       unfoldKeys.addAll(currentKeys);
     
+    List<List<ConditionRange>> rangeMatrix  = new ArrayList<List<ConditionRange>>();
+    for(int i = 0; i < this.dimension * this.condGroup.getKeys().size(); i ++)
+      rangeMatrix.add(new ArrayList<ConditionRange>());
     
+    unfoldRangeMatrix(0, rangeMatrix);
+    
+  }
+  
+  private void unfoldRangeMatrix(int level, List<List<ConditionRange>> rangeMatrix)
+  {
+    List<List<ConditionRange>> currentRangeMatrix = this.condGroup.getRangeMatrix(level);
+  }
+
+  @Override
+  public void setFlags(List<Boolean> flags) {
+    this.flags = flags;
     
   }
 

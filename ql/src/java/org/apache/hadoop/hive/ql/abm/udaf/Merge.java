@@ -17,6 +17,7 @@ public class Merge {
   private int len = -1;
   private final ArrayList<IntArrayList> dimIndexes = new ArrayList<IntArrayList>();
   private final ArrayList<IntArrayList> dimEnds = new ArrayList<IntArrayList>();
+  private final ArrayList<Boolean> dimFlags = new ArrayList<Boolean>();
   private UDAFComputation op = null;
 
 
@@ -32,6 +33,7 @@ public class Merge {
     Arrays.quickSort(0, len, sorter, sorter);
     IntArrayList indexes = sorter.getIndexes();
     dimIndexes.add(indexes);
+    dimFlags.add(sorter.getFlag());
 
     IntArrayList ends = new IntArrayList(len);
     for (int i = 0; i < len;) {
@@ -47,6 +49,7 @@ public class Merge {
 
   public void enumerate(UDAFComputation compute) {
     this.op = compute;
+    this.op.setFlags(dimFlags);
     Int2IntOpenHashMap lineage = new Int2IntOpenHashMap();
     lineage.defaultReturnValue(-1);
     enumerate(0, lineage);
@@ -61,7 +64,7 @@ public class Merge {
     IntArrayList indexes = dimIndexes.get(level);
     IntArrayList ends = dimEnds.get(level);
     
-    System.out.println("Current Level " + level);
+    System.out.println("Current Level " + level + "\t" + leaf);
     for(Integer index: indexes)
       System.out.print(index + "\t");
     System.out.println();
@@ -148,6 +151,8 @@ public class Merge {
           if (level == 0 || lineage.get(indexes.getInt(k)) == parent) {
             // if we already find a match, then we need to output the result of this match
             if(fstart >= 0 && !propagate) {
+              
+              System.out.println("Fstart-Fend " + fstart + "\t" + fend);
               // partial terminate
               op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
               // terminate
@@ -176,6 +181,7 @@ public class Merge {
       
       // check if there is unprocessed pair
       if(fstart >= 0){
+        System.out.println("Fstart-Fend " + fstart + "\t" + fend);
         // partial terminate
         op.partialTerminate(level , indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
         // terminate
