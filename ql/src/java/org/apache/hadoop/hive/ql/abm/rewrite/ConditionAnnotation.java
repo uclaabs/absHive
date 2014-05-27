@@ -53,6 +53,16 @@ public class ConditionAnnotation {
     }
   }
 
+  public void returnVal(AggregateInfo ai) {
+    GroupByOperator gby = ai.getGroupByOperator();
+    TreeSet<AggregateInfo> buf = aggregates.get(gby);
+    if (buf == null) {
+      buf = new TreeSet<AggregateInfo>();
+      aggregates.put(gby, buf);
+    }
+    buf.add(ai);
+  }
+
   public void combine(ConditionAnnotation other) {
     aggregates.putAll(other.aggregates);
     transforms.addAll(other.transforms);
@@ -201,6 +211,7 @@ public class ConditionAnnotation {
           parents.add(ai.getGroupByOperator());
         }
       }
+      map.put(entry.getKey(), parents);
     }
     return map;
   }
@@ -243,6 +254,8 @@ class Dictionary<T> {
   }
 
   public int get(T element) {
+    System.out.println("hehehe" + elem2Id);
+    System.out.println("hahaha " + element);
     return elem2Id.get(element);
   }
 

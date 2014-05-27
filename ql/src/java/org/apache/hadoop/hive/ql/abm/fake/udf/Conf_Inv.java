@@ -14,12 +14,11 @@ public class Conf_Inv extends GenericUDF {
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-
-    /*
 	  if (arguments.length != 2) {
       throw new UDFArgumentException("This function takes exactly two arguments.");
     }
 
+	  /*
 	  obj = (new SrvAno()).toArray();
 
     return ObjectInspectorFactory.getStandardStructObjectInspector(SrvAno.columnName, SrvAno.objectInspectorType);*/
@@ -34,9 +33,8 @@ public class Conf_Inv extends GenericUDF {
 
 	@Override
   public String getDisplayString(String[] children) {
-	  //assert (children.length == 2);
-    //return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
-	  return opDisplayName;
+	  assert (children.length == 2);
+    return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
   }
 
 }

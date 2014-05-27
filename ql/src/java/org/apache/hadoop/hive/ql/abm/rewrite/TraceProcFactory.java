@@ -158,7 +158,7 @@ public class TraceProcFactory {
       for (ColumnInfo ci : fs.getSchema().getSignature()) {
         AggregateInfo ai = ctx.getLineage(fs, ci.getInternalName());
         if (ai != null) {
-          ctx.usedAt(ai.getGroupByOperator(), fs);
+          ctx.addReturn(fs, ai);
         }
       }
 

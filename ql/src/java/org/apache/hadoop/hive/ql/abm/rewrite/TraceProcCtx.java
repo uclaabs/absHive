@@ -67,6 +67,12 @@ public class TraceProcCtx implements NodeProcessorCtx {
     }
   }
 
+  public void addReturn(Operator<? extends OperatorDesc> op, AggregateInfo ai) {
+    ConditionAnnotation anno = getOrCreateCondAnno(op);
+    anno.returnVal(ai);
+    usedAt(ai.getGroupByOperator(), op);
+  }
+
   public void groupByAt(GroupByOperator gby) {
     ConditionAnnotation anno = getOrCreateCondAnno(gby);
     anno.groupByAt(gby);
