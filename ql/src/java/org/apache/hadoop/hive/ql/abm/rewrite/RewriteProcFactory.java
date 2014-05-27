@@ -227,7 +227,6 @@ public class RewriteProcFactory {
       selFactory.setTidIndex(selFactory.forwardColumn(op, ctx.getTidColumnIndex(op), false));
     }
 
-
     if (afterGby) {
       // Forward the count column
       Integer countIndex = ctx.getCountColumnIndex(op);
@@ -394,6 +393,11 @@ public class RewriteProcFactory {
 
   }
 
+  /**
+   *
+   * FileSinkProcessor adds a Select before FileSink to Monte-Carlo simulate the final distributions.
+   *
+   */
   public static class FileSinkProcessor extends RewriteProcessor {
 
     private FileSinkOperator fs = null;
@@ -451,6 +455,8 @@ public class RewriteProcFactory {
           if (linfo != null) {
             GenericUDF udf = getUdf(getMeasureFuncName(AbmUtilities.getErrorMeasure()));
             ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
+            int gbyIdIndex = ctx.getGbyIdColumnIndex(parent, linfo.getGroupByOperator());
+            params.add(Utils.generateColumnDescs(parent, gbyIdIndex).get(0));
             // TODO: params.add();
             selFactory.addColumn(
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
@@ -477,7 +483,8 @@ public class RewriteProcFactory {
       }
       fs.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
 
-      // TODO: Set SelectOperator
+      // Set SelectOperator
+      ctx.setupMC(sel);
 
       return probIndex;
     }

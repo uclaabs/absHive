@@ -86,5 +86,10 @@ public class ConditionRange {
   {
     return "(" + start + "\t" + end + ")";
   }
+  
+  public ConditionRange clone()
+  {
+    return new ConditionRange(this.start, this.end);
+  }
 
 }

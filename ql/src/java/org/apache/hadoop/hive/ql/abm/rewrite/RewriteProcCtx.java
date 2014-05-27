@@ -173,6 +173,10 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     funcs.add(func);
   }
 
+  public void setupMC(SelectOperator select) {
+    condAnno.setupMC(select);
+  }
+
   public LineageCtx getLineageCtx() {
     return tctx.getLineageCtx();
   }

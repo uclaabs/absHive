@@ -25,7 +25,7 @@ public class CondGroup
   public static List<ObjectInspector> objectInspectorType=Arrays.asList(objectInspectors);
 
   public static StructObjectInspector condGroupInspector = ObjectInspectorFactory.getStandardStructObjectInspector(columnNames, objectInspectorType);
-
+  
   public CondGroup()
   {
     cnt = -1;
@@ -44,7 +44,15 @@ public class CondGroup
     this.ranges.add(rangeMatrix);
   }
   
-
+  public void addKeys(List<Integer> keyList)
+  {
+    this.keys.add(keyList);
+  }
+  
+  public void addRanges(List<List<ConditionRange>> rangeMatrix)
+  {
+    this.ranges.add(rangeMatrix);
+  }
 
   public void initialize()
   {
@@ -122,6 +130,17 @@ public class CondGroup
   public List<List<ConditionRange>> getRangeMatrix(int i)
   {
     return this.ranges.get(i);
+  }
+  
+  public int getGroupNumber()
+  {
+    return this.cnt + 1;
+  }
+  
+  public void clear()
+  {
+    this.keys.clear();
+    this.ranges.clear();
   }
   
 

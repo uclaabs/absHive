@@ -265,11 +265,11 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
         
         merge.addDimension(rangeArray);
       }
-
+      condComputation.setFlags(merge.getFlags());
       merge.enumerate(condComputation);
     }
     
-    // condComputation.unfold();
+    condComputation.unfold();
 
     return myCondGroup.toArray();
   }

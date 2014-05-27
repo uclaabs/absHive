@@ -49,7 +49,6 @@ public class Merge {
 
   public void enumerate(UDAFComputation compute) {
     this.op = compute;
-    this.op.setFlags(dimFlags);
     Int2IntOpenHashMap lineage = new Int2IntOpenHashMap();
     lineage.defaultReturnValue(-1);
     enumerate(0, lineage);
@@ -188,6 +187,11 @@ public class Merge {
         op.terminate();
       }
     }
+  }
+  
+  public List<Boolean> getFlags()
+  {
+    return this.dimFlags;
   }
   
   private void oldEnumerate(int level, Int2IntOpenHashMap lineage) {
