@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
+import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
+import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.serde.serdeConstants;
 
 
@@ -44,6 +46,30 @@ public class SelectDesc extends AbstractOperatorDesc {
   private boolean cache = false;
   private TableDesc tableDesc = null;
   private String tableName = null;
+
+  // ABM
+  private boolean sim = false;
+  private ArrayList<Operator<? extends OperatorDesc>> inputOps = null;
+  private ArrayList<Operator<? extends OperatorDesc>> outputCOps = null;
+  private ArrayList<Integer> cTags = null;
+
+  private ArrayList<Operator<? extends OperatorDesc>> outputDOps = null;
+  private ArrayList<Integer> dTags = null;
+
+  private ArrayList<ArrayList<ExprNodeDesc>> inKeys = null;
+  private ArrayList<ArrayList<ExprNodeDesc>> inVals = null;
+  private ArrayList<ExprNodeDesc> inTids = null;
+
+  private ArrayList<ArrayList<ExprNodeDesc>> outCKeys = null;
+  private ArrayList<ArrayList<ExprNodeDesc>> outCAggrs = null;
+  private ArrayList<ExprNodeDesc> outCLins = null;
+  private ArrayList<ExprNodeDesc> outCConds = null;
+  private ArrayList<ExprNodeDesc> outCGbyIds = null;
+  private ArrayList<ArrayList<UdafType>> outCTypes = null;
+
+  private ArrayList<ArrayList<ExprNodeDesc>> outDAggrs = null;
+  private ArrayList<ExprNodeDesc> outDConds = null;
+  private ArrayList<ExprNodeDesc> outDGbyIds = null;
 
   public SelectDesc() {
   }
@@ -196,6 +222,184 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   public String getTableName() {
     return tableName;
+  }
+
+  public boolean getSim() {
+    return sim;
+  }
+
+  public void setSim(boolean sim) {
+    this.sim = sim;
+  }
+
+  public ArrayList<Operator<? extends OperatorDesc>> getInputOps() {
+    return inputOps;
+  }
+
+  public void setInputOps(ArrayList<Operator<? extends OperatorDesc>> inputOps) {
+    this.inputOps = inputOps;
+  }
+
+  public ArrayList<Operator<? extends OperatorDesc>> getOutputCOps() {
+    return outputCOps;
+  }
+
+  public void setOutputCOps(ArrayList<Operator<? extends OperatorDesc>> outputCOps) {
+    this.outputCOps = outputCOps;
+  }
+
+  public ArrayList<Integer> getcTags() {
+    return cTags;
+  }
+
+  public void setcTags(ArrayList<Integer> cTags) {
+    this.cTags = cTags;
+  }
+
+  public ArrayList<Operator<? extends OperatorDesc>> getOutputDOps() {
+    return outputDOps;
+  }
+
+  public void setOutputDOps(ArrayList<Operator<? extends OperatorDesc>> outputDOps) {
+    this.outputDOps = outputDOps;
+  }
+
+  public ArrayList<Integer> getdTags() {
+    return dTags;
+  }
+
+  public void setdTags(ArrayList<Integer> dTags) {
+    this.dTags = dTags;
+  }
+
+  public ArrayList<ArrayList<ExprNodeDesc>> getInKeys() {
+    return inKeys;
+  }
+
+  public void setInKeys(ArrayList<ArrayList<ExprNodeDesc>> inKeys) {
+    this.inKeys = inKeys;
+  }
+
+  public ArrayList<ArrayList<ExprNodeDesc>> getInVals() {
+    return inVals;
+  }
+
+  public void setInVals(ArrayList<ArrayList<ExprNodeDesc>> inVals) {
+    this.inVals = inVals;
+  }
+
+  public ArrayList<ExprNodeDesc> getInTids() {
+    return inTids;
+  }
+
+  public void setInTids(ArrayList<ExprNodeDesc> inTids) {
+    this.inTids = inTids;
+  }
+
+  public ArrayList<ArrayList<ExprNodeDesc>> getOutCKeys() {
+    return outCKeys;
+  }
+
+  public void setOutCKeys(ArrayList<ArrayList<ExprNodeDesc>> outCKeys) {
+    this.outCKeys = outCKeys;
+  }
+
+  public ArrayList<ArrayList<ExprNodeDesc>> getOutCAggrs() {
+    return outCAggrs;
+  }
+
+  public void setOutCAggrs(ArrayList<ArrayList<ExprNodeDesc>> outCAggrs) {
+    this.outCAggrs = outCAggrs;
+  }
+
+  public ArrayList<ExprNodeDesc> getOutCLins() {
+    return outCLins;
+  }
+
+  public void setOutCLins(ArrayList<ExprNodeDesc> outCLins) {
+    this.outCLins = outCLins;
+  }
+
+  public ArrayList<ExprNodeDesc> getOutCConds() {
+    return outCConds;
+  }
+
+  public void setOutCConds(ArrayList<ExprNodeDesc> outCConds) {
+    this.outCConds = outCConds;
+  }
+
+  public ArrayList<ExprNodeDesc> getOutCGbyIds() {
+    return outCGbyIds;
+  }
+
+  public void setOutCGbyIds(ArrayList<ExprNodeDesc> outCGbyIds) {
+    this.outCGbyIds = outCGbyIds;
+  }
+
+  public ArrayList<ArrayList<UdafType>> getOutCTypes() {
+    return outCTypes;
+  }
+
+  public void setOutCTypes(ArrayList<ArrayList<UdafType>> outCTypes) {
+    this.outCTypes = outCTypes;
+  }
+
+  public ArrayList<ArrayList<ExprNodeDesc>> getOutDAggrs() {
+    return outDAggrs;
+  }
+
+  public void setOutDAggrs(ArrayList<ArrayList<ExprNodeDesc>> outDAggrs) {
+    this.outDAggrs = outDAggrs;
+  }
+
+  public ArrayList<ExprNodeDesc> getOutDConds() {
+    return outDConds;
+  }
+
+  public void setOutDConds(ArrayList<ExprNodeDesc> outDConds) {
+    this.outDConds = outDConds;
+  }
+
+  public ArrayList<ExprNodeDesc> getOutDGbyIds() {
+    return outDGbyIds;
+  }
+
+  public void setOutDGbyIds(ArrayList<ExprNodeDesc> outDGbyIds) {
+    this.outDGbyIds = outDGbyIds;
+  }
+
+  public void setMCSim(ArrayList<Operator<? extends OperatorDesc>> inputOps,
+      ArrayList<Operator<? extends OperatorDesc>> outputCOps, ArrayList<Integer> cTags,
+      ArrayList<Operator<? extends OperatorDesc>> outputDOps, ArrayList<Integer> dTags,
+      ArrayList<ArrayList<ExprNodeDesc>> inKeys, ArrayList<ArrayList<ExprNodeDesc>> inVals,
+      ArrayList<ExprNodeDesc> inTids, ArrayList<ArrayList<ExprNodeDesc>> outCKeys,
+      ArrayList<ArrayList<ExprNodeDesc>> outCAggrs, ArrayList<ExprNodeDesc> outCLins,
+      ArrayList<ExprNodeDesc> outCConds, ArrayList<ExprNodeDesc> outCGbyIds,
+      ArrayList<ArrayList<UdafType>> outCTypes, ArrayList<ArrayList<ExprNodeDesc>> outDAggrs,
+      ArrayList<ExprNodeDesc> outDConds, ArrayList<ExprNodeDesc> outDGbyIds) {
+    sim = true;
+
+    this.inputOps = inputOps;
+    this.outputCOps = outputCOps;
+    this.cTags = cTags;
+
+    this.outputDOps = outputDOps;
+    this.dTags = dTags;
+
+    this.inKeys = inKeys;
+    this.inVals = inVals;
+    this.inTids = inTids;
+
+    this.outCKeys = outCKeys;
+    this.outCAggrs = outCAggrs;
+    this.outCLins = outCLins;
+    this.outCConds = outCConds;
+    this.outCGbyIds = outCGbyIds;
+    this.outCTypes = outCTypes;
+
+    this.outDAggrs = outDAggrs;
+    this.outDConds = outDConds;
+    this.outDGbyIds = outDGbyIds;
   }
 
 }

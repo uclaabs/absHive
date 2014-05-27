@@ -12,9 +12,11 @@ import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.algebra.Transform;
 import org.apache.hadoop.hive.ql.abm.lib.TopologicalSort;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
+import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
+import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 
 public class ConditionAnnotation {
 
@@ -112,11 +114,30 @@ public class ConditionAnnotation {
   }
 
   public void setupMCSim(SelectOperator select) {
+    ArrayList<GroupByOperator> cGbys = new ArrayList<GroupByOperator>(getAllContinousGbys());
+    ArrayList<GroupByOperator> dGbys = new ArrayList<GroupByOperator>(getAllDiscreteGbys());
+
+    ArrayList<Operator<? extends OperatorDesc>> inputOps = new ArrayList<Operator<? extends OperatorDesc>>();
+    ArrayList<Operator<? extends OperatorDesc>> outputCOps = new ArrayList<Operator<? extends OperatorDesc>>();
+    ArrayList<Integer> cTags = new ArrayList<Integer>();
+    for (GroupByOperator gby : cGbys) {
+      inputOps.add(inputs.get(gby));
+      outputCOps.add(outputs.get(gby));
+      cTags.add(gbyDict.get(gby));
+    }
+
+    ArrayList<Operator<? extends OperatorDesc>> outputDOps = new ArrayList<Operator<? extends OperatorDesc>>();
+    ArrayList<Integer> dTags = new ArrayList<Integer>();
+    for (GroupByOperator gby : dGbys) {
+      outputDOps.add(outputs.get(gby));
+      dTags.add(gbyDict.get(gby));
+    }
+
     // Continuous input (no input cached for discrete GBYs)
-    ArrayList<ArrayList<ExprNodeDesc>> allIKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
-    ArrayList<ArrayList<ExprNodeDesc>> allIVals = new ArrayList<ArrayList<ExprNodeDesc>>();
-    ArrayList<ExprNodeDesc> allITids = new ArrayList<ExprNodeDesc>();
-    for (GroupByOperator gby : getAllContinousGbys()) {
+    ArrayList<ArrayList<ExprNodeDesc>> inKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ArrayList<ExprNodeDesc>> inVals = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ExprNodeDesc> inTids = new ArrayList<ExprNodeDesc>();
+    for (GroupByOperator gby : cGbys) {
       ArrayList<ExprNodeDesc> keys = new ArrayList<ExprNodeDesc>();
       ArrayList<ExprNodeDesc> vals = new ArrayList<ExprNodeDesc>();
       ExprNodeDesc tid = null;
@@ -134,23 +155,25 @@ public class ConditionAnnotation {
       }
       tid = Utils.generateColumnDescs(input, i).get(0);
 
-      allIKeys.add(keys);
-      allIVals.add(vals);
-      allITids.add(tid);
+      inKeys.add(keys);
+      inVals.add(vals);
+      inTids.add(tid);
     }
 
     // Continuous output
-    ArrayList<ArrayList<ExprNodeDesc>> allOCKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
-    ArrayList<ArrayList<ExprNodeDesc>> allOCAggrs = new ArrayList<ArrayList<ExprNodeDesc>>();
-    ArrayList<ExprNodeDesc> allOCLins = new ArrayList<ExprNodeDesc>();
-    ArrayList<ExprNodeDesc> allOCConds = new ArrayList<ExprNodeDesc>();
-    ArrayList<ExprNodeDesc> allOCGbyIds = new ArrayList<ExprNodeDesc>();
-    for (GroupByOperator gby : getAllContinousGbys()) {
+    ArrayList<ArrayList<ExprNodeDesc>> outCKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ArrayList<ExprNodeDesc>> outCAggrs = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ExprNodeDesc> outCLins = new ArrayList<ExprNodeDesc>();
+    ArrayList<ExprNodeDesc> outCConds = new ArrayList<ExprNodeDesc>();
+    ArrayList<ExprNodeDesc> outCGbyIds = new ArrayList<ExprNodeDesc>();
+    ArrayList<ArrayList<UdafType>> outCTypes = new ArrayList<ArrayList<UdafType>>();
+    for (GroupByOperator gby : cGbys) {
       ArrayList<ExprNodeDesc> keys = new ArrayList<ExprNodeDesc>();
       ArrayList<ExprNodeDesc> aggrs = new ArrayList<ExprNodeDesc>();
       ExprNodeDesc lin = null;
       ExprNodeDesc cond = null;
       ExprNodeDesc gbyId = null;
+      ArrayList<UdafType> types = new ArrayList<UdafType>();
       GroupByDesc desc = gby.getConf();
       SelectOperator output = outputs.get(gby);
 
@@ -164,19 +187,23 @@ public class ConditionAnnotation {
       lin = Utils.generateColumnDescs(output, i++).get(0);
       cond = Utils.generateColumnDescs(output, i++).get(0);
       gbyId = Utils.generateColumnDescs(output, i).get(0);
+      for (AggregateInfo ai : aggregates.get(gby)) {
+        types.add(ai.getUdafType());
+      }
 
-      allOCKeys.add(keys);
-      allOCAggrs.add(aggrs);
-      allOCLins.add(lin);
-      allOCConds.add(cond);
-      allOCGbyIds.add(gbyId);
+      outCKeys.add(keys);
+      outCAggrs.add(aggrs);
+      outCLins.add(lin);
+      outCConds.add(cond);
+      outCGbyIds.add(gbyId);
+      outCTypes.add(types);
     }
 
     // Discrete output
-    ArrayList<ArrayList<ExprNodeDesc>> allODAggrs = new ArrayList<ArrayList<ExprNodeDesc>>();
-    ArrayList<ExprNodeDesc> allODConds = new ArrayList<ExprNodeDesc>();
-    ArrayList<ExprNodeDesc> allODGbyIds = new ArrayList<ExprNodeDesc>();
-    for (GroupByOperator gby : getAllDiscreteGbys()) {
+    ArrayList<ArrayList<ExprNodeDesc>> outDAggrs = new ArrayList<ArrayList<ExprNodeDesc>>();
+    ArrayList<ExprNodeDesc> outDConds = new ArrayList<ExprNodeDesc>();
+    ArrayList<ExprNodeDesc> outDGbyIds = new ArrayList<ExprNodeDesc>();
+    for (GroupByOperator gby : dGbys) {
       ArrayList<ExprNodeDesc> aggrs = new ArrayList<ExprNodeDesc>();
       ExprNodeDesc cond = null;
       ExprNodeDesc gbyId = null;
@@ -190,15 +217,16 @@ public class ConditionAnnotation {
       cond = Utils.generateColumnDescs(output, i++).get(0);
       gbyId = Utils.generateColumnDescs(output, i).get(0);
 
-      allODAggrs.add(aggrs);
-      allODConds.add(cond);
-      allODGbyIds.add(gbyId);
+      outDAggrs.add(aggrs);
+      outDConds.add(cond);
+      outDGbyIds.add(gbyId);
     }
+
+    select.getConf().setMCSim(inputOps, outputCOps, cTags, outputDOps, dTags, inKeys, inVals, inTids,
+        outCKeys, outCAggrs, outCLins, outCConds, outCGbyIds, outCTypes, outDAggrs, outDConds, outDGbyIds);
 
     // TODO: GBYs' dependency structure
     // TODO: Detailed structure (of each predicate) of every condition column
-
-    // TODO: Type of each aggregate
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
@@ -220,14 +248,10 @@ public class ConditionAnnotation {
     return inputs.keySet();
   }
 
-  private Set<GroupByOperator> discrete = null;
-
   private Set<GroupByOperator> getAllDiscreteGbys() {
-    if (discrete == null) {
-      discrete = new HashSet<GroupByOperator>(outputs.keySet());
-      discrete.removeAll(getAllContinousGbys());
-    }
-    return discrete;
+    Set<GroupByOperator> ret = new HashSet<GroupByOperator>(outputs.keySet());
+    ret.removeAll(getAllContinousGbys());
+    return ret;
   }
 
   // -->
@@ -257,6 +281,10 @@ class Dictionary<T> {
     System.out.println("hehehe" + elem2Id);
     System.out.println("hahaha " + element);
     return elem2Id.get(element);
+  }
+
+  public int size() {
+    return id2Elem.size();
   }
 
 }

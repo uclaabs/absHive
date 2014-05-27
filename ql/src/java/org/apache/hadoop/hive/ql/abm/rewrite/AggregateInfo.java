@@ -78,9 +78,3 @@ public class AggregateInfo implements Comparable<AggregateInfo> {
   }
 
 }
-
-enum UdafType {
-  COUNT,
-  SUM,
-  AVG
-}
