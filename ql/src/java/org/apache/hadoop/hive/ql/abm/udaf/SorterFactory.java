@@ -8,20 +8,18 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 
-
 public class SorterFactory {
 
   public static Sorter getSorter(List<ConditionRange> conditions) {
     assert !conditions.isEmpty();
     boolean flag = conditions.get(0).getFlag();
-//    System.out.println("SorterFactory Flag " + flag);
     if (flag) {
       return new AscendSorter(conditions, flag);
     } else {
       return new DescendSorter(conditions, flag);
     }
   }
-  
+
   public static abstract class Sorter implements IntComparator, Swapper{
     public abstract IntArrayList getIndexes();
     public abstract boolean getFlag();
@@ -34,30 +32,23 @@ public class SorterFactory {
     private final boolean flag;
 
     public AscendSorter(List<ConditionRange> conditions, boolean f) {
-//      System.out.println("AscendSort");
       this.indexes = new IntArrayList(conditions.size());
-      
-    for (int i = 0; i < conditions.size(); ++i) 
-        this.indexes.add(i);
-      
+
+    for (int i = 0; i < conditions.size(); ++i) {
+      this.indexes.add(i);
+    }
+
       this.conditions = conditions;
       this.flag = f;
     }
 
     @Override
     public int compare(Integer arg0, Integer arg1) {
-      
-//      return Double.compare(
-//          conditions.get(arg0).getValue(flag),
-//          conditions.get(arg1).getValue(flag));
-      
       return compare(arg0.intValue(), arg1.intValue());
     }
 
     @Override
     public int compare(int arg0, int arg1) {
-//      System.out.println("Compare " + conditions.get(arg0).getValue(flag) + "\t" + conditions.get(arg1).getValue(flag));
-      
       return Double.compare(
           conditions.get(this.indexes.getInt(arg0)).getValue(flag),
           conditions.get(this.indexes.getInt(arg1)).getValue(flag));
@@ -68,16 +59,16 @@ public class SorterFactory {
       int tmpId = this.indexes.get(arg0);
       this.indexes.set(arg0, this.indexes.get(arg1));
       this.indexes.set(arg1, tmpId);
-      
+
     }
-    
-    public IntArrayList getIndexes()
-    {
+
+    @Override
+    public IntArrayList getIndexes() {
       return this.indexes;
     }
-    
-    public boolean getFlag()
-    {
+
+    @Override
+    public boolean getFlag() {
       return this.flag;
     }
 
