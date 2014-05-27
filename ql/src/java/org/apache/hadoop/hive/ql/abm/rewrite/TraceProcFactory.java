@@ -16,6 +16,7 @@ import org.apache.hadoop.hive.ql.abm.lib.PostOrderPlanWalker;
 import org.apache.hadoop.hive.ql.abm.lineage.ExprInfo;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
+import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
@@ -132,6 +133,32 @@ public class TraceProcFactory {
               ctx.putLineage(op, entry.getKey(), ctx.getLineage(parent, col));
             }
           }
+        }
+      }
+
+      return null;
+    }
+
+  }
+
+  /**
+   *
+   * FileSinkProcessor sets all the GBYs which generate the output aggregates as used by FileSink.
+   *
+   */
+  public static class FileSinkProcessor extends DefaultProcessor {
+
+    @Override
+    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
+        Object... nodeOutputs) throws SemanticException {
+      super.process(nd, stack, procCtx, nodeOutputs);
+
+      FileSinkOperator fs = (FileSinkOperator) nd;
+      TraceProcCtx ctx = (TraceProcCtx) procCtx;
+      for (ColumnInfo ci : fs.getSchema().getSignature()) {
+        AggregateInfo ai = ctx.getLineage(fs, ci.getInternalName());
+        if (ai != null) {
+          ctx.usedAt(ai.getGroupByOperator(), fs);
         }
       }
 
@@ -272,6 +299,10 @@ public class TraceProcFactory {
     return new DefaultProcessor();
   }
 
+  public static NodeProcessor getFileSinkProc() {
+    return new FileSinkProcessor();
+  }
+
   public static NodeProcessor getFilterProc() {
     return new FilterProcessor();
   }
@@ -286,8 +317,10 @@ public class TraceProcFactory {
     Map<Rule, NodeProcessor> opRules = new LinkedHashMap<Rule, NodeProcessor>();
     opRules.put(new RuleRegExp("R1", FilterOperator.getOperatorName() + "%"),
         getFilterProc());
-    opRules.put(new RuleRegExp("R4", GroupByOperator.getOperatorName() + "%"),
+    opRules.put(new RuleRegExp("R2", GroupByOperator.getOperatorName() + "%"),
         getGroupByProc());
+    opRules.put(new RuleRegExp("R3", FileSinkOperator.getOperatorName() + "%"),
+        getFileSinkProc());
 
     // The dispatcher fires the processor corresponding to the closest matching rule
     // and passes the context along
