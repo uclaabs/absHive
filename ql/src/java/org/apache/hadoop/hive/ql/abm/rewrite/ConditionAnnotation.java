@@ -29,6 +29,10 @@ public class ConditionAnnotation {
   private final HashMap<GroupByOperator, SelectOperator> outputs =
       new HashMap<GroupByOperator, SelectOperator>();
 
+  private List<List<GroupByOperator>> sorted = null;
+  private Dictionary<GroupByOperator> gbyDict = null;
+  private Dictionary<AggregateInfo> aggrDict = null;
+
   // <-- Used by TraceProcCtx
 
   public void groupByAt(GroupByOperator gby) {
@@ -69,22 +73,35 @@ public class ConditionAnnotation {
     outputs.put(gby, output);
   }
 
-  public void setupMCSim(SelectOperator select) {
+  public int getAggregateId(AggregateInfo ai) {
+    if (aggrDict == null) {
+      setupIds();
+    }
+    return aggrDict.get(ai);
+  }
+
+  private void setupIds() {
     Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
-    List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
-    int numGbys = dependencies.size();
+    sorted = TopologicalSort.getOrderByLevel(map);
 
     // Assign ids to GroupByOperators
-    HashMap<GroupByOperator, Integer> gby2Id = new HashMap<GroupByOperator, Integer>();
-    GroupByOperator[] id2Gby = new GroupByOperator[numGbys];
-    int index = 0;
+    List<GroupByOperator> gbys = new ArrayList<GroupByOperator>();
+    for (List<GroupByOperator> level : sorted) {
+      gbys.addAll(level);
+    }
+    gbyDict = new Dictionary<GroupByOperator>(gbys);
+
+    // Assign ids to AggregateInfos
+    List<AggregateInfo> aggrs = new ArrayList<AggregateInfo>();
     for (List<GroupByOperator> level : sorted) {
       for (GroupByOperator gby : level) {
-        gby2Id.put(gby, gby2Id.size());
-        id2Gby[index++] = gby;
+        aggrs.addAll(aggregates.get(gby));
       }
     }
+    aggrDict = new Dictionary<AggregateInfo>(aggrs);
+  }
 
+  public void setupMCSim(SelectOperator select) {
     // Continuous input (no input cached for discrete GBYs)
     ArrayList<ArrayList<ExprNodeDesc>> allIKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
     ArrayList<ArrayList<ExprNodeDesc>> allIVals = new ArrayList<ArrayList<ExprNodeDesc>>();
@@ -203,5 +220,30 @@ public class ConditionAnnotation {
   }
 
   // -->
+
+}
+
+class Dictionary<T> {
+
+  private HashMap<T, Integer> elem2Id = null;
+  private ArrayList<T> id2Elem = null;
+
+  public Dictionary(List<T> elements) {
+    elem2Id = new HashMap<T, Integer>(elements.size());
+    id2Elem = new ArrayList<T>(elements.size());
+
+    for (T elem : elements) {
+      elem2Id.put(elem, elem2Id.size());
+      id2Elem.add(elem);
+    }
+  }
+
+  public T get(int index) {
+    return id2Elem.get(index);
+  }
+
+  public int get(T element) {
+    return elem2Id.get(element);
+  }
 
 }

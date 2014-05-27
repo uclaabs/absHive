@@ -457,7 +457,7 @@ public class RewriteProcFactory {
             ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
             int gbyIdIndex = ctx.getGbyIdColumnIndex(parent, linfo.getGroupByOperator());
             params.add(Utils.generateColumnDescs(parent, gbyIdIndex).get(0));
-            // TODO: params.add();
+            params.add(new ExprNodeConstantDesc(ctx.getAggregateId(linfo)));
             selFactory.addColumn(
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
                 internalName);
