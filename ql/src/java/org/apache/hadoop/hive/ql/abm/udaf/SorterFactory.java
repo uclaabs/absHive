@@ -14,7 +14,7 @@ public class SorterFactory {
   public static Sorter getSorter(List<ConditionRange> conditions) {
     assert !conditions.isEmpty();
     boolean flag = conditions.get(0).getFlag();
-    System.out.println("SorterFactory Flag " + flag);
+//    System.out.println("SorterFactory Flag " + flag);
     if (flag) {
       return new AscendSorter(conditions, flag);
     } else {

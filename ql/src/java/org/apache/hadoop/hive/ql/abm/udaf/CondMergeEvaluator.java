@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 //  private DoubleObjectInspector doubleOI = PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
 
   private final KeyWrapper key = new KeyWrapper();
+  private final List<ConditionRange> inputRange = new ArrayList<ConditionRange>();
   protected Instruction ins = new Instruction();
 
   @Override
@@ -46,7 +48,25 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
   static class MyAggregationBuffer implements AggregationBuffer {
     Map<IntArrayList, List<List<ConditionRange>>> groups;
+    Map<IntArrayList, Integer> keyIndexes;
     int d;
+  }
+  
+  @Override
+  public void reset(AggregationBuffer agg) throws HiveException {
+    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
+    myagg.groups.clear();
+    myagg.keyIndexes.clear();
+    myagg.d = 0;
+  }
+
+  @Override
+  public AggregationBuffer getNewAggregationBuffer() throws HiveException {
+    MyAggregationBuffer myagg = new MyAggregationBuffer();
+    myagg.groups = new LinkedHashMap<IntArrayList, List<List<ConditionRange>>>();
+    myagg.keyIndexes = new HashMap<IntArrayList, Integer>();
+    myagg.d = 0;
+    return myagg;
   }
 
   protected void updateRangeMatrix(List<List<ConditionRange>> rangeMatrix, LazyBinaryArray binaryMatrix, boolean flag) {
@@ -75,7 +95,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
     LazyBinaryArray binaryValues = (LazyBinaryArray) binaryStruct.getField(1);
 
     // binaryKeys.getListLength(): the number of map entry
-    for (int i = 0; i < binaryKeys.getListLength(); i++) {
+    int entryNumber = binaryKeys.getListLength();
+    for (int i = 0; i < entryNumber; i++) {
       // for every entry, the keyList and rangeMatrix
       LazyBinaryArray keyList = (LazyBinaryArray) binaryKeys.getListElementObject(i);
       LazyBinaryArray condRangeMatrix = (LazyBinaryArray) binaryValues.getListElementObject(i);
@@ -94,42 +115,39 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
         List<List<ConditionRange>> rangeGroup = myagg.groups.get(key);
         updateRangeMatrix(rangeGroup, condRangeMatrix, false);
 
-        // TODO
+        // 
+        ins.setGroupInstruction(myagg.keyIndexes.get(key));
+        
       } else {
 
         List<List<ConditionRange>> rangeGroup = new ArrayList<List<ConditionRange>>();
         updateRangeMatrix(rangeGroup, condRangeMatrix, true);
+        
+        myagg.keyIndexes.put(key.copyKey(), myagg.groups.size());
+        // set instruction here
+        ins.setGroupInstruction(myagg.groups.size());
         myagg.groups.put(key.copyKey(), rangeGroup);
 
         // TODO
       }
-
     }
   }
 
-  @Override
-  public void reset(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    myagg.groups.clear();
-    myagg.d = 0;
-  }
 
-  @Override
-  public AggregationBuffer getNewAggregationBuffer() throws HiveException {
-    MyAggregationBuffer myagg = new MyAggregationBuffer();
-    myagg.groups = new LinkedHashMap<IntArrayList, List<List<ConditionRange>>>();
-    myagg.d = 0;
-    return myagg;
-  }
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-
-    if (parameters[0] != null) {
+    
+    if(parameters.length == 0) {
+      //
+      ins.setGroupInstruction(-1);
+    }
+    else if (parameters[0] != null) {
       /*
        * get the input Condition and ID
        */
       key.newKey();
+      inputRange.clear();
 
       Object keysObj = this.condOI.getStructFieldData(parameters[0], this.condOI.getStructFieldRef("Keys"));
       Object rangesObj = this.condOI.getStructFieldData(parameters[0], this.condOI.getStructFieldRef("Values"));
@@ -141,34 +159,47 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
       for (int i = 0; i < this.keyArrayOI.getListLength(keyObj); i++) {
         key.add(intOI.get(this.keyArrayOI.getListElement(keyObj, i)));
       }
-
+      
+      boolean baseFlag = true;
+      for(int i = 0; i < this.rangeMatrixOI.getListLength(rangeMatrixObj); i ++) {
+        Object rangeArrayObj = this.rangeMatrixOI.getListElement(rangeMatrixObj, i);
+        ConditionRange newConditionRange = new ConditionRange(this.rangeArrayOI.getListElement(rangeArrayObj, 0));
+        baseFlag = newConditionRange.isBase();
+        inputRange.add(newConditionRange);
+      }
+      if(baseFlag){
+        ins.setGroupInstruction(-1);
+        return;
+      }
+      
       // put the tuples in input Condition List to different groups
       MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
       if (myagg.groups.containsKey(key)) {
 
         List<List<ConditionRange>> rangeGroup = myagg.groups.get(key);
-
-        for(int i = 0; i < this.rangeMatrixOI.getListLength(rangeMatrixObj); i ++) {
-          Object rangeArrayObj = this.rangeMatrixOI.getListElement(rangeMatrixObj, i);
-          rangeGroup.get(i).add(new ConditionRange(this.rangeArrayOI.getListElement(rangeArrayObj, 0)));
+        for(int i = 0; i< inputRange.size(); i ++){
+          rangeGroup.get(i).add(inputRange.get(i));
         }
-
-        // TODO set instruction here
+        
+        ins.setGroupInstruction(myagg.keyIndexes.get(key));
+        
       } else {
         List<List<ConditionRange>> rangeGroup = new ArrayList<List<ConditionRange>>();
 
-        for(int i = 0; i < this.rangeMatrixOI.getListLength(rangeMatrixObj); i ++)
-        {
-          Object rangeArrayObj = this.rangeMatrixOI.getListElement(rangeMatrixObj, i);
+        for(int i = 0; i< inputRange.size(); i ++){
           List<ConditionRange> arrayRange = new ArrayList<ConditionRange>();
-          arrayRange.add(new ConditionRange(this.rangeArrayOI.getListElement(rangeArrayObj, 0)));
+          arrayRange.add(inputRange.get(i));
           rangeGroup.add(arrayRange);
         }
-
+        
+        myagg.keyIndexes.put(key.copyKey(), myagg.groups.size());
+        // set instruction here
+        ins.setGroupInstruction(myagg.groups.size());
         myagg.groups.put(key.copyKey(), rangeGroup);
-        // TODO set instruction here
-      }
+      }      
     }
+
+//    System.out.println("Iterate Instruction:" + ins.getGroupInstruction());
   }
 
   protected void print(List<Integer> list) {
@@ -179,21 +210,10 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
     System.out.println();
   }
 
-
-
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
 
-    /*
-     * Hive Map does support Composite Key
-     *
-     * Map<Object, Object> ret = new HashMap<Object, Object>(myagg.groups.size());
-     * for(Map.Entry<List<Integer>, ConditionGroup> entry: myagg.groups.entrySet())
-     * {
-     * ret.put(entry.getKey().toArray(), entry.getValue().toArray());
-     * }
-     */
     Object[] ret = new Object[2];
     Object[] keys = new Object[myagg.groups.size()];
     Object[] values = new Object[myagg.groups.size()];
@@ -233,8 +253,9 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
         throw new UDFArgumentException("CondMerge: Unknown Data Type");
       }
     }
+    
+//    System.out.println("Merge Instruction: " + ins.getGroupInstruction());
   }
-
 
 
   @Override
@@ -245,32 +266,25 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
     CondGroup myCondGroup = new CondGroup();
     ConditionComputation condComputation = new ConditionComputation();
     condComputation.setCondGroup(myCondGroup, myagg.d);
-
-    System.out.println("Terminate Start Here");
     
     for (Map.Entry<IntArrayList, List<List<ConditionRange>>> entry : myagg.groups.entrySet()) {
       IntArrayList keyArray = entry.getKey();
       List<List<ConditionRange>> rangeMatrix = entry.getValue();
-//      for(int i = 0; i < rangeMatrix.size(); i ++)
-//        rangeMatrix.get(i).add(new ConditionRange(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY));
-
       condComputation.setFields(keyArray, rangeMatrix);
 
       Merge merge = new Merge();
       for(List<ConditionRange> rangeArray:rangeMatrix) {
-        
-        for(ConditionRange range: rangeArray)
-          System.out.print(range.toString());
-        System.out.println();
-        
         merge.addDimension(rangeArray);
       }
+      
+      ins.setMergeInstruction(merge);
       condComputation.setFlags(merge.getFlags());
       merge.enumerate(condComputation);
     }
+//    System.out.println("Terminate Instruction Size:" + ins.getMergeInstruction().size());
     
     condComputation.unfold();
-
+    
     return myCondGroup.toArray();
   }
 

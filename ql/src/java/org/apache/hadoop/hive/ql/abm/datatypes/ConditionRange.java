@@ -91,5 +91,13 @@ public class ConditionRange {
   {
     return new ConditionRange(this.start, this.end);
   }
+  
+  public boolean isBase()
+  {
+    if(this.start == Double.NEGATIVE_INFINITY && this.end == Double.POSITIVE_INFINITY)
+      return true;
+    else
+      return false;
+  }
 
 }

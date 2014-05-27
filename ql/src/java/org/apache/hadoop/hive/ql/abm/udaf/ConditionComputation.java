@@ -53,7 +53,7 @@ public class ConditionComputation extends UDAFComputation {
           : this.rangeMatrix.get(level).get(end).getValue(flag);
       newCondRanges[level * 2 + 1] = this.rangeMatrix.get(level).get(start).getValue(flag);
     }
-    System.out.println("Range Added: " + newCondRanges[level * 2] + "\t" + newCondRanges[level * 2 + 1]);
+//    System.out.println("Range Added: " + newCondRanges[level * 2] + "\t" + newCondRanges[level * 2 + 1]);
   }
 
   @Override
@@ -86,7 +86,7 @@ public class ConditionComputation extends UDAFComputation {
   private void unfoldRangeMatrix(int level, ConditionRange[] rangeArray, List<List<ConditionRange>> rangeMatrix)
   {
     boolean leaf = (level == this.condGroup.getGroupNumber() - 1);
-    System.out.println("unfoldRangeMatrix :" + level + "\t" + leaf);
+//    System.out.println("unfoldRangeMatrix :" + level + "\t" + leaf);
     
     List<List<ConditionRange>> currentRangeMatrix = this.condGroup.getRangeMatrix(level);
     int rowNumber = currentRangeMatrix.get(0).size();
@@ -95,7 +95,7 @@ public class ConditionComputation extends UDAFComputation {
     {
       for(int j = 0; j < this.dimension; j ++)
       {
-        System.out.println("Add to rangeArray: " + (level * this.dimension + j) + "\t" + currentRangeMatrix.get(j).get(i).toString());
+//        System.out.println("Add to rangeArray: " + (level * this.dimension + j) + "\t" + currentRangeMatrix.get(j).get(i).toString());
         rangeArray[level * this.dimension + j] = currentRangeMatrix.get(j).get(i);
       }
       
