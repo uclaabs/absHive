@@ -69,7 +69,7 @@ public class ConditionAnnotation {
     outputs.put(gby, output);
   }
 
-  public void f() {
+  public void setupMC(SelectOperator select) {
     Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
     List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
     int numGbys = dependencies.size();
