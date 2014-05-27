@@ -66,27 +66,51 @@ public class ConditionComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
-    // TODO Auto-generated method stub
     // unfold the conditions
     
     List<Integer> unfoldKeys = new ArrayList<Integer>();
     for(List<Integer> currentKeys: this.condGroup.getKeys())
       unfoldKeys.addAll(currentKeys);
     
-    List<List<ConditionRange>> rangeMatrix  = new ArrayList<List<ConditionRange>>();
-    for(int i = 0; i < this.dimension * this.condGroup.getKeys().size(); i ++)
-      rangeMatrix.add(new ArrayList<ConditionRange>());
+    List<List<ConditionRange>> unfoldRangeMatrix  = new ArrayList<List<ConditionRange>>();
+    for(int i = 0; i < this.dimension * this.condGroup.getGroupNumber(); i ++)
+      unfoldRangeMatrix.add(new ArrayList<ConditionRange>());
     
-    unfoldRangeMatrix(0, rangeMatrix);
-    
+    ConditionRange[] rangeArray = new ConditionRange[this.dimension * this.condGroup.getGroupNumber()];
+    unfoldRangeMatrix(0, rangeArray, unfoldRangeMatrix);
+    this.condGroup.clear();
+    this.condGroup.addKeys(unfoldKeys);
+    this.condGroup.addRanges(unfoldRangeMatrix);
   }
   
-  private void unfoldRangeMatrix(int level, List<List<ConditionRange>> rangeMatrix)
+  private void unfoldRangeMatrix(int level, ConditionRange[] rangeArray, List<List<ConditionRange>> rangeMatrix)
   {
+    boolean leaf = (level == this.condGroup.getGroupNumber() - 1);
+    System.out.println("unfoldRangeMatrix :" + level + "\t" + leaf);
+    
     List<List<ConditionRange>> currentRangeMatrix = this.condGroup.getRangeMatrix(level);
+    int rowNumber = currentRangeMatrix.get(0).size();
+    
+    for(int i = 0; i < rowNumber; i ++)
+    {
+      for(int j = 0; j < this.dimension; j ++)
+      {
+        System.out.println("Add to rangeArray: " + (level * this.dimension + j) + "\t" + currentRangeMatrix.get(j).get(i).toString());
+        rangeArray[level * this.dimension + j] = currentRangeMatrix.get(j).get(i);
+      }
+      
+      if(leaf)
+      {
+        for(int dim = 0; dim < rangeArray.length; dim ++)
+          rangeMatrix.get(dim).add(rangeArray[dim]);
+      }
+      else
+      {
+        unfoldRangeMatrix(level + 1, rangeArray, rangeMatrix);
+      }
+    }
   }
 
-  @Override
   public void setFlags(List<Boolean> flags) {
     this.flags = flags;
     

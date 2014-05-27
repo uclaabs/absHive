@@ -1,10 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
-import java.util.List;
 
 public abstract class UDAFComputation {
-
-  public abstract void setFlags(List<Boolean> flags);
   
   public abstract void iterate(int index);
 
