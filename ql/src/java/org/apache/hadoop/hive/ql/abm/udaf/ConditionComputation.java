@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
@@ -69,8 +70,15 @@ public class ConditionComputation extends UDAFComputation {
   }
 
   @Override
-  public void extend() {
+  public void unfold() {
     // TODO Auto-generated method stub
+    // unfold the conditions
+    
+    List<Integer> unfoldKeys = new ArrayList<Integer>();
+    for(List<Integer> currentKeys: this.condGroup.getKeys())
+      unfoldKeys.addAll(currentKeys);
+    
+    
     
   }
 

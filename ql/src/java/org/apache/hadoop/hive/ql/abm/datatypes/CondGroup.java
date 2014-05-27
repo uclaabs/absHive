@@ -106,5 +106,15 @@ public class CondGroup
     Object[] ret = {keyObjs, rangeObjs};
     return ret;
   }
+  
+  public List<List<Integer>> getKeys()
+  {
+    return this.keys;
+  }
+  
+  public List<List<List<ConditionRange>>> getRanges()
+  {
+    return this.ranges;
+  }
 
 }

@@ -42,23 +42,24 @@ public class Merge {
       i = j;
     }
     
-    
     dimEnds.add(ends);
   }
 
   public void enumerate(UDAFComputation compute) {
     this.op = compute;
-    enumerate(1, new Int2IntOpenHashMap());
+    Int2IntOpenHashMap lineage = new Int2IntOpenHashMap();
+    lineage.defaultReturnValue(-1);
+    enumerate(0, lineage);
   }
   
   private void enumerate(int level, Int2IntOpenHashMap lineage) {
-    boolean leaf = (level == dimIndexes.size());
+    boolean leaf = (level == dimIndexes.size() - 1);
 
     int parent = level - 1;
     int fstart = -1, fend = -1;
     
-    IntArrayList indexes = dimIndexes.get(level - 1);
-    IntArrayList ends = dimEnds.get(level - 1);
+    IntArrayList indexes = dimIndexes.get(level);
+    IntArrayList ends = dimEnds.get(level);
     
     System.out.println("Current Level " + level);
     for(Integer index: indexes)
@@ -77,13 +78,13 @@ public class Merge {
         int start = (i == 0) ? 0 : ends.getInt(i-1) ;
         int end = ends.getInt(i);
         for (int k = start; k < end; ++k) {
-          if (level == 1 || lineage.get(indexes.getInt(k)) == parent) {
+          if (level == 0 || lineage.get(indexes.getInt(k)) == parent) {
             // if we already find a match, then we need to push the previous matched lineage to next level
             if(fstart >= 0 && !propagate) {
               //TODO op.partialTerminate
               System.out.println("Fstart-Fend " + fstart + "\t" + fend);
               
-              op.partialTerminate(level - 1, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+              op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
               
               System.out.println();
               System.out.println("before enumerate");
@@ -126,7 +127,7 @@ public class Merge {
       }
       // check if there is unprocessed pair
       if(fstart >= 0){
-        op.partialTerminate(level - 1, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+        op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
         enumerate(level + 1, lineage);
         for (int l = 0; l < fend; ++l) {
           if (lineage.get(indexes.getInt(l)) > level) {
@@ -144,11 +145,11 @@ public class Merge {
         int start = (i == 0) ? 0 : ends.getInt(i-1) ;
         int end = ends.getInt(i);
         for (int k = start; k < end; ++k) {
-          if (level == 1 || lineage.get(indexes.getInt(k)) == parent) {
+          if (level == 0 || lineage.get(indexes.getInt(k)) == parent) {
             // if we already find a match, then we need to output the result of this match
             if(fstart >= 0 && !propagate) {
               // partial terminate
-              op.partialTerminate(level - 1, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+              op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
               // terminate
               op.terminate();
               propagate = true;
@@ -176,7 +177,7 @@ public class Merge {
       // check if there is unprocessed pair
       if(fstart >= 0){
         // partial terminate
-        op.partialTerminate(level - 1 , indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
+        op.partialTerminate(level , indexes.getInt(fstart), (fend == indexes.size()) ? fend : indexes.getInt(fend));
         // terminate
         op.terminate();
       }

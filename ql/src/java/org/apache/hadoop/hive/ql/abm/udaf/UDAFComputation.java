@@ -13,6 +13,6 @@ public abstract class UDAFComputation {
 
   public abstract void terminate();
   
-  public abstract void extend();
+  public abstract void unfold();
 
 }

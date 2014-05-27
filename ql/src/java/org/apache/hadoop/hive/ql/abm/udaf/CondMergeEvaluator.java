@@ -268,6 +268,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
       merge.enumerate(condComputation);
     }
+    
+    // condComputation.unfold();
 
     return myCondGroup.toArray();
   }
