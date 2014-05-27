@@ -17,8 +17,8 @@ public class SrvCompareConstant  extends GenericUDF {
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
 
-    if (arguments.length != 2) {
-      throw new UDFArgumentException("This function takes exactly two arguments: Srv_ID, Constant Value");
+    if (arguments.length > 3) {
+      throw new UDFArgumentException("This function takes at most three arguments: Srv_ID, Constant Value");
     }
 
     inputIDOI = (PrimitiveObjectInspector) arguments[0];
