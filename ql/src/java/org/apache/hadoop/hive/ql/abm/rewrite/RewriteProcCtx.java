@@ -173,8 +173,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     funcs.add(func);
   }
 
-  public void setupMC(SelectOperator select) {
-    condAnno.setupMC(select);
+  public void setupMCSim(SelectOperator select) {
+    condAnno.setupMCSim(select);
   }
 
   public LineageCtx getLineageCtx() {

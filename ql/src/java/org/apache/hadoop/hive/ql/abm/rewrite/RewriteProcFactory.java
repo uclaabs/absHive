@@ -484,7 +484,7 @@ public class RewriteProcFactory {
       fs.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
 
       // Set SelectOperator
-      ctx.setupMC(sel);
+      ctx.setupMCSim(sel);
 
       return probIndex;
     }

@@ -69,7 +69,7 @@ public class ConditionAnnotation {
     outputs.put(gby, output);
   }
 
-  public void setupMC(SelectOperator select) {
+  public void setupMCSim(SelectOperator select) {
     Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
     List<List<GroupByOperator>> sorted = TopologicalSort.getOrderByLevel(map);
     int numGbys = dependencies.size();
@@ -146,29 +146,23 @@ public class ConditionAnnotation {
     }
 
     // Discrete output
-    ArrayList<ArrayList<ExprNodeDesc>> allODKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
     ArrayList<ArrayList<ExprNodeDesc>> allODAggrs = new ArrayList<ArrayList<ExprNodeDesc>>();
     ArrayList<ExprNodeDesc> allODConds = new ArrayList<ExprNodeDesc>();
     ArrayList<ExprNodeDesc> allODGbyIds = new ArrayList<ExprNodeDesc>();
     for (GroupByOperator gby : getAllDiscreteGbys()) {
-      ArrayList<ExprNodeDesc> keys = new ArrayList<ExprNodeDesc>();
       ArrayList<ExprNodeDesc> aggrs = new ArrayList<ExprNodeDesc>();
       ExprNodeDesc cond = null;
       ExprNodeDesc gbyId = null;
       GroupByDesc desc = gby.getConf();
       SelectOperator output = outputs.get(gby);
 
-      int i = 0;
-      for (; i < desc.getKeys().size(); ++i) {
-        keys.add(Utils.generateColumnDescs(output, i).get(0));
-      }
+      int i = desc.getKeys().size();
       for (int j = 0, sz = aggregates.get(gby).size(); j < sz; ++j) {
         aggrs.add(Utils.generateColumnDescs(output, i++).get(0));
       }
       cond = Utils.generateColumnDescs(output, i++).get(0);
       gbyId = Utils.generateColumnDescs(output, i).get(0);
 
-      allODKeys.add(keys);
       allODAggrs.add(aggrs);
       allODConds.add(cond);
       allODGbyIds.add(gbyId);
