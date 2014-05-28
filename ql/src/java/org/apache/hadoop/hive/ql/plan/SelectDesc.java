@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
-import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.serde.serdeConstants;
 
 
@@ -49,11 +48,7 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   // ABM
   private boolean sim = false;
-  private ArrayList<Operator<? extends OperatorDesc>> inputOps = null;
-  private ArrayList<Operator<? extends OperatorDesc>> outputCOps = null;
   private ArrayList<Integer> cTags = null;
-
-  private ArrayList<Operator<? extends OperatorDesc>> outputDOps = null;
   private ArrayList<Integer> dTags = null;
 
   private ArrayList<ArrayList<ExprNodeDesc>> inKeys = null;
@@ -232,43 +227,19 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.sim = sim;
   }
 
-  public ArrayList<Operator<? extends OperatorDesc>> getInputOps() {
-    return inputOps;
-  }
-
-  public void setInputOps(ArrayList<Operator<? extends OperatorDesc>> inputOps) {
-    this.inputOps = inputOps;
-  }
-
-  public ArrayList<Operator<? extends OperatorDesc>> getOutputCOps() {
-    return outputCOps;
-  }
-
-  public void setOutputCOps(ArrayList<Operator<? extends OperatorDesc>> outputCOps) {
-    this.outputCOps = outputCOps;
-  }
-
-  public ArrayList<Integer> getcTags() {
+  public ArrayList<Integer> getCTags() {
     return cTags;
   }
 
-  public void setcTags(ArrayList<Integer> cTags) {
+  public void setCTags(ArrayList<Integer> cTags) {
     this.cTags = cTags;
   }
 
-  public ArrayList<Operator<? extends OperatorDesc>> getOutputDOps() {
-    return outputDOps;
-  }
-
-  public void setOutputDOps(ArrayList<Operator<? extends OperatorDesc>> outputDOps) {
-    this.outputDOps = outputDOps;
-  }
-
-  public ArrayList<Integer> getdTags() {
+  public ArrayList<Integer> getDTags() {
     return dTags;
   }
 
-  public void setdTags(ArrayList<Integer> dTags) {
+  public void setDTags(ArrayList<Integer> dTags) {
     this.dTags = dTags;
   }
 
@@ -368,9 +339,7 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.outDGbyIds = outDGbyIds;
   }
 
-  public void setMCSim(ArrayList<Operator<? extends OperatorDesc>> inputOps,
-      ArrayList<Operator<? extends OperatorDesc>> outputCOps, ArrayList<Integer> cTags,
-      ArrayList<Operator<? extends OperatorDesc>> outputDOps, ArrayList<Integer> dTags,
+  public void setMCSim(ArrayList<Integer> cTags, ArrayList<Integer> dTags,
       ArrayList<ArrayList<ExprNodeDesc>> inKeys, ArrayList<ArrayList<ExprNodeDesc>> inVals,
       ArrayList<ExprNodeDesc> inTids, ArrayList<ArrayList<ExprNodeDesc>> outCKeys,
       ArrayList<ArrayList<ExprNodeDesc>> outCAggrs, ArrayList<ExprNodeDesc> outCLins,
@@ -379,11 +348,7 @@ public class SelectDesc extends AbstractOperatorDesc {
       ArrayList<ExprNodeDesc> outDConds, ArrayList<ExprNodeDesc> outDGbyIds) {
     sim = true;
 
-    this.inputOps = inputOps;
-    this.outputCOps = outputCOps;
     this.cTags = cTags;
-
-    this.outputDOps = outputDOps;
     this.dTags = dTags;
 
     this.inKeys = inKeys;

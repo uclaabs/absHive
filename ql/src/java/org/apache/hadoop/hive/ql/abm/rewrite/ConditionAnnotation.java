@@ -133,6 +133,21 @@ public class ConditionAnnotation {
       dTags.add(gbyDict.get(gby));
     }
 
+    List<Operator<? extends OperatorDesc>> parents = select.getParentOperators();
+    parents.addAll(inputOps);
+    parents.addAll(outputCOps);
+    parents.addAll(outputDOps);
+    select.setParentOperators(parents);
+    for (Operator<? extends OperatorDesc> p : inputOps) {
+      p.getChildOperators().add(select);
+    }
+    for (Operator<? extends OperatorDesc> p : outputCOps) {
+      p.getChildOperators().add(select);
+    }
+    for (Operator<? extends OperatorDesc> p : outputDOps) {
+      p.getChildOperators().add(select);
+    }
+
     // Continuous input (no input cached for discrete GBYs)
     ArrayList<ArrayList<ExprNodeDesc>> inKeys = new ArrayList<ArrayList<ExprNodeDesc>>();
     ArrayList<ArrayList<ExprNodeDesc>> inVals = new ArrayList<ArrayList<ExprNodeDesc>>();
@@ -222,7 +237,7 @@ public class ConditionAnnotation {
       outDGbyIds.add(gbyId);
     }
 
-    select.getConf().setMCSim(inputOps, outputCOps, cTags, outputDOps, dTags, inKeys, inVals, inTids,
+    select.getConf().setMCSim(cTags, dTags, inKeys, inVals, inTids,
         outCKeys, outCAggrs, outCLins, outCConds, outCGbyIds, outCTypes, outDAggrs, outDConds, outDGbyIds);
 
     // TODO: GBYs' dependency structure
