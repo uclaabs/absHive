@@ -36,7 +36,9 @@ public class LinEvaluator extends GenericUDAFEvaluator {
 
 	@Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters)
+	
     throws HiveException {
+	  
 		super.init(m, parameters);
 
 		String[] finalCols = {"ID", "keys", "Values"};

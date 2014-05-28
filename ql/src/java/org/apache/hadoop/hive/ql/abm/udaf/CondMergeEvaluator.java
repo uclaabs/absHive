@@ -131,10 +131,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-    if (parameters.length == 0) {
-      ins.addGroupInstruction(-1);
-    }
-    else if (parameters[0] != null) {
+    
+    if (parameters[0] != null) {
       // Get the input Condition and ID
       key.newKey();
       inputRange.clear();
@@ -210,6 +208,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
   @Override
   public void merge(AggregationBuffer agg, Object partialRes) throws HiveException {
+    
     if (partialRes == null) {
       return;
     }

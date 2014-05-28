@@ -72,8 +72,8 @@ public class ConditionComputation extends UDAFComputation {
     condGroup.addRanges(unfoldRangeMatrix);
   }
 
-  private void unfoldRangeMatrix(int level, ConditionRange[] rangeArray,
-      List<List<ConditionRange>> rangeMatrix) {
+  private void unfoldRangeMatrix(int level, ConditionRange[] rangeArray, List<List<ConditionRange>> rangeMatrix) {
+    
     boolean leaf = (level == condGroup.getGroupNumber() - 1);
 
     List<List<ConditionRange>> currentRangeMatrix = condGroup.getRangeMatrix(level);
@@ -101,6 +101,12 @@ public class ConditionComputation extends UDAFComputation {
   @Override
   public Object serializeResult() {
     return condGroup.toArray();
+  }
+
+  @Override
+  public void reset() {
+    // TODO Auto-generated method stub
+    
   }
 
 }
