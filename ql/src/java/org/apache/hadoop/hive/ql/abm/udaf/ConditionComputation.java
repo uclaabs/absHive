@@ -6,11 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondGroups;
 import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 
 public class ConditionComputation extends UDAFComputation {
 
-  private final CondGroup condGroup = new CondGroup();
+  private CondGroups condGroups = new CondGroups();
+  private CondGroup finalCondGroup = null;
   private List<List<ConditionRange>> rangeMatrix = null;
   private double[] newCondRanges = null;
   private List<Boolean> flags = null;
@@ -23,7 +25,7 @@ public class ConditionComputation extends UDAFComputation {
 
   public void setFields(IntArrayList keyArray, List<List<ConditionRange>> rangeMatrix) {
     this.rangeMatrix = rangeMatrix;
-    this.condGroup.addGroup(keyArray);
+    this.condGroups.addGroup(keyArray);
   }
 
   @Override
@@ -47,7 +49,7 @@ public class ConditionComputation extends UDAFComputation {
   @Override
   public void terminate() {
     for (int i = 0; i < dim; i++) {
-      condGroup.getRangeMatrix().get(i)
+      condGroups.getRangeMatrix().get(i)
           .add(new ConditionRange(newCondRanges[2 * i], newCondRanges[2 * i + 1]));
     }
   }
@@ -56,27 +58,26 @@ public class ConditionComputation extends UDAFComputation {
   public void unfold() {
     // unfold the conditions
     List<Integer> unfoldKeys = new ArrayList<Integer>();
-    for (List<Integer> currentKeys : condGroup.getKeys()) {
+    for (List<Integer> currentKeys : condGroups.getKeys()) {
       unfoldKeys.addAll(currentKeys);
     }
 
     List<List<ConditionRange>> unfoldRangeMatrix = new ArrayList<List<ConditionRange>>();
-    for (int i = 0; i < dim * condGroup.getGroupNumber(); i++) {
+    for (int i = 0; i < dim * condGroups.getGroupNumber(); i++) {
       unfoldRangeMatrix.add(new ArrayList<ConditionRange>());
     }
 
-    ConditionRange[] rangeArray = new ConditionRange[dim * condGroup.getGroupNumber()];
+    ConditionRange[] rangeArray = new ConditionRange[dim * condGroups.getGroupNumber()];
     unfoldRangeMatrix(0, rangeArray, unfoldRangeMatrix);
-    condGroup.clear();
-    condGroup.addKeys(unfoldKeys);
-    condGroup.addRanges(unfoldRangeMatrix);
+    
+    this.finalCondGroup = new CondGroup(unfoldKeys, unfoldRangeMatrix);
   }
 
   private void unfoldRangeMatrix(int level, ConditionRange[] rangeArray, List<List<ConditionRange>> rangeMatrix) {
     
-    boolean leaf = (level == condGroup.getGroupNumber() - 1);
+    boolean leaf = (level == condGroups.getGroupNumber() - 1);
 
-    List<List<ConditionRange>> currentRangeMatrix = condGroup.getRangeMatrix(level);
+    List<List<ConditionRange>> currentRangeMatrix = condGroups.getRangeMatrix(level);
     int rowNumber = currentRangeMatrix.get(0).size();
 
     for (int i = 0; i < rowNumber; i++) {
@@ -100,7 +101,7 @@ public class ConditionComputation extends UDAFComputation {
 
   @Override
   public Object serializeResult() {
-    return condGroup.toArray();
+    return this.finalCondGroup.toArray();
   }
 
   @Override

@@ -6,17 +6,17 @@ import org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
-public class SrvSum extends AbstractGenericUDAFResolver {
-  
+public class CaseSum extends AbstractGenericUDAFResolver{
+
   @Override
   public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters)
       throws SemanticException {
 
     if (parameters.length != 1) {
-      throw new UDFArgumentException("sum_srv takes only one argument!");
+      throw new UDFArgumentException("case_sum takes only one argument!");
     }
 
-    return new SrvSumEvaluator();
+    return new CaseSumEvaluator();
   }
-
+  
 }

@@ -26,19 +26,19 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 
 public class SrvSumEvaluator extends GenericUDAFEvaluator {
   
-  private final DoubleObjectInspector doubleOI = PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
-  private final ListObjectInspector doubleListOI = ObjectInspectorFactory.getStandardListObjectInspector(doubleOI);
-  private final ListObjectInspector partialGroupOI = ObjectInspectorFactory.getStandardListObjectInspector(doubleListOI);
+  protected final DoubleObjectInspector doubleOI = PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
+  protected final ListObjectInspector doubleListOI = ObjectInspectorFactory.getStandardListObjectInspector(doubleOI);
+  protected final ListObjectInspector partialGroupOI = ObjectInspectorFactory.getStandardListObjectInspector(doubleListOI);
   
-  private final List<String> columnName = Arrays.asList("BaseSum","BaseSsum","Group");
-  private final List<ObjectInspector> objectInspectorType = Arrays.asList((ObjectInspector)doubleOI, (ObjectInspector)doubleOI, (ObjectInspector)partialGroupOI);
-  private final StructObjectInspector partialOI = ObjectInspectorFactory.getStandardStructObjectInspector(columnName, objectInspectorType);
+  protected final List<String> columnName = Arrays.asList("BaseSum","BaseSsum","Group");
+  protected final List<ObjectInspector> objectInspectorType = Arrays.asList((ObjectInspector)doubleOI, (ObjectInspector)doubleOI, (ObjectInspector)partialGroupOI);
+  protected final StructObjectInspector partialOI = ObjectInspectorFactory.getStandardStructObjectInspector(columnName, objectInspectorType);
   
   
-  private PrimitiveObjectInspector inputValueOI = null;
-  private Instruction ins = new Instruction();
+  protected PrimitiveObjectInspector inputValueOI = null;
+  protected Instruction ins = new Instruction();
   //TODO replace fake one with abm.util.tot
-  private int tot = 6000000;
+  protected int tot = 6000000;
   
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
@@ -53,7 +53,7 @@ public class SrvSumEvaluator extends GenericUDAFEvaluator {
     }
   }
   
-  private static class MyAggregationBuffer implements AggregationBuffer {
+  protected static class MyAggregationBuffer implements AggregationBuffer {
     
     Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
     List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
@@ -68,9 +68,6 @@ public class SrvSumEvaluator extends GenericUDAFEvaluator {
     public void addBase(double partialSum, double partialSsum) {
       baseSum += partialSum;
       baseSsum += partialSsum;
-//      for(int i = 0; i < partialBase.getListLength(); i ++) {
-//        base.add(((DoubleWritable)partialBase.getListElementObject(i)).get());
-//      }
     }
     
     public Object getPartialResult() {
@@ -109,7 +106,6 @@ public class SrvSumEvaluator extends GenericUDAFEvaluator {
     if (parameters[0] != null) {
       
       // TODO fake instruction for testing
-      ins.fakeIterate();
       int instruction = ins.getGroupInstruction().getInt(0);
       
       MyAggregationBuffer myagg = (MyAggregationBuffer) agg;

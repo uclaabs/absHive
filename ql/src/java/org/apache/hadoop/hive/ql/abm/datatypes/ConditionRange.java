@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -78,7 +79,10 @@ public class ConditionRange {
 
   public Object toArray()
   {
-    Object[] ret = {this.start, this.end};
+//    Object[] ret = {this.start, this.end};
+    List<Object> ret = new ArrayList<Object>();
+    ret.add(this.start);
+    ret.add(this.end);
     return ret;
   }
   
