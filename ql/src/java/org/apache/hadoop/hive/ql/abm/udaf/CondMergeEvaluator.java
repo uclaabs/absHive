@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,17 +27,17 @@ import org.apache.hadoop.io.IntWritable;
 
 public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
-  private final ListObjectInspector keyArrayOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
-  private final ListObjectInspector keyObjOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(keyArrayOI);
+  private final ListObjectInspector keyArrayOI = ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
+  private final ListObjectInspector keyObjOI = ObjectInspectorFactory.getStandardListObjectInspector(keyArrayOI);
   private final StructObjectInspector rangeOI = (StructObjectInspector) ConditionRange.conditionRangeInspector;
-  private final ListObjectInspector rangeArrayOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(rangeOI);
-  private final ListObjectInspector rangeMatrixOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(rangeArrayOI);
-  private final ListObjectInspector rangeObjOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(rangeMatrixOI);
+  private final ListObjectInspector rangeArrayOI = ObjectInspectorFactory.getStandardListObjectInspector(rangeOI);
+  private final ListObjectInspector rangeMatrixOI = ObjectInspectorFactory.getStandardListObjectInspector(rangeArrayOI);
+  private final ListObjectInspector rangeObjOI = ObjectInspectorFactory.getStandardListObjectInspector(rangeMatrixOI);
+  
+  private final List<String> columnName = Arrays.asList("Keys", "Values");
+  private final List<ObjectInspector> partialObjectInspectorType = Arrays.asList((ObjectInspector)keyObjOI, (ObjectInspector)rangeObjOI);
+  private final StructObjectInspector partialOI = ObjectInspectorFactory.getStandardStructObjectInspector(columnName, partialObjectInspectorType);
+  
   private final StructObjectInspector condOI = CondGroup.condGroupInspector;
   private final IntObjectInspector intOI = PrimitiveObjectInspectorFactory.javaIntObjectInspector;
 
@@ -47,7 +48,12 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
-    return this.condOI;
+    
+    if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
+      return this.partialOI;
+    } else {
+      return this.condOI;
+    }
   }
 
   private static class MyAggregationBuffer implements AggregationBuffer {
@@ -131,22 +137,18 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-    if (parameters.length == 0) {
-      ins.addGroupInstruction(-1);
-    }
-    else if (parameters[0] != null) {
+    
+    if (parameters[0] != null) {
       // Get the input Condition and ID
       key.newKey();
       inputRange.clear();
 
-      Object keysObj = this.condOI.getStructFieldData(parameters[0],
-          this.condOI.getStructFieldRef("Keys"));
-      Object rangesObj = this.condOI.getStructFieldData(parameters[0],
-          this.condOI.getStructFieldRef("Values"));
+      Object keyObj = this.condOI.getStructFieldData(parameters[0], this.condOI.getStructFieldRef("Keys"));
+      Object rangeMatrixObj = this.condOI.getStructFieldData(parameters[0], this.condOI.getStructFieldRef("Values"));
 
-      // Assume there is only one key array in input
-      Object keyObj = this.keyObjOI.getListElement(keysObj, 0);
-      Object rangeMatrixObj = this.rangeObjOI.getListElement(rangesObj, 0);
+//      // Assume there is only one key array in input
+//      Object keyObj = this.keyObjOI.getListElement(keysObj, 0);
+//      Object rangeMatrixObj = this.rangeObjOI.getListElement(rangesObj, 0);
 
       for (int i = 0; i < this.keyArrayOI.getListLength(keyObj); i++) {
         key.add(intOI.get(this.keyArrayOI.getListElement(keyObj, i)));
@@ -210,6 +212,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
   @Override
   public void merge(AggregationBuffer agg, Object partialRes) throws HiveException {
+    
     if (partialRes == null) {
       return;
     }

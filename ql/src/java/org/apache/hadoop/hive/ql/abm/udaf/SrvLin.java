@@ -13,9 +13,9 @@ public class SrvLin  extends AbstractGenericUDAFResolver {
   public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters)
 			throws SemanticException {
 
-		if(parameters.length < 2)
+		if(parameters.length != 1)
 		{
-			throw new UDFArgumentException("SrvLin: there should be at least two arguments!");
+			throw new UDFArgumentException("SrvLin: there should be only one arguments!");
 		}
 
 		if(parameters[0].getCategory() != ObjectInspector.Category.PRIMITIVE)
@@ -23,7 +23,7 @@ public class SrvLin  extends AbstractGenericUDAFResolver {
   			throw new UDFArgumentException("Tid must be primitive data types!");
   	}
 
-    return new LinEvaluator();
+    return new LineageMergeEvaluator();
 
 	}
 }

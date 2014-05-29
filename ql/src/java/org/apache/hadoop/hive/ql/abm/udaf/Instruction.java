@@ -7,6 +7,7 @@ import java.util.List;
 
 public class Instruction {
 
+  private int tmp = -1;
   private final IntArrayList groupInstruction = new IntArrayList();
   private final List<Merge> mergeInstruction = new ArrayList<Merge>();
 
@@ -26,9 +27,22 @@ public class Instruction {
     return mergeInstruction;
   }
 
-  public void reset() {
-    groupInstruction.clear();;
+  public void resetGroupInstruction() {
+    groupInstruction.clear();
+  }
+  
+  public void resetMergeInstruction() {
     mergeInstruction.clear();
   }
+  
+  public void fakeIterate()
+  {
+    tmp ++;
+    if(tmp == 3)
+      tmp = -1;
+    groupInstruction.add(tmp);
+  }
+  
+  
 
 }

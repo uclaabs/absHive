@@ -1,6 +1,10 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
+import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
@@ -17,8 +21,8 @@ public class SrvCompareConstant  extends GenericUDF {
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
 
-    if (arguments.length != 2) {
-      throw new UDFArgumentException("This function takes exactly two arguments: Srv_ID, Constant Value");
+    if (arguments.length > 3) {
+      throw new UDFArgumentException("This function takes at most three arguments: Srv_ID, Constant Value");
     }
 
     inputIDOI = (PrimitiveObjectInspector) arguments[0];
@@ -27,7 +31,6 @@ public class SrvCompareConstant  extends GenericUDF {
     if(!(inputIDOI instanceof IntObjectInspector)) {
       throw new UDFArgumentException("Srv_ID must be integer!");
     }
-
 
     ret = this.initRet();
     return CondGroup.condGroupInspector;
@@ -52,7 +55,10 @@ public class SrvCompareConstant  extends GenericUDF {
   protected Object initRet()
   {
     CondGroup condGroup = new CondGroup();
-    condGroup.initialize();
+    List<ConditionRange> rangeArray = new ArrayList<ConditionRange>(1);
+    rangeArray.add(new ConditionRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
+    condGroup.addKey(-1);
+    condGroup.addRangeList(rangeArray);
     return condGroup.toArray();
   }
 

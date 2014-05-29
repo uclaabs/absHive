@@ -45,6 +45,7 @@ public class Merge {
   }
 
   public void enumerate(UDAFComputation compute) {
+    
     if (dimIndexes.size() == 0) {
       return;
     }
@@ -160,6 +161,8 @@ public class Merge {
         // terminate
         op.terminate();
       }
+      
+      op.reset();
     }
   }
 

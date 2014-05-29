@@ -8,6 +8,8 @@ public abstract class UDAFComputation {
   public abstract void partialTerminate(int level, int start, int end);
 
   public abstract void terminate();
+  
+  public abstract void reset();
 
   public abstract void unfold();
 
