@@ -29,6 +29,7 @@
     <!-- abm specific package -->
     <dependency org="it.unimi.dsi" name="fastutil" rev="${fastutil.version}"/>
     <dependency org="com.googlecode.javaewah" name="JavaEWAH" rev="${javaewah.version}"/>
+    <dependency org="org.apache.commons" name="commons-math3" rev="${commons-math3.version}"/>
 
     <dependency org="edu.berkeley.cs.shark" name="hive-metastore" rev="${version}"
                 conf="compile->default" />
