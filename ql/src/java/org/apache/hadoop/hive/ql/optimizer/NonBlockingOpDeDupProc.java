@@ -75,7 +75,7 @@ public class NonBlockingOpDeDupProc implements Transform {
       SelectOperator pSEL = (SelectOperator) stack.get(stack.size() - 2);
       // ABM
       if (AbmUtilities.inAbmMode() &&
-          (cSEL.getConf().getCache() || pSEL.getConf().getCache())) {
+          (cSEL.getConf().isCached() || pSEL.getConf().isCached())) {
         return null;
       }
 

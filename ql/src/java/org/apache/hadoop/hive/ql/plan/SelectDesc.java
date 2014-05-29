@@ -42,7 +42,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   private boolean selStarNoCompute;
 
   // ABM
-  private boolean cache = false;
+  private boolean cached = false;
   private TableDesc tableDesc = null;
   private String tableName = null;
 
@@ -167,7 +167,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public void cache(String tableName) {
-    cache = true;
+    cached = true;
     assert !selStarNoCompute;
     tableDesc = generateTableDescToCache();
     this.tableName = tableName;
@@ -195,28 +195,28 @@ public class SelectDesc extends AbstractOperatorDesc {
         AbmUtilities.getQueryResultFileFormat());
   }
 
-  public void setCache(boolean cache) {
-    this.cache = cache;
+  public boolean isCached() {
+    return cached;
   }
 
-  public boolean getCache() {
-    return cache;
-  }
-
-  public void setTableDesc(TableDesc tableDesc) {
-    this.tableDesc = tableDesc;
+  public void setCached(boolean cached) {
+    this.cached = cached;
   }
 
   public TableDesc getTableDesc() {
     return tableDesc;
   }
 
-  public void setTableName(String tableName) {
-    this.tableName = tableName;
+  public void setTableDesc(TableDesc tableDesc) {
+    this.tableDesc = tableDesc;
   }
 
   public String getTableName() {
     return tableName;
+  }
+
+  public void setTableName(String tableName) {
+    this.tableName = tableName;
   }
 
   public boolean getSim() {
