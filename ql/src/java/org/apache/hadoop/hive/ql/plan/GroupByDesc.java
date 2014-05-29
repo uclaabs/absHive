@@ -72,10 +72,15 @@ public class GroupByDesc extends AbstractOperatorDesc {
   private boolean dontResetAggrsDistinct;
 
   // ABM
-  private long[] lineageToLoad = null;
-  // ABM
-  private long broadcastId = 0;
-  private ArrayList<Integer> valColsInLineage = null;
+  private boolean uncertain = false;
+
+  public boolean getUncertain() {
+    return uncertain;
+  }
+
+  public void setUncertain(boolean uncertain) {
+    this.uncertain = uncertain;
+  }
 
   public GroupByDesc() {
   }
@@ -268,7 +273,6 @@ public class GroupByDesc extends AbstractOperatorDesc {
     return isDistinct;
   }
 
-
   public void setDistinct(boolean isDistinct) {
     this.isDistinct = isDistinct;
   }
@@ -281,27 +285,4 @@ public class GroupByDesc extends AbstractOperatorDesc {
     this.dontResetAggrsDistinct = dontResetAggrsDistinct;
   }
 
-  public long[] getLineageToLoad() {
-    return lineageToLoad;
-  }
-
-  public void setLineageToLoad(long[] lineageIds) {
-    lineageToLoad = lineageIds;
-  }
-
-  public long getBroadcastId() {
-    return broadcastId;
-  }
-
-  public void setBroadcastId(long id) {
-    broadcastId = id;
-  }
-
-  public ArrayList<Integer> getValColsInLineage() {
-    return valColsInLineage;
-  }
-
-  public void setValColsInLineage(ArrayList<Integer> valCols) {
-    valColsInLineage = valCols;
-  }
 }
