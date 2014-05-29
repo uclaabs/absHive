@@ -1,7 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,137 +9,100 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
+/*
+ * updated 05/28/2014, convert condGroup from Struct<List<List>, List<List<List>>> to Struct{List, List<List>}
+ */
 public class CondGroup 
 {
-  int cnt;
-  List<List<Integer>> keys;
-  List<List<List<ConditionRange>>> ranges;
+  List<Integer> key;
+  List<List<ConditionRange>> range;
 
   public static List<String> columnNames = Arrays.asList("Keys", "Values");
 
-  public static ObjectInspector[] objectInspectors = {ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector)),
-    ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(ConditionRange.conditionRangeInspector)))};
-
-  public static List<ObjectInspector> objectInspectorType=Arrays.asList(objectInspectors);
+//  public static ObjectInspector[] objectInspectors = {ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector)),
+//    ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(ConditionRange.conditionRangeInspector)))};
+  
+  public static ObjectInspector[] objectInspectors = {ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector),
+    ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(ConditionRange.conditionRangeInspector))};
+  
+  public static List<ObjectInspector> objectInspectorType = Arrays.asList(objectInspectors);
 
   public static StructObjectInspector condGroupInspector = ObjectInspectorFactory.getStandardStructObjectInspector(columnNames, objectInspectorType);
   
   public CondGroup()
   {
-    cnt = -1;
-    this.keys = new ArrayList<List<Integer>>();
-    this.ranges = new ArrayList<List<List<ConditionRange>>>();
+    this.key = new ArrayList<Integer>();
+    this.range = new ArrayList<List<ConditionRange>>();
   }
   
-  public void addGroup(IntArrayList keyList)
+  public CondGroup(List<Integer> keyList, List<List<ConditionRange>> rangeMatrix)
   {
-    cnt ++;
-    List<Integer> keyArray = new ArrayList<Integer>(keyList);
-    this.keys.add(keyArray);
-    List<List<ConditionRange>> rangeMatrix  = new ArrayList<List<ConditionRange>>();
-    for(int i = 0; i < keyList.size(); i ++)
-      rangeMatrix.add(new ArrayList<ConditionRange>());
-    this.ranges.add(rangeMatrix);
+    this.key = keyList;
+    this.range = rangeMatrix;
   }
   
-  public void addKeys(List<Integer> keyList)
-  {
-    this.keys.add(keyList);
+  public void addKey(int keyValue) {
+    this.key.add(keyValue);
   }
   
-  public void addRanges(List<List<ConditionRange>> rangeMatrix)
-  {
-    this.ranges.add(rangeMatrix);
+  public void addRangeList(List<ConditionRange> rangeList) {
+    this.range.add(rangeList);
   }
-
-  public void initialize()
-  {
-    // create a condition with one key and one range
-
-    // add key
-    List<Integer> theKey = new ArrayList<Integer>(1);
-    theKey.add(-1);
-    this.keys.add(theKey);
-
-    // add range
-    List<List<ConditionRange>> rangeMatrix = new ArrayList<List<ConditionRange>>(1);
-    List<ConditionRange> rangeArray = new ArrayList<ConditionRange>(1);
-    rangeArray.add(new ConditionRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
-    rangeMatrix.add(rangeArray);
-    this.ranges.add(rangeMatrix);
-  }
+  
+//  public static void update(Object condGroupObj, int id, double start, double end)
+//  {
+//    Object[] ret = (Object[])condGroupObj;
+//    ArrayList<Integer> keyArray = (ArrayList<Integer>)ret[0];
+//    Object[] rangeMatrix = (Object[])ret[1];
+//    
+//    keyArray.set(0, id);
+//    Object[] rangeArray = (Object[]) rangeMatrix[0];
+//    Object[] range = (Object[])rangeArray[0];
+//    range[0] = start;
+//    range[1] = end;
+//  }
   
   public static void update(Object condGroupObj, int id, double start, double end)
   {
-    Object[] ret = (Object[])condGroupObj;
-    Object[] keyObjs = (Object[])ret[0];
-    Object[] rangeObjs = (Object[])ret[1];
+    ArrayList<Object> ret = (ArrayList<Object>)condGroupObj;
+    ArrayList<Integer> keyArray = (ArrayList<Integer>)ret.get(0);
+    ArrayList<Object> rangeMatrix = (ArrayList<Object>)ret.get(1);
     
-    Object[] keyArray = (Object[])keyObjs[0];
-    keyArray[0] = id;
-    Object[] rangeMatrix = (Object[]) rangeObjs[0];
-    Object[] rangeArray = (Object[]) rangeMatrix[0];
-    Object[] range = (Object[])rangeArray[0];
-    range[0] = start;
-    range[1] = end;
+    keyArray.set(0, id);
+    ArrayList<Object> rangeArray = (ArrayList<Object>) rangeMatrix.get(0);
+    ArrayList<Object> range = (ArrayList<Object> )rangeArray.get(0);
+    range.set(0, start);
+    range.set(1, end);
   }
 
   public Object toArray()
-  {
-    Object[] keyObjs = new Object[this.keys.size()];
-    for(int i = 0; i < this.keys.size(); i ++) 
-      keyObjs[i] = this.keys.get(i).toArray();
+  { 
+//    Object[] rangeMatrix = new Object[this.range.size()];
+//    for(int j = 0; j < this.range.size(); j ++)
+//    {
+//      Object[] rangeArray = new Object[this.range.get(j).size()];
+//      for(int k = 0; k < this.range.get(j).size(); k ++)
+//      {
+//        rangeArray[k] = this.range.get(j).get(k).toArray();
+//      }
+//      rangeMatrix[j] = rangeArray;
+//    }
+//        Object[] ret = {this.key, rangeMatrix};
     
-    Object[] rangeObjs = new Object[this.ranges.size()];
-    for(int i = 0; i < this.ranges.size(); i ++)
+    List<Object> rangeMatrix = new ArrayList<Object>();
+    for(int j = 0; j < this.range.size(); j ++)
     {
-      Object[] rangeMatrix = new Object[this.ranges.get(i).size()];
-      for(int j = 0; j < this.ranges.get(i).size(); j ++)
+      List<Object> rangeArray = new ArrayList<Object>();
+      for(int k = 0; k < this.range.get(j).size(); k ++)
       {
-        Object[] rangeArray = new Object[this.ranges.get(i).get(j).size()];
-        for(int k = 0; k < this.ranges.get(i).get(j).size(); k ++)
-        {
-           rangeArray[k] = this.ranges.get(i).get(j).get(k).toArray();
-        }
-        rangeMatrix[j] = rangeArray;
+        rangeArray.add(this.range.get(j).get(k).toArray());
       }
-      rangeObjs[i] = rangeMatrix;
+      rangeMatrix.add(rangeArray);
     }
-
-    Object[] ret = {keyObjs, rangeObjs};
+    
+    List<Object> ret = new ArrayList<Object>();
+    ret.add(this.key);
+    ret.add(rangeMatrix);
     return ret;
   }
-  
-  public List<List<Integer>> getKeys()
-  {
-    return this.keys;
-  }
-  
-  public List<List<List<ConditionRange>>> getRanges()
-  {
-    return this.ranges;
-  }
-  
-  public List<List<ConditionRange>> getRangeMatrix()
-  {
-    return this.ranges.get(cnt);
-  }
-  
-  public List<List<ConditionRange>> getRangeMatrix(int i)
-  {
-    return this.ranges.get(i);
-  }
-  
-  public int getGroupNumber()
-  {
-    return this.cnt + 1;
-  }
-  
-  public void clear()
-  {
-    this.keys.clear();
-    this.ranges.clear();
-  }
-  
-
 }
