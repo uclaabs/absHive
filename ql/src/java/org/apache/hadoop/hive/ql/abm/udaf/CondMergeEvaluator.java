@@ -13,7 +13,6 @@ import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
 import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryStruct;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
@@ -25,7 +24,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import org.apache.hadoop.io.IntWritable;
 
 
-public class CondMergeEvaluator extends GenericUDAFEvaluator {
+public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   private final ListObjectInspector keyArrayOI = ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
   private final ListObjectInspector keyObjOI = ObjectInspectorFactory.getStandardListObjectInspector(keyArrayOI);
@@ -43,7 +42,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluator {
 
   private final KeyWrapper key = new KeyWrapper();
   private final List<ConditionRange> inputRange = new ArrayList<ConditionRange>();
-  protected Instruction ins = new Instruction();
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {

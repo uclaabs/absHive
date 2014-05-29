@@ -13,7 +13,6 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -26,14 +25,13 @@ import org.apache.hadoop.io.IntWritable;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
-public class LineageMergeEvaluator extends GenericUDAFEvaluator {
+public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   
   private final IntObjectInspector intOI = PrimitiveObjectInspectorFactory.javaIntObjectInspector;
   private final BinaryObjectInspector binaryOI = PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector;
   private final ListObjectInspector binaryListOI = ObjectInspectorFactory.getStandardListObjectInspector(binaryOI);
   private final ListObjectInspector partialOI = ObjectInspectorFactory.getStandardListObjectInspector(intOI);
   
-  private Instruction ins = new Instruction();
   
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {

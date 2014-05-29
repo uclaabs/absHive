@@ -11,7 +11,6 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryStruct;
@@ -24,7 +23,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspe
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 
-public class SrvSumEvaluator extends GenericUDAFEvaluator {
+public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
   
   protected final DoubleObjectInspector doubleOI = PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
   protected final ListObjectInspector doubleListOI = ObjectInspectorFactory.getStandardListObjectInspector(doubleOI);
@@ -36,7 +35,7 @@ public class SrvSumEvaluator extends GenericUDAFEvaluator {
   
   
   protected PrimitiveObjectInspector inputValueOI = null;
-  protected Instruction ins = new Instruction();
+  
   //TODO replace fake one with abm.util.tot
   protected int tot = 6000000;
   
@@ -105,7 +104,6 @@ public class SrvSumEvaluator extends GenericUDAFEvaluator {
     
     if (parameters[0] != null) {
       
-      // TODO fake instruction for testing
       int instruction = ins.getGroupInstruction().getInt(0);
       
       MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
@@ -151,7 +149,7 @@ public class SrvSumEvaluator extends GenericUDAFEvaluator {
     LazyBinaryArray binaryValues = (LazyBinaryArray)binaryStruct.getField(2);
     myagg.addBase(partialSum, partialSsum);
     
-    // TODO fake group instruction for testing
+
     IntArrayList instruction = ins.getGroupInstruction();
     
     int numEntries = binaryValues.getListLength(); // Number of map entry
