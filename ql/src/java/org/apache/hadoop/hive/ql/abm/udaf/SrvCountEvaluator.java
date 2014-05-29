@@ -72,8 +72,7 @@ public class SrvCountEvaluator  extends GenericUDAFEvaluatorWithInstruction  {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
     return myagg.getBaseCnt();
   }
-  
-
+ 
   @Override
   public void merge(AggregationBuffer agg, Object partial) throws HiveException {
     
@@ -86,10 +85,13 @@ public class SrvCountEvaluator  extends GenericUDAFEvaluatorWithInstruction  {
   public Object terminate(AggregationBuffer agg) throws HiveException {
     
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    SrvCountComputation compute = new SrvCountComputation(this.tot, myagg.getBaseCnt());
+    SrvCountComputation compute = new SrvCountComputation();
+    
+    compute.setCount(this.tot, myagg.getBaseCnt());
     List<Merge> instructions = ins.getMergeInstruction();
     
     for(int i = 0; i < instructions.size(); i ++) {
+      compute.addNewGroup();
       Merge merge = instructions.get(i);
       merge.enumerate(compute);
     }
