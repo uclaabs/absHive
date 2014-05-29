@@ -65,6 +65,7 @@ import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterConstant;
 import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqualConstant;
 import org.apache.hadoop.hive.ql.abm.udf.SrvLessConstant;
 import org.apache.hadoop.hive.ql.abm.udf.SrvLessEqualConstant;
+import org.apache.hadoop.hive.ql.abm.udf.return_test;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
@@ -440,6 +441,7 @@ public final class FunctionRegistry {
 
     registerGenericUDF("gen_id", GenRowId.class);
     registerGenericUDF("cond_join" , ConditionJoin.class);
+    registerGenericUDF("return_test" , return_test.class);
     //registerGenericUDF("cond_join" , CondJoin.class);
 
 //    registerGenericUDF("srv_equal_or_less_than" , SrvLessEqualConstant.class);
