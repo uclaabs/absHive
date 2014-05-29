@@ -74,14 +74,6 @@ public class GroupByDesc extends AbstractOperatorDesc {
   // ABM
   private boolean uncertain = false;
 
-  public boolean getUncertain() {
-    return uncertain;
-  }
-
-  public void setUncertain(boolean uncertain) {
-    this.uncertain = uncertain;
-  }
-
   public GroupByDesc() {
   }
 
@@ -283,6 +275,14 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   public void setDontResetAggrsDistinct(boolean dontResetAggrsDistinct) {
     this.dontResetAggrsDistinct = dontResetAggrsDistinct;
+  }
+
+  public boolean isUncertain() {
+    return uncertain;
+  }
+
+  public void setUncertain(boolean uncertain) {
+    this.uncertain = uncertain;
   }
 
 }
