@@ -63,9 +63,6 @@ public class SrvSumComputation extends UDAFComputation {
   @Override
   public void unfold() {
     
-    this.result.add(confidenceLower);
-    this.result.add(confidenceUpper);
-    
     unfoldSrvList(0, this.baseSum, this.baseSsum);
     
     addDistribution(this.baseSum,this.baseSsum);

@@ -190,5 +190,10 @@ public final class AbmUtilities {
   public static ErrorMeasure getErrorMeasure() {
     return measure;
   }
+  
+  //TODO fix this
+  public static int getTotalTupleNumber() {
+    return 6000000;
+  }
 
 }

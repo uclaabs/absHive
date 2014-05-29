@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
@@ -37,7 +38,7 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
   protected PrimitiveObjectInspector inputValueOI = null;
   
   //TODO replace fake one with abm.util.tot
-  protected int tot = 6000000;
+  protected int tot = AbmUtilities.getTotalTupleNumber();
   
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
