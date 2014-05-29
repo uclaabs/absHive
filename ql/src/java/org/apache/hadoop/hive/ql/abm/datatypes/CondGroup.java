@@ -74,6 +74,20 @@ public class CondGroup
     range.set(0, start);
     range.set(1, end);
   }
+  
+  public static void update(Object condGroupObj, int id1, int id2, double start, double end)
+  {
+    ArrayList<Object> ret = (ArrayList<Object>)condGroupObj;
+    ArrayList<Integer> keyArray = (ArrayList<Integer>)ret.get(0);
+    ArrayList<Object> rangeMatrix = (ArrayList<Object>)ret.get(1);
+    
+    keyArray.set(0, id1);
+    keyArray.set(1, id2);
+    ArrayList<Object> rangeArray = (ArrayList<Object>) rangeMatrix.get(0);
+    ArrayList<Object> range = (ArrayList<Object> )rangeArray.get(0);
+    range.set(0, start);
+    range.set(1, end);
+  }
 
   public Object toArray()
   { 
