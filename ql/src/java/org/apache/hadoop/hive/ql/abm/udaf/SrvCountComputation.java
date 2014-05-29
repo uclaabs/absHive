@@ -14,11 +14,11 @@ public class SrvCountComputation extends UDAFComputation {
   protected int baseCnt = 0;
   protected int currentCnt = 0;
   protected int groupCnt = -1;
-  protected double confidenceLower = 0;
-  protected double confidenceUpper = 0;
+  protected double confidenceLower = Double.POSITIVE_INFINITY;
+  protected double confidenceUpper = Double.NEGATIVE_INFINITY;
  
   
-  public SrvCountComputation (int tot, int base) {
+  public void setCount (int tot, int base) {
     this.N = tot;
     this.baseCnt = base;
   }

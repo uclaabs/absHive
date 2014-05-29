@@ -16,16 +16,13 @@ public class CaseSumEvaluator extends SrvSumEvaluator {
     Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
     List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
     double sum = 0;
-    double cnt = 0;
     
     public void addBase(double value) {
       this.sum += value;
-      this.cnt += 1;
     }
     
-    public void addBase(double partialSum, double partialCnt) {
+    public void addBase(double partialSum, double partialSsum) {
       this.sum += partialSum;
-      this.cnt += partialCnt;
     }
     
     public Object getPartialResult() {
@@ -35,13 +32,13 @@ public class CaseSumEvaluator extends SrvSumEvaluator {
         partialResult.add(entry.getValue());
       }
       ret[0] = this.sum;
-      ret[1] = this.cnt;
+      ret[1] = 0;
       ret[2] = partialResult;
       return ret;
     }
     
     public void reset() {
-      sum = cnt = 0;
+      sum = 0;
       groups.clear();
       partialResult.clear();
     }
@@ -56,7 +53,7 @@ public class CaseSumEvaluator extends SrvSumEvaluator {
     
     int i = 0;
     compute.setTotalNumber(tot);
-    compute.setBase(myagg.sum, myagg.cnt);
+    compute.setBase(myagg.sum);
     for(Map.Entry<Integer, DoubleArrayList> entry: myagg.groups.entrySet()) {
       
       compute.setCurrentList(entry.getValue());

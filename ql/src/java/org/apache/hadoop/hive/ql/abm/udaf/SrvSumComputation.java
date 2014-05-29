@@ -17,8 +17,8 @@ public class SrvSumComputation extends UDAFComputation {
   
   protected double currentSum = 0;
   protected double currentSsum = 0;
-  protected double confidenceLower = 0;
-  protected double confidenceUpper = 0;
+  protected double confidenceLower = Double.POSITIVE_INFINITY;
+  protected double confidenceUpper = Double.NEGATIVE_INFINITY;
 
   public void setTotalNumber(int N) {
     this.N = N;
