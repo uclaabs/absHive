@@ -133,6 +133,14 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
     return myagg.getPartialResult();
   }
   
+  protected LazyBinaryArray parsePartialInput(AggregationBuffer agg, LazyBinaryStruct binaryStruct) {
+    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
+    double partialSum = ((DoubleWritable)binaryStruct.getField(0)).get();
+    double partialSsum = ((DoubleWritable)binaryStruct.getField(1)).get(); 
+    myagg.addBase(partialSum, partialSsum);
+    return (LazyBinaryArray)binaryStruct.getField(2);
+  }
+  
 
   @Override
   public void merge(AggregationBuffer agg, Object partial) throws HiveException {
@@ -144,13 +152,8 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
     
     LazyBinaryStruct binaryStruct =(LazyBinaryStruct) partial;
-    
-    double partialSum = ((DoubleWritable)binaryStruct.getField(0)).get();
-    double partialSsum = ((DoubleWritable)binaryStruct.getField(1)).get();    
-    LazyBinaryArray binaryValues = (LazyBinaryArray)binaryStruct.getField(2);
-    myagg.addBase(partialSum, partialSsum);
-    
-
+    LazyBinaryArray binaryValues = parsePartialInput(agg, binaryStruct);
+   
     IntArrayList instruction = ins.getGroupInstruction();
     
     int numEntries = binaryValues.getListLength(); // Number of map entry

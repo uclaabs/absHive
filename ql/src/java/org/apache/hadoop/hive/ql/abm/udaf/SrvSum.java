@@ -13,7 +13,7 @@ public class SrvSum extends AbstractGenericUDAFResolver {
       throws SemanticException {
 
     if (parameters.length != 1) {
-      throw new UDFArgumentException("sum_srv takes only one argument!");
+      throw new UDFArgumentException("srv_avg takes only one argument!");
     }
 
     return new SrvSumEvaluator();
