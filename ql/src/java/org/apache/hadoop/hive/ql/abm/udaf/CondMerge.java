@@ -17,12 +17,12 @@ public class CondMerge extends AbstractGenericUDAFResolver {
     } else if (parameters.length == 1) {
       if (parameters[0].getCategory() != ObjectInspector.Category.STRUCT) {
         throw new UDFArgumentException(
-            "Condition_merge only process condition struct!; Current Type is: "
-                + parameters[0].getCategory());
+            "cond_merge takes struct condition as input, but "
+                + parameters[0].getCategory() + " is passed");
       }
       return new CondMergeEvaluator();
     } else {
-      throw new UDFArgumentException("Condition_merge takes only at most one argument!");
+      throw new UDFArgumentException("cond_merge takes at most one argument!");
     }
   }
 
