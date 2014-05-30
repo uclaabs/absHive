@@ -5,11 +5,11 @@ public class CaseCountComputation extends SrvCountComputation {
   public void setCount(int cnt) {
     this.baseCnt = cnt;
   }
-  
+
+  @Override
   protected void addDistribution(double cnt) {
-    
     this.result.add(cnt);
-    
+
     if(cnt < this.confidenceLower) {
       this.confidenceLower = cnt;
     }
@@ -17,9 +17,5 @@ public class CaseCountComputation extends SrvCountComputation {
       this.confidenceUpper = cnt;
     }
   }
-  
-  
-  
-  
 
 }

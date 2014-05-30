@@ -20,8 +20,9 @@ public class SorterFactory {
     }
   }
 
-  public static abstract class Sorter implements IntComparator, Swapper{
+  public static abstract class Sorter implements IntComparator, Swapper {
     public abstract IntArrayList getIndexes();
+
     public abstract boolean getFlag();
   }
 
@@ -34,9 +35,9 @@ public class SorterFactory {
     public AscendSorter(List<ConditionRange> conditions, boolean f) {
       this.indexes = new IntArrayList(conditions.size());
 
-    for (int i = 0; i < conditions.size(); ++i) {
-      this.indexes.add(i);
-    }
+      for (int i = 0; i < conditions.size(); ++i) {
+        this.indexes.add(i);
+      }
 
       this.conditions = conditions;
       this.flag = f;

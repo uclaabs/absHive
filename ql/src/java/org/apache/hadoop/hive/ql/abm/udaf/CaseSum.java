@@ -11,12 +11,10 @@ public class CaseSum extends AbstractGenericUDAFResolver{
   @Override
   public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters)
       throws SemanticException {
-
     if (parameters.length != 1) {
       throw new UDFArgumentException("case_sum takes only one argument!");
     }
-
     return new CaseSumEvaluator();
   }
-  
+
 }

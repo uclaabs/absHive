@@ -16,7 +16,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
 public class LineageComputation extends UDAFComputation {
-  
+
   int groupCnt = -1;
   List<List<EWAHCompressedBitmap>> bitmaps = new ArrayList<List<EWAHCompressedBitmap>>();
   List<EWAHCompressedBitmap> result = new ArrayList<EWAHCompressedBitmap>();
@@ -24,7 +24,7 @@ public class LineageComputation extends UDAFComputation {
   IntAVLTreeSet newLineage = new IntAVLTreeSet();
   EWAHCompressedBitmap totalBitmap = null;
   IntArrayList currentLineage = null;
-  
+
   public void setGroupBitmap(IntArrayList lineage) {
     groupCnt ++;
     bitmaps.add(new ArrayList<EWAHCompressedBitmap>());
@@ -43,7 +43,7 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public void terminate() {
-    
+
     // create a new bitmap for current lineage
     EWAHCompressedBitmap bitMap = new EWAHCompressedBitmap();
     Iterator<Integer> it = this.newLineage.iterator();
@@ -55,30 +55,28 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
-    
     // first convert the total lineage to a bitmap
     IntListConverter converter = new IntListConverter();
     converter.setIntList(totalLineage);
     converter.sort();
     totalBitmap = converter.getBitmap();
-    
+
     unfoldLineageList(0, new EWAHCompressedBitmap());
     result.add(totalBitmap);
   }
-  
+
   private void unfoldLineageList(int level, EWAHCompressedBitmap bitmap) {
-    
     boolean leaf = (level == this.groupCnt);
-    
+
     for(int i = 0; i < this.bitmaps.get(level).size(); i ++) {
-      
       EWAHCompressedBitmap tmpBitmap = this.bitmaps.get(level).get(i);
-      
+
+      // TODO: use xor(BitMap...)
       if(leaf) {
         result.add(totalBitmap.xor(bitmap.or(tmpBitmap)));
       } else {
         unfoldLineageList(level + 1, bitmap.or(tmpBitmap));
-      }  
+      }
     }
   }
 
@@ -91,7 +89,7 @@ public class LineageComputation extends UDAFComputation {
     try {
       oo = new ObjectOutputStream(baos);
       for(int i = 0; i < result.size(); i ++) {
-        
+
         baos.reset();
         oo.reset();
         result.get(i).writeExternal(oo);
@@ -108,7 +106,6 @@ public class LineageComputation extends UDAFComputation {
   @Override
   public void reset() {
     this.newLineage.clear();
-    
   }
 
 }

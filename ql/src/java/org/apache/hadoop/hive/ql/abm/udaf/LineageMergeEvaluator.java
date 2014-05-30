@@ -26,32 +26,33 @@ import org.apache.hadoop.io.IntWritable;
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
 public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
-  
+
   private final IntObjectInspector intOI = PrimitiveObjectInspectorFactory.javaIntObjectInspector;
   private final BinaryObjectInspector binaryOI = PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector;
-  private final ListObjectInspector binaryListOI = ObjectInspectorFactory.getStandardListObjectInspector(binaryOI);
-  private final ListObjectInspector partialOI = ObjectInspectorFactory.getStandardListObjectInspector(intOI);
-  
-  
+  private final ListObjectInspector binaryListOI = ObjectInspectorFactory
+      .getStandardListObjectInspector(binaryOI);
+  private final ListObjectInspector partialOI = ObjectInspectorFactory
+      .getStandardListObjectInspector(intOI);
+
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
-    
-    if (m == Mode.PARTIAL1||!(parameters[0] instanceof ListObjectInspector)) {
+
+    if (m == Mode.PARTIAL1 || !(parameters[0] instanceof ListObjectInspector)) {
       return partialOI;
     } else {
-     return binaryListOI;
+      return binaryListOI;
     }
   }
-  
+
   private static class MyAggregationBuffer implements AggregationBuffer {
     Map<Integer, IntArrayList> groups = new LinkedHashMap<Integer, IntArrayList>();
-    
+
     public void reset() {
       groups.clear();
     }
   }
-  
+
   protected EWAHCompressedBitmap parseBitmap(Object partialRes) {
     byte[] partialKeys = ((BytesWritable) partialRes).getBytes();
 
@@ -80,19 +81,15 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-   
     if (parameters[0] != null) {
-      
-      // TODO fake instruction for testing
-      ins.fakeIterate();
       int instruction = ins.getGroupInstruction().getInt(0);
-      
-      if(instruction >= 0){
+
+      if (instruction >= 0) {
         MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-        int tupleID = ((IntObjectInspector)this.intOI).get(parameters[0]);
+        int tupleID = ((IntObjectInspector) this.intOI).get(parameters[0]);
         IntArrayList lineageList = myagg.groups.get(instruction);
-        
-        if(lineageList == null) {
+
+        if (lineageList == null) {
           lineageList = new IntArrayList();
           lineageList.add(tupleID);
           myagg.groups.put(instruction, lineageList);
@@ -101,81 +98,78 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
         }
       }
     }
-    
   }
 
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-    
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
+    // TODO: reuse; use ArrayList<Object>
     Object[] values = new Object[myagg.groups.size()];
-    
+
     int i = 0;
-    for(Map.Entry<Integer, IntArrayList> entry:myagg.groups.entrySet()) {
+    for (Map.Entry<Integer, IntArrayList> entry : myagg.groups.entrySet()) {
       values[i] = entry.getValue().toArray();
-      i ++;
+      i++;
     }
-    
+
     return values;
   }
 
   @Override
   public void merge(AggregationBuffer agg, Object partial) throws HiveException {
-    
     if (!(partial instanceof LazyBinaryArray)) {
       throw new UDFArgumentException("LineageMerge: Unknown Data Type");
     }
-    
+
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
     LazyBinaryArray binaryValues = (LazyBinaryArray) partial;
-    
-    // TODO fake group instruction for testing
+
     IntArrayList instruction = ins.getGroupInstruction();
-    
+
     int numEntries = binaryValues.getListLength(); // Number of map entry
-    
+
     for (int i = 0; i < numEntries; i++) {
 
       LazyBinaryArray lazyIntArray = (LazyBinaryArray) binaryValues.getListElementObject(i);
       int key = instruction.getInt(i);
       IntArrayList currentList = myagg.groups.get(key);
-      
-      if(currentList == null) {
+
+      if (currentList == null) {
         currentList = new IntArrayList();
         myagg.groups.put(key, currentList);
       }
-      
-      for(int j = 0; j < lazyIntArray.getListLength(); j ++) {
-        currentList.add(((IntWritable)lazyIntArray.getListElementObject(j)).get());
+
+      for (int j = 0; j < lazyIntArray.getListLength(); j++) {
+        currentList.add(((IntWritable) lazyIntArray.getListElementObject(j)).get());
       }
-      
+
     }
   }
 
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
-    
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
+    // TODO: reuse
     LineageComputation compute = new LineageComputation();
     List<Merge> instructions = ins.getMergeInstruction();
-    
+
     int i = 0;
-    for(Map.Entry<Integer, IntArrayList> entry: myagg.groups.entrySet()) {
-      
+    for (Map.Entry<Integer, IntArrayList> entry : myagg.groups.entrySet()) {
+
       compute.setGroupBitmap(entry.getValue());
       Merge merge = instructions.get(i);
       merge.enumerate(compute);
-      i ++;
+      i++;
     }
     return compute.getFinalResult();
   }
 
 }
 
-  class IntListConverter implements IntComparator, Swapper {
-  
+class IntListConverter implements IntComparator, Swapper {
+
   IntArrayList intList = null;
-  
+
   public void setIntList(IntArrayList inputList) {
     intList = inputList;
   }
@@ -184,7 +178,7 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public int compare(Integer arg0, Integer arg1) {
     return Double.compare(intList.getInt(arg0), intList.getInt(arg1));
   }
-  
+
   @Override
   public int compare(int arg0, int arg1) {
     return Double.compare(intList.getInt(arg0), intList.getInt(arg1));
@@ -196,18 +190,17 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     intList.set(arg0, intList.getInt(arg1));
     intList.set(arg1, tmp);
   }
-  
+
   public void sort() {
     it.unimi.dsi.fastutil.Arrays.quickSort(0, intList.size(), this, this);
   }
-  
+
   public EWAHCompressedBitmap getBitmap() {
-    
     EWAHCompressedBitmap bitmap = new EWAHCompressedBitmap();
-    for(int i = 0; i < intList.size(); i ++) {
+    for (int i = 0; i < intList.size(); i++) {
       bitmap.set(intList.getInt(i));
     }
 
-    return bitmap;    
+    return bitmap;
   }
 }

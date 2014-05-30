@@ -30,19 +30,17 @@ public class Instruction {
   public void resetGroupInstruction() {
     groupInstruction.clear();
   }
-  
+
   public void resetMergeInstruction() {
     mergeInstruction.clear();
   }
-  
-  public void fakeIterate()
-  {
+
+  public void fakeIterate() {
     tmp ++;
-    if(tmp == 3)
+    if(tmp == 3) {
       tmp = -1;
+    }
     groupInstruction.add(tmp);
   }
-  
-  
 
 }

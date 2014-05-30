@@ -11,7 +11,7 @@ import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 
 public class ConditionComputation extends UDAFComputation {
 
-  private CondGroups condGroups = new CondGroups();
+  private final CondGroups condGroups = new CondGroups();
   private CondGroup finalCondGroup = null;
   private List<List<ConditionRange>> rangeMatrix = null;
   private double[] newCondRanges = null;
@@ -69,12 +69,13 @@ public class ConditionComputation extends UDAFComputation {
 
     ConditionRange[] rangeArray = new ConditionRange[dim * condGroups.getGroupNumber()];
     unfoldRangeMatrix(0, rangeArray, unfoldRangeMatrix);
-    
+
+    // TODO: reuse
     this.finalCondGroup = new CondGroup(unfoldKeys, unfoldRangeMatrix);
   }
 
-  private void unfoldRangeMatrix(int level, ConditionRange[] rangeArray, List<List<ConditionRange>> rangeMatrix) {
-    
+  private void unfoldRangeMatrix(int level, ConditionRange[] rangeArray,
+      List<List<ConditionRange>> rangeMatrix) {
     boolean leaf = (level == condGroups.getGroupNumber() - 1);
 
     List<List<ConditionRange>> currentRangeMatrix = condGroups.getRangeMatrix(level);
@@ -107,7 +108,7 @@ public class ConditionComputation extends UDAFComputation {
   @Override
   public void reset() {
     // TODO Auto-generated method stub
-    
+
   }
 
 }
