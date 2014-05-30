@@ -39,10 +39,16 @@ public class CondGroup {
     this.key = new ArrayList<Integer>();
     this.range = new ArrayList<List<ConditionRange>>();
   }
+  
 
   public CondGroup(List<Integer> keyList, List<List<ConditionRange>> rangeMatrix) {
     this.key = keyList;
     this.range = rangeMatrix;
+  }
+  
+  public void clear() {
+    this.key.clear();
+    this.range.clear();
   }
 
   public void addKey(int keyValue) {

@@ -21,6 +21,15 @@ public class SrvCountComputation extends UDAFComputation {
     this.N = tot;
     this.baseCnt = base;
   }
+  
+  public void clear() {
+    result.clear();
+    cntMatrix.clear();
+    currentCnt = 0;
+    confidenceLower = Double.POSITIVE_INFINITY;
+    confidenceUpper = Double.NEGATIVE_INFINITY;
+    groupCnt = -1;
+  }
 
   public void addNewGroup() {
     cntMatrix.add(new IntArrayList());

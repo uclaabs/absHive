@@ -64,10 +64,12 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     Map<IntArrayList, List<List<ConditionRange>>> groups =
         new LinkedHashMap<IntArrayList, List<List<ConditionRange>>>();
     Map<IntArrayList, Integer> keyIndexes = new HashMap<IntArrayList, Integer>();
+    ConditionComputation compute = new ConditionComputation();
 
     public void reset() {
       groups.clear();
       keyIndexes.clear();
+      compute.clear();
     }
 
     public int addRange(KeyWrapper key, List<ConditionRange> inputRange) {
@@ -248,18 +250,17 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    // TODO: reuse
-    ConditionComputation comp = new ConditionComputation();
+    ConditionComputation compute = myagg.compute;
 
     boolean set = false;
     for (Map.Entry<IntArrayList, List<List<ConditionRange>>> entry : myagg.groups.entrySet()) {
       IntArrayList keyArray = entry.getKey();
       List<List<ConditionRange>> rangeMatrix = entry.getValue();
       if (!set) {
-        comp.setCondGroup(rangeMatrix.size());
+        compute.setCondGroup(rangeMatrix.size());
         set = true;
       }
-      comp.setFields(keyArray, rangeMatrix);
+      compute.setFields(keyArray, rangeMatrix);
 
       Merge merge = new Merge();
       for (List<ConditionRange> rangeArray : rangeMatrix) {
@@ -267,11 +268,11 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       }
 
       ins.addMergeInstruction(merge);
-      comp.setFlags(merge.getFlags());
-      merge.enumerate(comp);
+      compute.setFlags(merge.getFlags());
+      merge.enumerate(compute);
     }
 
-    return comp.getFinalResult();
+    return compute.getFinalResult();
   }
 
 }

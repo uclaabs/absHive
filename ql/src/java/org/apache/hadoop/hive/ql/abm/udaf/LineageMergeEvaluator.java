@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntComparator;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,10 +47,24 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   }
 
   private static class MyAggregationBuffer implements AggregationBuffer {
+    
     Map<Integer, IntArrayList> groups = new LinkedHashMap<Integer, IntArrayList>();
-
+    LineageComputation compute = new LineageComputation();
+    List<Object> ret = new ArrayList<Object>();
+    
+    public Object getPartialResult() {
+      
+      ret.clear();
+      for (Map.Entry<Integer, IntArrayList> entry : groups.entrySet()) {
+        ret.add( entry.getValue());
+      }
+      return ret;
+    }
+    
     public void reset() {
       groups.clear();
+      compute.clear();
+      ret.clear();
     }
   }
 
@@ -103,16 +118,7 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    // TODO: reuse; use ArrayList<Object>
-    Object[] values = new Object[myagg.groups.size()];
-
-    int i = 0;
-    for (Map.Entry<Integer, IntArrayList> entry : myagg.groups.entrySet()) {
-      values[i] = entry.getValue().toArray();
-      i++;
-    }
-
-    return values;
+    return myagg.getPartialResult();
   }
 
   @Override
@@ -149,8 +155,7 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    // TODO: reuse
-    LineageComputation compute = new LineageComputation();
+    LineageComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;

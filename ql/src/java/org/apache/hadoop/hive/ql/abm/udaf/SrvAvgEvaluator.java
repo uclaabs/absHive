@@ -48,6 +48,8 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
 
     Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
     List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
+    List<Object> ret = new ArrayList<Object>();
+    SrvAvgComputation compute = new SrvAvgComputation();
     double baseSum = 0;
     double baseSsum = 0;
     int baseCnt = 0;
@@ -65,16 +67,16 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
     }
 
     public Object getPartialResult() {
-      // TODO: reuse
-      Object[] ret = new Object[2];
+
+      ret.clear();
       partialResult.clear();
       for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
         partialResult.add(entry.getValue());
       }
-      ret[0] = baseSum;
-      ret[1] = baseSsum;
-      ret[2] = baseCnt;
-      ret[3] = partialResult;
+      ret.add(baseSum);
+      ret.add(baseSsum);
+      ret.add(baseCnt);
+      ret.add(partialResult);
       return ret;
     }
 
@@ -83,6 +85,8 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
       baseCnt = 0;
       groups.clear();
       partialResult.clear();
+      ret.clear();
+      compute.clear();
     }
   }
 
@@ -99,8 +103,7 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    // TODO: reuse
-    SrvAvgComputation compute = new SrvAvgComputation();
+    SrvAvgComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;

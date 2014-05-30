@@ -42,6 +42,15 @@ public class SrvAvgComputation extends UDAFComputation {
     this.currentCnt = 0;
     this.groupCnt ++;
   }
+  
+  public void clear() {
+    result.clear();
+    doubleMatrix.clear();
+    currentList.clear();
+    confidenceLower = Double.POSITIVE_INFINITY;
+    confidenceUpper = Double.NEGATIVE_INFINITY;
+    groupCnt = -1;
+  }
 
   @Override
   public void iterate(int index) {

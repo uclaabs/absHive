@@ -14,7 +14,6 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   protected final ListObjectInspector doubleListOI = ObjectInspectorFactory
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
-  // TODO replace it with abm.util.tot
   protected int tot = AbmUtilities.getTotalTupleNumber();
 
   @Override
@@ -30,7 +29,8 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   protected static class MyAggregationBuffer implements AggregationBuffer {
 
-    private int baseCnt = 0;
+    int baseCnt = 0;
+    SrvCountComputation compute = new SrvCountComputation();
 
     public void addBase(int cnt) {
       baseCnt += cnt;
@@ -38,11 +38,9 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
     public void reset() {
       baseCnt = 0;
+      compute.clear();
     }
 
-    public int getBaseCnt() {
-      return this.baseCnt;
-    }
   }
 
   @Override
@@ -71,7 +69,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    return myagg.getBaseCnt();
+    return myagg.baseCnt;
   }
 
   @Override
@@ -84,10 +82,9 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    // TODO: reuse
-    SrvCountComputation compute = new SrvCountComputation();
+    SrvCountComputation compute = myagg.compute;
 
-    compute.setCount(this.tot, myagg.getBaseCnt());
+    compute.setCount(this.tot, myagg.baseCnt);
     List<Merge> instructions = ins.getMergeInstruction();
 
     for (int i = 0; i < instructions.size(); i++) {

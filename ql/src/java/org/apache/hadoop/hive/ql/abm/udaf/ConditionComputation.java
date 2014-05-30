@@ -12,7 +12,7 @@ import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 public class ConditionComputation extends UDAFComputation {
 
   private final CondGroups condGroups = new CondGroups();
-  private CondGroup finalCondGroup = null;
+  private CondGroup finalCondGroup = new CondGroup();
   private List<List<ConditionRange>> rangeMatrix = null;
   private double[] newCondRanges = null;
   private List<Boolean> flags = null;
@@ -26,6 +26,15 @@ public class ConditionComputation extends UDAFComputation {
   public void setFields(IntArrayList keyArray, List<List<ConditionRange>> rangeMatrix) {
     this.rangeMatrix = rangeMatrix;
     this.condGroups.addGroup(keyArray);
+  }
+  
+  public void clear() {
+    condGroups.clear();
+    finalCondGroup.clear();
+    rangeMatrix = null;
+    newCondRanges = null;
+    flags.clear();
+    dim = 0;
   }
 
   @Override

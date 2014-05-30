@@ -20,6 +20,7 @@ public class LineageComputation extends UDAFComputation {
   int groupCnt = -1;
   List<List<EWAHCompressedBitmap>> bitmaps = new ArrayList<List<EWAHCompressedBitmap>>();
   List<EWAHCompressedBitmap> result = new ArrayList<EWAHCompressedBitmap>();
+  EWAHCompressedBitmap[] recursiveList = null;
   IntArrayList totalLineage = new IntArrayList();
   IntAVLTreeSet newLineage = new IntAVLTreeSet();
   EWAHCompressedBitmap totalBitmap = null;
@@ -30,6 +31,17 @@ public class LineageComputation extends UDAFComputation {
     bitmaps.add(new ArrayList<EWAHCompressedBitmap>());
     currentLineage = lineage;
     totalLineage.addAll(lineage);
+  }
+  
+  public void clear() {
+    bitmaps.clear();
+    result.clear();
+    groupCnt = -1;
+    totalLineage.clear();
+    newLineage.clear();
+    totalBitmap = null;
+    currentLineage = null;
+    recursiveList = null;
   }
 
   @Override
@@ -55,28 +67,28 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
-    // first convert the total lineage to a bitmap
     IntListConverter converter = new IntListConverter();
     converter.setIntList(totalLineage);
     converter.sort();
     totalBitmap = converter.getBitmap();
-
-    unfoldLineageList(0, new EWAHCompressedBitmap());
+    this.recursiveList = new EWAHCompressedBitmap[this.groupCnt + 1];
+    unfoldLineageList(0);
     result.add(totalBitmap);
   }
 
-  private void unfoldLineageList(int level, EWAHCompressedBitmap bitmap) {
+  private void unfoldLineageList(int level) {
     boolean leaf = (level == this.groupCnt);
 
     for(int i = 0; i < this.bitmaps.get(level).size(); i ++) {
-      EWAHCompressedBitmap tmpBitmap = this.bitmaps.get(level).get(i);
-
-      // TODO: use xor(BitMap...)
+      
+      this.recursiveList[level] = this.bitmaps.get(level).get(i);
+      
       if(leaf) {
-        result.add(totalBitmap.xor(bitmap.or(tmpBitmap)));
+        result.add(totalBitmap.xor(this.recursiveList));
       } else {
-        unfoldLineageList(level + 1, bitmap.or(tmpBitmap));
+        unfoldLineageList(level + 1);
       }
+
     }
   }
 
@@ -97,7 +109,6 @@ public class LineageComputation extends UDAFComputation {
       }
       oo.close();
     } catch (IOException e) {
-      // TODO Auto-generated catch block
       e.printStackTrace();
     }
     return ret;

@@ -40,8 +40,6 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
 
   protected PrimitiveObjectInspector inputValueOI = null;
-
-  // TODO replace fake one with abm.util.tot
   protected int tot = AbmUtilities.getTotalTupleNumber();
 
   @Override
@@ -60,6 +58,8 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
   protected static class MyAggregationBuffer implements AggregationBuffer {
     Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
     List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
+    SrvSumComputation compute = new SrvSumComputation();
+    List<Object> ret = new ArrayList<Object>();
     double baseSum = 0;
     double baseSsum = 0;
 
@@ -74,15 +74,15 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
     }
 
     public Object getPartialResult() {
-      // TODO: reuse
-      Object[] ret = new Object[2];
+
+      ret.clear();
       partialResult.clear();
       for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
         partialResult.add(entry.getValue());
       }
-      ret[0] = baseSum;
-      ret[1] = baseSsum;
-      ret[2] = partialResult;
+      ret.add(baseSum);
+      ret.add(baseSsum);
+      ret.add(partialResult);
       return ret;
     }
 
@@ -90,6 +90,8 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
       baseSum = baseSsum = 0;
       groups.clear();
       partialResult.clear();
+      ret.clear();
+      compute.clear();
     }
   }
 
@@ -177,8 +179,7 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    // TODO: reuse
-    SrvSumComputation compute = new SrvSumComputation();
+    SrvSumComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;

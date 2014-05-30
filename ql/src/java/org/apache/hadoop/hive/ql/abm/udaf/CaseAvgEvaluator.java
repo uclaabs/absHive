@@ -15,6 +15,9 @@ public class CaseAvgEvaluator extends SrvAvgEvaluator {
 
     Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
     List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
+    List<Object> ret = new ArrayList<Object>();
+    CaseAvgComputation compute = new CaseAvgComputation();
+    
     double baseSum = 0;
     int baseCnt = 0;
 
@@ -29,15 +32,16 @@ public class CaseAvgEvaluator extends SrvAvgEvaluator {
     }
 
     public Object getPartialResult() {
-      Object[] ret = new Object[2];
+
+      ret.clear();
       partialResult.clear();
       for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
         partialResult.add(entry.getValue());
       }
-      ret[0] = baseSum;
-      ret[1] = 0;
-      ret[2] = baseCnt;
-      ret[3] = partialResult;
+      ret.add(baseSum);
+      ret.add(0);
+      ret.add(baseCnt);
+      ret.add(partialResult);
       return ret;
     }
 
@@ -46,14 +50,15 @@ public class CaseAvgEvaluator extends SrvAvgEvaluator {
       baseCnt = 0;
       groups.clear();
       partialResult.clear();
+      ret.clear();
+      compute.clear();
     }
   }
 
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    // TODO: reuse
-    CaseAvgComputation compute = new CaseAvgComputation();
+    CaseAvgComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;
