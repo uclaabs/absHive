@@ -11,7 +11,8 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
 import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
-import org.apache.hadoop.hive.ql.abm.datatypes.DataUtils;
+import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
+import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
@@ -20,9 +21,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.io.IntWritable;
 
 public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
@@ -45,7 +44,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       .getStandardStructObjectInspector(columnName, partialObjectInspectorType);
 
   private final StructObjectInspector condOI = CondGroup.condGroupInspector;
-  private final IntObjectInspector intOI = PrimitiveObjectInspectorFactory.javaIntObjectInspector;
 
   private final KeyWrapper key = new KeyWrapper();
   private final List<ConditionRange> inputRange = new ArrayList<ConditionRange>();
@@ -64,6 +62,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   private static class MyAggregationBuffer implements AggregationBuffer {
     Map<IntArrayList, List<List<ConditionRange>>> groups =
         new LinkedHashMap<IntArrayList, List<List<ConditionRange>>>();
+    Map<KeyWrapper, List<RangeList>> zk = new HashMap<KeyWrapper, List<RangeList>>();
     Map<IntArrayList, Integer> keyIndexes = new HashMap<IntArrayList, Integer>();
     ConditionComputation compute = new ConditionComputation();
 
@@ -93,6 +92,34 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
         index = groups.size();
         keyIndexes.put(newKey, index);
         groups.put(newKey, rangeGroup);
+      }
+
+      return index;
+    }
+
+    public int addRanges(KeyWrapper key, Object o, ListObjectInspector loi) {
+      List<RangeList> ranges = zk.get(key);
+      int index;
+
+      ListObjectInspector eoi = (ListObjectInspector) loi.getListElementObjectInspector();
+      int length = loi.getListLength(o);
+
+      if (ranges != null) {
+        for (int i = 0; i < length; ++i) {
+          ranges.get(i).addAll(loi.getListElement(o, i), eoi);
+        }
+        index = keyIndexes.get(key);
+      } else {
+        ranges = new ArrayList<RangeList>();
+        for (int i = 0; i < length; ++i) {
+          RangeList rl = new RangeList();
+          rl.addAll(loi.getListElement(o, i), eoi);
+          ranges.add(rl);
+        }
+        KeyWrapper newKey = key.copyKey();
+        index = groups.size();
+        keyIndexes.put(newKey, index);
+        zk.put(newKey, ranges);
       }
 
       return index;
@@ -151,28 +178,26 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       Object rangeMatrixObj = this.condOI.getStructFieldData(parameters[0],
           this.condOI.getStructFieldRef("Values"));
 
-      boolean baseFlag = true;
+      boolean isBase = true;
       for (int i = 0; i < this.rangeMatrixOI.getListLength(rangeMatrixObj); i++) {
         Object rangeArrayObj = this.rangeMatrixOI.getListElement(rangeMatrixObj, i);
-        baseFlag = ConditionRange.isBase(this.rangeArrayOI.getListElement(
-            rangeArrayObj, 0));
-        if (!baseFlag) {
+        if (!ConditionRange.isBase(this.rangeArrayOI.getListElement(
+            rangeArrayObj, 0))) {
+          isBase = false;
           break;
         }
       }
 
-      if (baseFlag) {
+      if (isBase) {
         ins.addGroupInstruction(-1);
         return;
       }
 
       // Otherwise...
-      // Get the input Condition and ID
-      key.newKey();
+      // Get the input id and condition
+      key.parseKey(keyObj, keyArrayOI);
+
       inputRange.clear();
-
-      DataUtils.parseIntArray(keyObj, keyArrayOI, key);
-
       for (int i = 0; i < this.rangeMatrixOI.getListLength(rangeMatrixObj); i++) {
         Object rangeArrayObj = this.rangeMatrixOI.getListElement(rangeMatrixObj, i);
         ConditionRange newConditionRange = new ConditionRange(this.rangeArrayOI.getListElement(
@@ -244,10 +269,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       LazyBinaryArray keyList = (LazyBinaryArray) binaryKeys.getListElementObject(i);
       LazyBinaryArray condRangeMatrix = (LazyBinaryArray) binaryValues.getListElementObject(i);
 
-      key.newKey();
-      for (int j = 0; j < keyList.getListLength(); j++) {
-        key.add(((IntWritable) keyList.getListElementObject(j)).get());
-      }
+      key.parseKey(keyList, keyArrayOI);
 
       ins.addGroupInstruction(myagg.addRanges(key, condRangeMatrix));
     }
