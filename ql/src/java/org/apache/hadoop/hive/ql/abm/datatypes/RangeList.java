@@ -17,6 +17,11 @@ public class RangeList extends DoubleArrayList {
     return getDouble((i << 1) + 1);
   }
 
+  @Override
+  public int size() {
+    return (super.size() >> 1);
+  }
+
   public void addAll(Object o, ListObjectInspector loi) {
     DoubleObjectInspector eoi = (DoubleObjectInspector) loi.getListElementObjectInspector();
     int length = loi.getListLength(o);
