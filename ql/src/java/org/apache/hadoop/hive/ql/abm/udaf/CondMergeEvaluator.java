@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
 import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
+import org.apache.hadoop.hive.ql.abm.datatypes.DataUtils;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
@@ -144,34 +145,39 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
     if (parameters[0] != null) {
-      // Get the input Condition and ID
-      key.newKey();
-      inputRange.clear();
-
+      // TODO: reuse condOI.getStructFieldRef
       Object keyObj = this.condOI.getStructFieldData(parameters[0],
           this.condOI.getStructFieldRef("Keys"));
       Object rangeMatrixObj = this.condOI.getStructFieldData(parameters[0],
           this.condOI.getStructFieldRef("Values"));
 
-      // // Assume there is only one key array in input
-      // Object keyObj = this.keyObjOI.getListElement(keysObj, 0);
-      // Object rangeMatrixObj = this.rangeObjOI.getListElement(rangesObj, 0);
-
-      for (int i = 0; i < this.keyArrayOI.getListLength(keyObj); i++) {
-        key.add(intOI.get(this.keyArrayOI.getListElement(keyObj, i)));
+      boolean baseFlag = true;
+      for (int i = 0; i < this.rangeMatrixOI.getListLength(rangeMatrixObj); i++) {
+        Object rangeArrayObj = this.rangeMatrixOI.getListElement(rangeMatrixObj, i);
+        baseFlag = ConditionRange.isBase(this.rangeArrayOI.getListElement(
+            rangeArrayObj, 0));
+        if (!baseFlag) {
+          break;
+        }
       }
 
-      boolean baseFlag = true;
+      if (baseFlag) {
+        ins.addGroupInstruction(-1);
+        return;
+      }
+
+      // Otherwise...
+      // Get the input Condition and ID
+      key.newKey();
+      inputRange.clear();
+
+      DataUtils.parseIntArray(keyObj, keyArrayOI, key);
+
       for (int i = 0; i < this.rangeMatrixOI.getListLength(rangeMatrixObj); i++) {
         Object rangeArrayObj = this.rangeMatrixOI.getListElement(rangeMatrixObj, i);
         ConditionRange newConditionRange = new ConditionRange(this.rangeArrayOI.getListElement(
             rangeArrayObj, 0));
-        baseFlag = newConditionRange.isBase();
         inputRange.add(newConditionRange);
-      }
-      if (baseFlag) {
-        ins.addGroupInstruction(-1);
-        return;
       }
 
       // Put the tuples in input Condition List to different groups

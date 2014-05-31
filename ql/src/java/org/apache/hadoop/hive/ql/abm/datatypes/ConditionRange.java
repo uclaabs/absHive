@@ -28,13 +28,13 @@ public class ConditionRange {
     this.start = doubleOI.get(conditionRangeInspector.getStructFieldData(rangeObj, conditionRangeInspector.getStructFieldRef("Start")));
     this.end = doubleOI.get(conditionRangeInspector.getStructFieldData(rangeObj, conditionRangeInspector.getStructFieldRef("End")));
   }
-  
+
   public ConditionRange(LazyBinaryStruct rangeBinaryStruct)
   {
     this.start = ((DoubleWritable)rangeBinaryStruct.getField(0)).get();
     this.end = ((DoubleWritable)rangeBinaryStruct.getField(1)).get();
   }
-  
+
   public ConditionRange(double left, double right)
   {
     this.start = left;
@@ -60,21 +60,23 @@ public class ConditionRange {
   {
     return this.end;
   }
-  
+
   public double getValue(boolean flag)
   {
-    if(flag)
+    if(flag) {
       return this.start;
-    else
+    } else {
       return this.end;
+    }
   }
-  
+
   public boolean getFlag()
   {
-    if(start == Double.NEGATIVE_INFINITY)
+    if(start == Double.NEGATIVE_INFINITY) {
       return false;
-    else
+    } else {
       return true;
+    }
   }
 
   public Object toArray()
@@ -85,23 +87,28 @@ public class ConditionRange {
     ret.add(this.end);
     return ret;
   }
-  
+
+  @Override
   public String toString()
   {
     return "(" + start + "\t" + end + ")";
   }
-  
+
+  @Override
   public ConditionRange clone()
   {
     return new ConditionRange(this.start, this.end);
   }
-  
-  public boolean isBase()
-  {
-    if(this.start == Double.NEGATIVE_INFINITY && this.end == Double.POSITIVE_INFINITY)
+
+  public static boolean isBase(Object rangeObj) {
+    double start = doubleOI.get(conditionRangeInspector.getStructFieldData(rangeObj, conditionRangeInspector.getStructFieldRef("Start")));
+    double end = doubleOI.get(conditionRangeInspector.getStructFieldData(rangeObj, conditionRangeInspector.getStructFieldRef("End")));
+
+    if(start == Double.NEGATIVE_INFINITY && end == Double.POSITIVE_INFINITY) {
       return true;
-    else
+    } else {
       return false;
+    }
   }
 
 }
