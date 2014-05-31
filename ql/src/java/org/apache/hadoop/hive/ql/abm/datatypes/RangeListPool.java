@@ -14,6 +14,7 @@ public class RangeListPool extends Stack<RangeList> {
   }
 
   public void yield(RangeList o) {
+    o.clear();
     this.push(o);
   }
 
