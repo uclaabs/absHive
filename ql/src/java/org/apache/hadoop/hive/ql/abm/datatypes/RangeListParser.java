@@ -34,8 +34,8 @@ public class RangeListParser extends Parser {
   public boolean isBase(Object o) {
     int length = oi.getListLength(o);
     for (int i = 0; i < length; i += 2) {
-      if (eoi.get(oi.getListElement(o, i)) == Double.NEGATIVE_INFINITY
-          && eoi.get(oi.getListElement(o, i + 1)) == Double.POSITIVE_INFINITY) {
+      if (eoi.get(oi.getListElement(o, i)) != Double.NEGATIVE_INFINITY
+          || eoi.get(oi.getListElement(o, i + 1)) != Double.POSITIVE_INFINITY) {
         return false;
       }
     }

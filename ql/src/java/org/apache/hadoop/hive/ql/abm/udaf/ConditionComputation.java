@@ -17,6 +17,7 @@ public class ConditionComputation extends UDAFComputation {
   private int dim = 0;
 
   public void setCondGroup(int dimension) {
+       
     dim = dimension;
     newCondRanges = new double[dimension * 2];
   }
@@ -30,7 +31,6 @@ public class ConditionComputation extends UDAFComputation {
     condGroups.clear();
     condList.clear();
     rangeMatrix = null;
-    flags.clear();
   }
 
   @Override
@@ -40,14 +40,15 @@ public class ConditionComputation extends UDAFComputation {
   @Override
   public void partialTerminate(int level, int start, int end) {
     boolean flag = flags.get(level);
+    RangeList rangeList = rangeMatrix.get(level);
     if (flag) {
-      newCondRanges[level * 2] = rangeMatrix.get(level).getValue(flag, start);
-      newCondRanges[level * 2 + 1] = (end == rangeMatrix.get(level).numCases()) ? Double.POSITIVE_INFINITY
-          : this.rangeMatrix.get(level).getValue(flag, end);
+      newCondRanges[level * 2] = rangeList.getLower(start);
+      newCondRanges[level * 2 + 1] = (end == rangeList.numCases()) ? Double.POSITIVE_INFINITY
+          : rangeList.getLower(end);
     } else {
-      newCondRanges[level * 2] = (end == rangeMatrix.get(level).numCases()) ? Double.NEGATIVE_INFINITY
-          : this.rangeMatrix.get(level).getValue(flag, end);
-      newCondRanges[level * 2 + 1] = rangeMatrix.get(level).getValue(flag, start);
+      newCondRanges[level * 2] = (end == rangeList.numCases()) ? Double.NEGATIVE_INFINITY
+          : rangeList.getUpper(end);
+      newCondRanges[level * 2 + 1] = rangeList.getUpper(start);
     }
   }
 
@@ -61,11 +62,15 @@ public class ConditionComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
+    
+    if(this.dim == 0)
+      return;
+    
     // unfold the conditions
     for (KeyWrapper currentKeys : condGroups.getKeys()) {
       condList.addKeys(currentKeys);
     }
-
+    
     for (int i = 0; i < dim * condGroups.getGroupNumber(); i++) {
      condList.addRanges(new RangeList());
     }

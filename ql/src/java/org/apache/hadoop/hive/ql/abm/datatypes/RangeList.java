@@ -26,14 +26,6 @@ public class RangeList extends DoubleArrayList {
     }
   }
 
-  public double getValue(boolean flag, int i) {
-    if (flag) {
-      return getLower(i);
-    } else {
-      return getUpper(i);
-    }
-  }
-
   public double getLower(int i) {
     return getDouble(i << 1);
   }

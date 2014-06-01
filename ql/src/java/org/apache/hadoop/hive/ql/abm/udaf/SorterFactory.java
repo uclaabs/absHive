@@ -8,9 +8,9 @@ import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 
 public class SorterFactory {
 
-  public static Sorter getSorter(RangeList conditions) {
+  public static Sorter getSorter(RangeList conditions, boolean flag) {
     assert !conditions.isEmpty();
-    boolean flag = conditions.getFlag();
+//    boolean flag = conditions.getFlag();
     if (flag) {
       return new AscendSorter(conditions, flag);
     } else {
@@ -48,9 +48,15 @@ public class SorterFactory {
 
     @Override
     public int compare(int arg0, int arg1) {
-      return Double.compare(
-          conditions.getValue(flag, this.indexes.getInt(arg0)),
-          conditions.getValue(flag, this.indexes.getInt(arg1)));
+      if(flag) {
+        return Double.compare(
+            conditions.getLower(this.indexes.getInt(arg0)),
+            conditions.getLower(this.indexes.getInt(arg1)));
+      } else {
+        return Double.compare(
+            conditions.getUpper(this.indexes.getInt(arg0)),
+            conditions.getUpper(this.indexes.getInt(arg1)));
+      }
     }
 
     @Override

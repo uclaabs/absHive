@@ -13,24 +13,28 @@ import org.apache.hadoop.hive.ql.abm.udaf.SorterFactory.Sorter;
 public class Merge {
 
   private int len = -1;
-  private final ArrayList<IntArrayList> dimIndexes = new ArrayList<IntArrayList>();
-  private final ArrayList<IntArrayList> dimEnds = new ArrayList<IntArrayList>();
-  private final ArrayList<Boolean> dimFlags = new ArrayList<Boolean>();
+  private ArrayList<IntArrayList> dimIndexes = new ArrayList<IntArrayList>();
+  private ArrayList<IntArrayList> dimEnds = new ArrayList<IntArrayList>();
+  private List<Boolean> dimFlags = null;
   private UDAFComputation op = null;
+  
+  public void setFlags(List<Boolean> flags) {
+    this.dimFlags = flags;
+  }
 
   public void addDimension(RangeList conditions) {
     if (len == -1) {
-      len = conditions.size();
+      len = conditions.numCases();
     } else {
-      assert len == conditions.size();
+      assert len == conditions.numCases();
     }
 
-    Sorter sorter = SorterFactory.getSorter(conditions);
+    Sorter sorter = SorterFactory.getSorter(conditions, dimFlags.get(dimIndexes.size()));
 
     Arrays.quickSort(0, len, sorter, sorter);
     IntArrayList indexes = sorter.getIndexes();
     dimIndexes.add(indexes);
-    dimFlags.add(sorter.getFlag());
+//    dimFlags.add(sorter.getFlag());
 
     IntArrayList ends = new IntArrayList(len);
     for (int i = 0; i < len;) {
@@ -165,8 +169,8 @@ public class Merge {
     }
   }
 
-  public List<Boolean> getFlags() {
-    return this.dimFlags;
-  }
+//  public List<Boolean> getFlags() {
+//    return this.dimFlags;
+//  }
 
 }
