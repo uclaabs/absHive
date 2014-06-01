@@ -202,7 +202,6 @@ public class RewriteProcFactory {
 
   }
 
-  @SuppressWarnings("unchecked")
   public static SelectOperator appendSelect(
       Operator<? extends OperatorDesc> op, RewriteProcCtx ctx, boolean afterGby,
       boolean forwardCondition, ExprNodeDesc... additionalConds) throws SemanticException {
