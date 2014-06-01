@@ -13,20 +13,23 @@ import org.apache.hadoop.hive.ql.abm.udaf.SorterFactory.Sorter;
 public class Merge {
 
   private int len = -1;
-  private ArrayList<IntArrayList> dimIndexes = new ArrayList<IntArrayList>();
-  private ArrayList<IntArrayList> dimEnds = new ArrayList<IntArrayList>();
-  private List<Boolean> dimFlags = null;
+  private final ArrayList<IntArrayList> dimIndexes = new ArrayList<IntArrayList>();
+  private final ArrayList<IntArrayList> dimEnds = new ArrayList<IntArrayList>();
+  private final List<Boolean> dimFlags;
   private UDAFComputation op = null;
-  
-  public void setFlags(List<Boolean> flags) {
-    this.dimFlags = flags;
+
+  public Merge(List<Boolean> flags, List<RangeList> rangeMatrix) {
+    dimFlags = flags;
+    for (RangeList rangeArray : rangeMatrix) {
+      addDimension(rangeArray);
+    }
   }
 
-  public void addDimension(RangeList conditions) {
+  private void addDimension(RangeList conditions) {
     if (len == -1) {
-      len = conditions.numCases();
+      len = conditions.size();
     } else {
-      assert len == conditions.numCases();
+      assert len == conditions.size();
     }
 
     Sorter sorter = SorterFactory.getSorter(conditions, dimFlags.get(dimIndexes.size()));
@@ -34,7 +37,6 @@ public class Merge {
     Arrays.quickSort(0, len, sorter, sorter);
     IntArrayList indexes = sorter.getIndexes();
     dimIndexes.add(indexes);
-//    dimFlags.add(sorter.getFlag());
 
     IntArrayList ends = new IntArrayList(len);
     for (int i = 0; i < len;) {
@@ -81,8 +83,7 @@ public class Merge {
             if (fstart >= 0 && !propagate) {
               // partialTerminate
 
-              op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend
-                  : indexes.getInt(fend));
+              op.partialTerminate(level, indexes.getInt(fstart));
 
               enumerate(level + 1, lineage);
               for (int l = 0; l < fend; ++l) {
@@ -111,8 +112,7 @@ public class Merge {
       }
       // check if there is unprocessed pair
       if (fstart >= 0) {
-        op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend
-            : indexes.getInt(fend));
+        op.partialTerminate(level, indexes.getInt(fstart));
         enumerate(level + 1, lineage);
         for (int l = 0; l < fend; ++l) {
           if (lineage.get(indexes.getInt(l)) > level) {
@@ -131,8 +131,7 @@ public class Merge {
             // if we already find a match, then we need to output the result of this match
             if (fstart >= 0 && !propagate) {
               // partial terminate
-              op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend
-                  : indexes.getInt(fend));
+              op.partialTerminate(level, indexes.getInt(fstart));
               // terminate
               op.terminate();
               propagate = true;
@@ -159,8 +158,7 @@ public class Merge {
       // check if there is unprocessed pair
       if (fstart >= 0) {
         // partial terminate
-        op.partialTerminate(level, indexes.getInt(fstart), (fend == indexes.size()) ? fend
-            : indexes.getInt(fend));
+        op.partialTerminate(level, indexes.getInt(fstart));
         // terminate
         op.terminate();
       }
@@ -168,9 +166,5 @@ public class Merge {
       op.reset();
     }
   }
-
-//  public List<Boolean> getFlags() {
-//    return this.dimFlags;
-//  }
 
 }

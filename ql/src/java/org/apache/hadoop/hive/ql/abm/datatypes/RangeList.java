@@ -14,28 +14,4 @@ public class RangeList extends DoubleArrayList {
     super(capacity);
   }
 
-  public boolean getFlag() {
-    int i = 0;
-    while (getLower(i) == Double.NEGATIVE_INFINITY && getUpper(i) == Double.POSITIVE_INFINITY) {
-      i++;
-    }
-    if (getLower(i) == Double.NEGATIVE_INFINITY) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  public double getLower(int i) {
-    return getDouble(i << 1);
-  }
-
-  public double getUpper(int i) {
-    return getDouble((i << 1) + 1);
-  }
-
-  public int numCases() {
-    return (super.size() >> 1);
-  }
-
 }

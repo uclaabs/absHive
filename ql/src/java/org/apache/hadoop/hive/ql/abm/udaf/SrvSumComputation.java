@@ -54,7 +54,7 @@ public class SrvSumComputation extends UDAFComputation {
   }
 
   @Override
-  public void partialTerminate(int level, int start, int end) {
+  public void partialTerminate(int level, int index) {
   }
 
   @Override

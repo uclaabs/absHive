@@ -4,7 +4,7 @@ public abstract class UDAFComputation {
 
   public abstract void iterate(int index);
 
-  public abstract void partialTerminate(int level, int start, int end);
+  public abstract void partialTerminate(int level, int index);
 
   public abstract void terminate();
 

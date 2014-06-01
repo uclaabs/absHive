@@ -9,17 +9,17 @@ import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 
 public class ConditionComputation extends UDAFComputation {
 
-  private final CondGroup condGroups = new CondGroup();
-  private final CondList condList = new CondList();
-  private List<RangeList> rangeMatrix = null;
-  private double[] newCondRanges = null;
-  private List<Boolean> flags = null;
-  private int dim = 0;
+  private final int dim;
+  private final double[] newCondRanges;
 
-  public void setCondGroup(int dimension) {
-       
+  private List<RangeList> rangeMatrix = null;
+  private final CondGroup condGroups = new CondGroup();
+
+  private final CondList condList = new CondList();
+
+  public ConditionComputation(int dimension) {
     dim = dimension;
-    newCondRanges = new double[dimension * 2];
+    newCondRanges = new double[dim];
   }
 
   public void setFields(KeyWrapper keyArray, List<RangeList> rangeMatrix) {
@@ -38,41 +38,32 @@ public class ConditionComputation extends UDAFComputation {
   }
 
   @Override
-  public void partialTerminate(int level, int start, int end) {
-    boolean flag = flags.get(level);
+  public void partialTerminate(int level, int index) {
     RangeList rangeList = rangeMatrix.get(level);
-    if (flag) {
-      newCondRanges[level * 2] = rangeList.getLower(start);
-      newCondRanges[level * 2 + 1] = (end == rangeList.numCases()) ? Double.POSITIVE_INFINITY
-          : rangeList.getLower(end);
-    } else {
-      newCondRanges[level * 2] = (end == rangeList.numCases()) ? Double.NEGATIVE_INFINITY
-          : rangeList.getUpper(end);
-      newCondRanges[level * 2 + 1] = rangeList.getUpper(start);
-    }
+    newCondRanges[level] = rangeList.get(index);
   }
 
   @Override
   public void terminate() {
+    List<RangeList> matrix = condGroups.getRangeMatrix();
     for (int i = 0; i < dim; i++) {
-      condGroups.getRangeMatrix().get(i).add(newCondRanges[2 * i]);
-      condGroups.getRangeMatrix().get(i).add(newCondRanges[2 * i + 1]);
+      matrix.get(i).add(newCondRanges[i]);
     }
   }
 
   @Override
   public void unfold() {
-    
-    if(this.dim == 0)
+    if (this.dim == 0) {
       return;
-    
+    }
+
     // unfold the conditions
     for (KeyWrapper currentKeys : condGroups.getKeys()) {
       condList.addKeys(currentKeys);
     }
-    
+
     for (int i = 0; i < dim * condGroups.getGroupNumber(); i++) {
-     condList.addRanges(new RangeList());
+      condList.addRanges(new RangeList());
     }
 
     double[] rangeArray = new double[dim * condGroups.getGroupNumber() * 2];
@@ -83,13 +74,11 @@ public class ConditionComputation extends UDAFComputation {
     boolean leaf = (level == condGroups.getGroupNumber() - 1);
 
     List<RangeList> currentRangeMatrix = condGroups.getRangeMatrix(level);
-    int rowNumber = currentRangeMatrix.get(0).numCases();
+    int rowNumber = currentRangeMatrix.get(0).size();
 
     for (int i = 0; i < rowNumber; i++) {
       for (int j = 0; j < dim; j++) {
-        int index = 2 * (level * dim + j);
-        rangeArray[index] = currentRangeMatrix.get(j).getLower(i);
-        rangeArray[index + 1] = currentRangeMatrix.get(j).getUpper(i);
+        rangeArray[level * dim + j] = currentRangeMatrix.get(j).get(i);
       }
 
       if (leaf) {
@@ -98,10 +87,6 @@ public class ConditionComputation extends UDAFComputation {
         unfoldRangeMatrix(level + 1, rangeArray);
       }
     }
-  }
-
-  public void setFlags(List<Boolean> flags) {
-    this.flags = flags;
   }
 
   @Override

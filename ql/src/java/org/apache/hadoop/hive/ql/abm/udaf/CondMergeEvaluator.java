@@ -33,19 +33,19 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   protected RangeMatrixParser rangeParser = null;
 
   protected ConditionComputation compute = null;
-  
-  // TODO: this variable should be set by shark 
-  // remember to remove the function fakeFlags 
+
+  // TODO: this variable should be set by shark
+  // remember to remove the function fakeFlags
   protected List<Boolean> flags = new ArrayList<Boolean>();
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
-    
-    if(parameters.length == 0) {
+
+    if (parameters.length == 0) {
       return null;
-    } 
-    
+    }
+
     if (parameters[0].getCategory() != ObjectInspector.Category.STRUCT) {
       throw new UDFArgumentLengthException("CondMerge: Incorrect Input Type");
     }
@@ -54,10 +54,9 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     List<? extends StructField> fields = inputOI.getAllStructFieldRefs();
     keyField = fields.get(0);
     rangeField = fields.get(1);
-    
+
     // TODO
     ins = new Instruction();
-
 
     if (m == Mode.PARTIAL1 || m == Mode.COMPLETE) {
       keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
@@ -80,23 +79,19 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     } else {
       // TODO remove later
       fakeFlags();
-      
-      compute = new ConditionComputation();
-      
       return CondList.condListOI;
-      
     }
 
   }
-  
-  // 
+
+  //
   protected void fakeFlags() {
-    this.flags.clear();
-    this.flags.add(true);
+    setFlags(Arrays.asList(true));
   }
-  
+
   public void setFlags(List<Boolean> flags) {
     this.flags = flags;
+    compute = new ConditionComputation(this.flags.size());
   }
 
   protected static class MyAggregationBuffer implements AggregationBuffer {
@@ -148,22 +143,22 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       partialRet[1] = rangeRet;
       return partialRet;
     }
-    
+
     public void status(String function) {
-      
+
       System.out.println("--------------------------------");
       System.out.println(function);
       for (Map.Entry<KeyWrapper, List<RangeList>> entry : groups.entrySet()) {
         KeyWrapper keyArray = entry.getKey();
         List<RangeList> rangeMatrix = entry.getValue();
         System.out.println("Key");
-        for(long key:keyArray) {
+        for (long key : keyArray) {
           System.out.print(key + "\t");
         }
         System.out.println();
         System.out.println("Range");
-        for(RangeList list:rangeMatrix) {
-          for(double range:list) {
+        for (RangeList list : rangeMatrix) {
+          for (double range : list) {
             System.out.print(range + "\t");
           }
           System.out.println();
@@ -187,9 +182,9 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-    
+
     if (parameters[0] != null) {
-      
+
       Object rangeObj = inputOI.getStructFieldData(parameters[0], rangeField);
 
       boolean isBase = rangeParser.isBase(rangeObj);
@@ -208,8 +203,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       // Set the instruction here
       ins.addGroupInstruction(inst);
     }
-    
-   
+
+
   }
 
   protected void print(List<Integer> list) {
@@ -223,7 +218,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-//    myagg.status("terminatePartial");
+    // myagg.status("terminatePartial");
     return myagg.getPartialObj();
   }
 
@@ -246,33 +241,20 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
       int inst = myagg.addRanges(key, rangeObj);
       ins.addGroupInstruction(inst);
-    }  
+    }
   }
 
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    
-    boolean set = false;
-    compute.setFlags(flags);
+
     for (Map.Entry<KeyWrapper, List<RangeList>> entry : myagg.groups.entrySet()) {
       KeyWrapper keyArray = entry.getKey();
       List<RangeList> rangeMatrix = entry.getValue();
-      
-      if (!set) {
-        compute.setCondGroup(rangeMatrix.size());
-        set = true;
-      }
       compute.setFields(keyArray, rangeMatrix);
 
-      Merge merge = new Merge();
-      merge.setFlags(flags);
-      for (RangeList rangeArray : rangeMatrix) {
-        merge.addDimension(rangeArray);
-      }
-
+      Merge merge = new Merge(flags, rangeMatrix);
       ins.addMergeInstruction(merge);
-      
       merge.enumerate(compute);
     }
 

@@ -10,35 +10,30 @@ public class SorterFactory {
 
   public static Sorter getSorter(RangeList conditions, boolean flag) {
     assert !conditions.isEmpty();
-//    boolean flag = conditions.getFlag();
     if (flag) {
-      return new AscendSorter(conditions, flag);
+      return new AscendSorter(conditions);
     } else {
-      return new DescendSorter(conditions, flag);
+      return new DescendSorter(conditions);
     }
   }
 
   public static abstract class Sorter implements IntComparator, Swapper {
     public abstract IntArrayList getIndexes();
-
-    public abstract boolean getFlag();
   }
 
   private static class AscendSorter extends Sorter {
 
     private final IntArrayList indexes;
     private final RangeList conditions;
-    private final boolean flag;
 
-    public AscendSorter(RangeList conditions, boolean f) {
-      this.indexes = new IntArrayList(conditions.size());
+    public AscendSorter(RangeList conditions) {
+      indexes = new IntArrayList(conditions.size());
 
       for (int i = 0; i < conditions.size(); ++i) {
-        this.indexes.add(i);
+        indexes.add(i);
       }
 
       this.conditions = conditions;
-      this.flag = f;
     }
 
     @Override
@@ -48,41 +43,30 @@ public class SorterFactory {
 
     @Override
     public int compare(int arg0, int arg1) {
-      if(flag) {
-        return Double.compare(
-            conditions.getLower(this.indexes.getInt(arg0)),
-            conditions.getLower(this.indexes.getInt(arg1)));
-      } else {
-        return Double.compare(
-            conditions.getUpper(this.indexes.getInt(arg0)),
-            conditions.getUpper(this.indexes.getInt(arg1)));
-      }
+      return Double.compare(
+          conditions.get(indexes.getInt(arg0)),
+          conditions.get(indexes.getInt(arg1)));
     }
 
     @Override
     public void swap(int arg0, int arg1) {
-      int tmpId = this.indexes.get(arg0);
-      this.indexes.set(arg0, this.indexes.get(arg1));
-      this.indexes.set(arg1, tmpId);
+      int tmpId = indexes.get(arg0);
+      indexes.set(arg0, indexes.get(arg1));
+      indexes.set(arg1, tmpId);
 
     }
 
     @Override
     public IntArrayList getIndexes() {
-      return this.indexes;
-    }
-
-    @Override
-    public boolean getFlag() {
-      return this.flag;
+      return indexes;
     }
 
   }
 
   private static class DescendSorter extends AscendSorter {
 
-    public DescendSorter(RangeList conditions, boolean f) {
-      super(conditions, f);
+    public DescendSorter(RangeList conditions) {
+      super(conditions);
     }
 
     @Override
