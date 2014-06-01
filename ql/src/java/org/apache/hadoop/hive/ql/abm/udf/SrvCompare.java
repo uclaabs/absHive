@@ -64,7 +64,7 @@ public class SrvCompare  extends GenericUDF {
   {
     CondList condList = new CondList();
     condList.addKey(-1);
-    condList.addPairRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+    condList.addRangeValue(Double.NaN);
     return condList.toArray();
   }
 

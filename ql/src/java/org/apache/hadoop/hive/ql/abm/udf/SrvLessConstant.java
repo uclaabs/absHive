@@ -7,7 +7,7 @@ public class SrvLessConstant extends SrvCompareConstant {
 	@Override
   protected void updateRet(long id, double value)
 	{
-		CondList.update(this.ret, id, Double.NEGATIVE_INFINITY, value);
+		CondList.update(this.ret, id, value);
 	}
 
 }

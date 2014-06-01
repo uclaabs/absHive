@@ -37,19 +37,18 @@ public class CondList {
   }
 
   @SuppressWarnings("unchecked")
-  public static void update(Object condListObj, long id, double start, double end) {
+  public static void update(Object condListObj, long id, double value) {
     Object[] ret = (Object[]) condListObj;
     KeyWrapper keyArray = (KeyWrapper) ret[0];
     ArrayList<Object> rangeMatrix = (ArrayList<Object>) ret[1];
 
     keyArray.set(0, id);
     RangeList rangeArray = (RangeList) rangeMatrix.get(0);
-    rangeArray.set(0, start);
-    rangeArray.set(1, end);
+    rangeArray.set(0, value);
   }
 
   @SuppressWarnings("unchecked")
-  public static void update(Object condListObj, long id1, long id2, double start, double end) {
+  public static void update(Object condListObj, long id1, long id2, double value) {
     Object[] ret = (Object[]) condListObj;
     KeyWrapper keyArray = (KeyWrapper) ret[0];
     ArrayList<Object> rangeMatrix = (ArrayList<Object>) ret[1];
@@ -57,18 +56,16 @@ public class CondList {
     keyArray.set(0, id1);
     keyArray.set(1, id2);
     RangeList rangeArray = (RangeList) rangeMatrix.get(0);
-    rangeArray.set(0, start);
-    rangeArray.set(1, end);
+    rangeArray.set(0, value);
   }
 
   public void addKey(long key) {
     this.keyList.add(key);
   }
-
-  public void addPairRange(double lower, double upper) {
+  
+  public void addRangeValue(double value) {
     RangeList newlist = new RangeList();
-    newlist.add(lower);
-    newlist.add(upper);
+    newlist.add(value);
     this.rangeMatrix.add(newlist);
   }
 
@@ -81,9 +78,12 @@ public class CondList {
   }
 
   public void addRange(double[] rangeArray) {
-    for (int i = 0; i < rangeArray.length / 2; i++) {
-      this.rangeMatrix.get(i).add(rangeArray[2 * i]);
-      this.rangeMatrix.get(i).add(rangeArray[2 * i + 1]);
+//    for (int i = 0; i < rangeArray.length / 2; i++) {
+//      this.rangeMatrix.get(i).add(rangeArray[2 * i]);
+//      this.rangeMatrix.get(i).add(rangeArray[2 * i + 1]);
+//    }
+    for(int i = 0; i < rangeArray.length; i ++) {
+      this.rangeMatrix.get(i).add(rangeArray[i]);
     }
   }
 

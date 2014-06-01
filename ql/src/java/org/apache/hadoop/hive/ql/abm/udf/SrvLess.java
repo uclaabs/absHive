@@ -8,9 +8,9 @@ public class SrvLess extends SrvCompare {
   protected void updateRet(long id, double value, double lower, double upper)
   {
     if(value > upper) {
-      CondList.update(this.ret, id, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+      CondList.update(this.ret, id, Double.POSITIVE_INFINITY);
     } else {
-      CondList.update(this.ret, id, Double.NEGATIVE_INFINITY, value);
+      CondList.update(this.ret, id, value);
     }
     
   }

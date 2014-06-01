@@ -53,7 +53,7 @@ public class ConditionComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
-    if (this.dim == 0) {
+    if (this.dim == 0 || this.condGroups.getGroupNumber() == 0) {
       return;
     }
 
@@ -66,7 +66,7 @@ public class ConditionComputation extends UDAFComputation {
       condList.addRanges(new RangeList());
     }
 
-    double[] rangeArray = new double[dim * condGroups.getGroupNumber() * 2];
+    double[] rangeArray = new double[dim * condGroups.getGroupNumber()];
     unfoldRangeMatrix(0, rangeArray);
   }
 
@@ -76,8 +76,8 @@ public class ConditionComputation extends UDAFComputation {
     List<RangeList> currentRangeMatrix = condGroups.getRangeMatrix(level);
     int rowNumber = currentRangeMatrix.get(0).size();
 
-    for (int i = 0; i < rowNumber; i++) {
-      for (int j = 0; j < dim; j++) {
+    for (int i = 0; i < rowNumber; i ++) {
+      for (int j = 0; j < dim; j ++) {
         rangeArray[level * dim + j] = currentRangeMatrix.get(j).get(i);
       }
 

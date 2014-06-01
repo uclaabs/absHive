@@ -27,7 +27,8 @@ public class DummyCondMergeEvaluator extends CondMergeEvaluator {
                   ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector))))
           );
     } else {
-      compute = new ConditionComputation();
+      // TODO remove later
+      fakeFlags();
       return CondList.condListOI;
       
     }

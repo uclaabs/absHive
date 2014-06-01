@@ -8,9 +8,9 @@ public class SrvGreater extends SrvCompare {
   protected void updateRet(long id, double value, double lower, double upper)
   {
     if(value < lower) {
-      CondList.update(this.ret, id, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+      CondList.update(this.ret, id, Double.NEGATIVE_INFINITY);
     } else {
-      CondList.update(this.ret, id, value, Double.POSITIVE_INFINITY);
+      CondList.update(this.ret, id, value);
     }
     
   }

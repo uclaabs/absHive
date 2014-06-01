@@ -8,7 +8,7 @@ public class SrvGreaterConstant extends SrvCompareConstant {
   @Override
   protected void updateRet(long id, double value)
   {
-    CondList.update(this.ret, id, value, Double.POSITIVE_INFINITY);
+    CondList.update(this.ret, id, value);
   }
 
 }

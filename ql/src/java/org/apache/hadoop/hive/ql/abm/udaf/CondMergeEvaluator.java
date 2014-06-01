@@ -84,7 +84,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   }
 
-  //
+  // TODO
   protected void fakeFlags() {
     setFlags(Arrays.asList(true));
   }

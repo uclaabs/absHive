@@ -9,5 +9,4 @@ public abstract class GenericUDAFEvaluatorWithInstruction extends GenericUDAFEva
   public void setInstruction(Instruction ins) {
     this.ins = ins;
   }
-
 }
