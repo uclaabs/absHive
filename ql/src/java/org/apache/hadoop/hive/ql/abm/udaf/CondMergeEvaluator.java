@@ -25,11 +25,13 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   private StructField keyField;
   private StructField rangeField;
 
-  private static List<String> columnName = Arrays.asList("Keys", "Ranges");
+  private static List<String> columnNames = Arrays.asList("Keys", "Ranges");
   private final KeyWrapper key = new KeyWrapper();
 
   private KeyWrapperParser keyParser = null;
   private RangeMatrixParser rangeParser = null;
+
+  private ConditionComputation compute = null;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
@@ -57,15 +59,16 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       // partialTerminate() will be called
-      return ObjectInspectorFactory.getStandardStructObjectInspector(columnName, Arrays.asList(
+      return ObjectInspectorFactory.getStandardStructObjectInspector(columnNames, Arrays.asList(
           (ObjectInspector) ObjectInspectorFactory.getStandardListObjectInspector(keyParser
               .getObjectInspector()),
           ObjectInspectorFactory.getStandardListObjectInspector(rangeParser.getObjectInspector())
           )
           );
     } else {
+      compute = new ConditionComputation();
       return ObjectInspectorFactory
-          .getStandardStructObjectInspector(columnName,
+          .getStandardStructObjectInspector(columnNames,
               Arrays.asList(keyParser.getObjectInspector(), rangeParser.getObjectInspector()));
     }
 
@@ -74,7 +77,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   private static class MyAggregationBuffer implements AggregationBuffer {
     Map<KeyWrapper, List<RangeList>> groups = new LinkedHashMap<KeyWrapper, List<RangeList>>();
     Map<KeyWrapper, Integer> keyIndexes = new LinkedHashMap<KeyWrapper, Integer>();
-    ConditionComputation compute = new ConditionComputation();
 
     Object[] partialRet = new Object[2];
     List<Object> keyRet = new ArrayList<Object>();
@@ -89,7 +91,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     public void reset() {
       groups.clear();
       keyIndexes.clear();
-      compute.clear();
     }
 
     public int addRanges(KeyWrapper key, Object o) {
@@ -166,8 +167,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    return myagg.getPartialObj();
+    return ((MyAggregationBuffer) agg).getPartialObj();
   }
 
   @Override
@@ -196,7 +196,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    ConditionComputation compute = myagg.compute;
 
     boolean set = false;
     for (Map.Entry<KeyWrapper, List<RangeList>> entry : myagg.groups.entrySet()) {
