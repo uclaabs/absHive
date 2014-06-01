@@ -30,9 +30,9 @@ public class ComparisonTransform extends BinaryTransform {
 
   private final Comparator comparator;
 
-  public ComparisonTransform(Transform left, Transform right, GenericUDF udf) {
+  public ComparisonTransform(Transform left, Transform right, Comparator comp) {
     super(left, right);
-    comparator = Comparator.get(udf);
+    comparator = comp;
   }
 
   public boolean isAscending() {

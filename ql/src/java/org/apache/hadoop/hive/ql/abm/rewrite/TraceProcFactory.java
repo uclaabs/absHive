@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
+import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform.Comparator;
 import org.apache.hadoop.hive.ql.abm.algebra.ConstantTransform;
 import org.apache.hadoop.hive.ql.abm.algebra.IdentityTransform;
 import org.apache.hadoop.hive.ql.abm.algebra.Transform;
@@ -216,9 +217,8 @@ public class TraceProcFactory {
 
           if (uncertain) {
             assert params.size() == 2;
-            ctx.addCondition(fil, new ComparisonTransform(params.get(0), params.get(1),
-                (udf instanceof GenericUDFOPEqualOrGreaterThan)
-                    || (udf instanceof GenericUDFOPGreaterThan)));
+            ctx.addCondition(fil,
+                new ComparisonTransform(params.get(0), params.get(1), Comparator.get(udf)));
           }
 
           return null;
@@ -290,7 +290,7 @@ public class TraceProcFactory {
       ctx.groupByAt(gby);
       ctx.addCondition(gby, new ComparisonTransform(
           new IdentityTransform(new AggregateInfo(gby, -1, "count")),
-          new ConstantTransform(0), true));
+          new ConstantTransform(0), Comparator.GREATER_THAN));
 
       return null;
     }
