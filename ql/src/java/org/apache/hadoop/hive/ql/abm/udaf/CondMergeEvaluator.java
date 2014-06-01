@@ -128,6 +128,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public void reset(AggregationBuffer agg) throws HiveException {
     ((MyAggregationBuffer) agg).reset();
+    compute.clear();
   }
 
   @Override

@@ -4,68 +4,53 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CondGroup {
-  
-  int cnt;
-  List<KeyWrapper> keys;
-  List<List<RangeList>> ranges;
-  
-  public CondGroup()
-  {
-    cnt = -1;
-    this.keys = new ArrayList<KeyWrapper>();
-    this.ranges = new ArrayList<List<RangeList>>();
-  }
-  
-  public void addGroup(int dimension, KeyWrapper keyList)
-  {
-    cnt ++;
-    this.keys.add(keyList);
-    List<RangeList> rangeMatrix  = new ArrayList<RangeList>();
-    
-    for(int i = 0; i < dimension; i ++)
+
+  private int cnt = -1;
+  private final List<KeyWrapper> keys = new ArrayList<KeyWrapper>();;
+  private final List<List<RangeList>> ranges = new ArrayList<List<RangeList>>();
+
+  public void addGroup(int dimension, KeyWrapper keyList) {
+    cnt++;
+    keys.add(keyList);
+    List<RangeList> rangeMatrix = new ArrayList<RangeList>();
+
+    for (int i = 0; i < dimension; i++) {
       rangeMatrix.add(new RangeList());
-    this.ranges.add(rangeMatrix);
+    }
+    ranges.add(rangeMatrix);
   }
-  
-  public void addKeys(KeyWrapper keyList)
-  {
-    this.keys.add(keyList);
+
+  public void addKeys(KeyWrapper keyList) {
+    keys.add(keyList);
   }
-  
-  public void addRanges(List<RangeList> rangeMatrix)
-  {
-    this.ranges.add(rangeMatrix);
+
+  public void addRanges(List<RangeList> rangeMatrix) {
+    ranges.add(rangeMatrix);
   }
-  
-  public List<KeyWrapper> getKeys()
-  {
-    return this.keys;
+
+  public List<KeyWrapper> getKeys() {
+    return keys;
   }
-  
-  public List<List<RangeList>> getRanges()
-  {
-    return this.ranges;
+
+  public List<List<RangeList>> getRanges() {
+    return ranges;
   }
-  
-  public List<RangeList> getRangeMatrix()
-  {
-    return this.ranges.get(cnt);
+
+  public List<RangeList> getRangeMatrix() {
+    return ranges.get(cnt);
   }
-  
-  public List<RangeList> getRangeMatrix(int i)
-  {
-    return this.ranges.get(i);
+
+  public List<RangeList> getRangeMatrix(int i) {
+    return ranges.get(i);
   }
-  
-  public int getGroupNumber()
-  {
-    return this.cnt + 1;
+
+  public int getGroupNumber() {
+    return cnt + 1;
   }
-  
-  public void clear()
-  {
-    this.keys.clear();
-    this.ranges.clear();
+
+  public void clear() {
+    keys.clear();
+    ranges.clear();
   }
 
 }

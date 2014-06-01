@@ -30,9 +30,7 @@ public class ConditionComputation extends UDAFComputation {
     condGroups.clear();
     condList.clear();
     rangeMatrix = null;
-    newCondRanges = null;
     flags.clear();
-    dim = 0;
   }
 
   @Override
