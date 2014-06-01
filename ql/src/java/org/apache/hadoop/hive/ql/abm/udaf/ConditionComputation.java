@@ -44,10 +44,10 @@ public class ConditionComputation extends UDAFComputation {
     boolean flag = flags.get(level);
     if (flag) {
       newCondRanges[level * 2] = this.rangeMatrix.get(level).getValue(flag, start);  
-      newCondRanges[level * 2 + 1] = (end == this.rangeMatrix.get(level).size()) ? Double.POSITIVE_INFINITY
+      newCondRanges[level * 2 + 1] = (end == this.rangeMatrix.get(level).numCases()) ? Double.POSITIVE_INFINITY
           : this.rangeMatrix.get(level).getValue(flag, end);
     } else {
-      newCondRanges[level * 2] = (end == this.rangeMatrix.get(level).size()) ? Double.NEGATIVE_INFINITY
+      newCondRanges[level * 2] = (end == this.rangeMatrix.get(level).numCases()) ? Double.NEGATIVE_INFINITY
           : this.rangeMatrix.get(level).getValue(flag, end);
       newCondRanges[level * 2 + 1] = this.rangeMatrix.get(level).getValue(flag, start);
     }
@@ -82,7 +82,7 @@ public class ConditionComputation extends UDAFComputation {
     boolean leaf = (level == condGroups.getGroupNumber() - 1);
 
     List<RangeList> currentRangeMatrix = condGroups.getRangeMatrix(level);
-    int rowNumber = currentRangeMatrix.get(0).size();
+    int rowNumber = currentRangeMatrix.get(0).numCases();
 
     for (int i = 0; i < rowNumber; i++) {
       for (int j = 0; j < dim; j++) {
@@ -113,7 +113,6 @@ public class ConditionComputation extends UDAFComputation {
 
   @Override
   public void reset() {
-    // TODO Auto-generated method stub
 
   }
 

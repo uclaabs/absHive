@@ -29,6 +29,7 @@ public class return_test extends GenericUDF {
     DoubleArrayList list = new DoubleArrayList();
     test.add(list);
     list.add(0);
+    list.add(1);
     
 //    Object[] ret = new Object[test.size()];
 //    

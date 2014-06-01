@@ -5,21 +5,29 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 public class RangeList extends DoubleArrayList {
 
   private static final long serialVersionUID = 1L;
-  
+
+  public RangeList() {
+    super();
+  }
+
+  public RangeList(final int capacity) {
+    super(capacity);
+  }
+
   public boolean getFlag() {
     int i = 0;
-    while(getLower(i) == Double.NEGATIVE_INFINITY && getUpper(i) == Double.POSITIVE_INFINITY) {
-      i ++;
+    while (getLower(i) == Double.NEGATIVE_INFINITY && getUpper(i) == Double.POSITIVE_INFINITY) {
+      i++;
     }
-    if(getLower(i) == Double.NEGATIVE_INFINITY) {
+    if (getLower(i) == Double.NEGATIVE_INFINITY) {
       return false;
     } else {
       return true;
     }
   }
-  
+
   public double getValue(boolean flag, int i) {
-    if(flag) {
+    if (flag) {
       return getLower(i);
     } else {
       return getUpper(i);
@@ -34,18 +42,8 @@ public class RangeList extends DoubleArrayList {
     return getDouble((i << 1) + 1);
   }
 
-  @Override
-  public int size() {
+  public int numCases() {
     return (super.size() >> 1);
   }
-
-//  public void addAll(Object o, ListObjectInspector loi) {
-//    DoubleObjectInspector eoi = (DoubleObjectInspector) loi.getListElementObjectInspector();
-//    int length = loi.getListLength(o);
-//    ensureCapacity(length);
-//    for (int i = 0; i < length; ++i) {
-//      add(eoi.get(loi.getListElement(o, i)));
-//    }
-//  }
 
 }

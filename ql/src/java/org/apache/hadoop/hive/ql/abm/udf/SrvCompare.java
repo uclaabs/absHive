@@ -1,10 +1,6 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
@@ -14,6 +10,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class SrvCompare  extends GenericUDF {
@@ -41,7 +38,7 @@ public class SrvCompare  extends GenericUDF {
     }
 
     ret = this.initRet();
-    return CondGroup.condGroupInspector;
+    return CondList.condListOI;
   }
 
   @Override
@@ -56,7 +53,7 @@ public class SrvCompare  extends GenericUDF {
     double lower = doubleOI.get(inputSrvOI.getListElement(arg[0], 0));
     double upper = doubleOI.get(inputSrvOI.getListElement(arg[0], 1));
     double value = Double.parseDouble(inputValueOI.getPrimitiveJavaObject(arg[1].get()).toString());
-    int id = ((IntObjectInspector)inputIDOI).get(arg[2].get());
+    long id = ((LongObjectInspector)inputIDOI).get(arg[2].get());
     
     this.updateRet(id, value, lower, upper);
     return this.ret;
@@ -65,15 +62,13 @@ public class SrvCompare  extends GenericUDF {
 
   protected Object initRet()
   {
-    CondGroup condGroup = new CondGroup();
-    List<ConditionRange> rangeArray = new ArrayList<ConditionRange>(1);
-    rangeArray.add(new ConditionRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
-    condGroup.addKey(-1);
-    condGroup.addRangeList(rangeArray);
-    return condGroup.toArray();
+    CondList condList = new CondList();
+    condList.addKey(-1);
+    condList.addPairRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+    return condList.toArray();
   }
 
-  protected void updateRet(int id, double value, double lower, double upper)
+  protected void updateRet(long id, double value, double lower, double upper)
   {
     // override it here
   }

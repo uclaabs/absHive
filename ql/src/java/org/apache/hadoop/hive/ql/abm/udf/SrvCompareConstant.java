@@ -50,15 +50,9 @@ public class SrvCompareConstant  extends GenericUDF {
 
   protected Object initRet()
   {
-//    CondGroup condGroup = new CondGroup();
-//    List<ConditionRange> rangeArray = new ArrayList<ConditionRange>(1);
-//    rangeArray.add(new ConditionRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
-//    condGroup.addKey(-1);
-//    condGroup.addRangeList(rangeArray);
-//    return condGroup.toArray();
     CondList condList = new CondList();
     condList.addKey(-1);
-    condList.addRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+    condList.addPairRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
     return condList.toArray();
   }
 

@@ -1,10 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
@@ -54,16 +49,6 @@ public class SrvCompareSrvFilter extends GenericUDF {
     return  this.updateRet(lower1, lower2, upper1, upper2);
   }
 
-  protected Object initRet()
-  {
-    CondGroup condGroup = new CondGroup();
-    List<ConditionRange> rangeArray = new ArrayList<ConditionRange>(1);
-    rangeArray.add(new ConditionRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
-    condGroup.addKey(-1);
-    condGroup.addKey(-1);
-    condGroup.addRangeList(rangeArray);
-    return condGroup.toArray();
-  }
 
   protected boolean updateRet( double lower1, double lower2, double upper1, double upper2)
   {
