@@ -745,6 +745,9 @@ public class RewriteProcFactory {
       ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, condIndexes));
 
       desc.setUncertain(true);
+      if (!firstGby) {
+        desc.setFlags(ctx.getCondFlags(gby));
+      }
 
       // Add select to generate group id
       if (!firstGby) {

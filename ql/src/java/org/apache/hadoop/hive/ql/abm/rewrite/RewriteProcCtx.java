@@ -177,6 +177,10 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return condAnno.getAggregateId(ai);
   }
 
+  public List<Boolean> getCondFlags(GroupByOperator gby) {
+    return condAnno.getCondFlags(gby);
+  }
+
   public void setupMCSim(SelectOperator select) {
     condAnno.setupMCSim(select);
   }

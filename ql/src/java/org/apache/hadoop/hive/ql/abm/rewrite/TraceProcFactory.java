@@ -216,7 +216,9 @@ public class TraceProcFactory {
 
           if (uncertain) {
             assert params.size() == 2;
-            ctx.addCondition(fil, new ComparisonTransform(params.get(0), params.get(1)));
+            ctx.addCondition(fil, new ComparisonTransform(params.get(0), params.get(1),
+                (udf instanceof GenericUDFOPEqualOrGreaterThan)
+                    || (udf instanceof GenericUDFOPGreaterThan)));
           }
 
           return null;
@@ -288,7 +290,7 @@ public class TraceProcFactory {
       ctx.groupByAt(gby);
       ctx.addCondition(gby, new ComparisonTransform(
           new IdentityTransform(new AggregateInfo(gby, -1, "count")),
-          new ConstantTransform(0)));
+          new ConstantTransform(0), true));
 
       return null;
     }

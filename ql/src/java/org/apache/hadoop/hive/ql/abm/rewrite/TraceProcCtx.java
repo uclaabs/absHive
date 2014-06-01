@@ -3,7 +3,7 @@ package org.apache.hadoop.hive.ql.abm.rewrite;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.hadoop.hive.ql.abm.algebra.Transform;
+import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
 import org.apache.hadoop.hive.ql.abm.lineage.ExprInfo;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
@@ -59,7 +59,7 @@ public class TraceProcCtx implements NodeProcessorCtx {
     anno.combine(cond);
   }
 
-  public void addCondition(Operator<? extends OperatorDesc> op, Transform pred) {
+  public void addCondition(Operator<? extends OperatorDesc> op, ComparisonTransform pred) {
     ConditionAnnotation anno = getOrCreateCondAnno(op);
     anno.conditionOn(pred);
     for (AggregateInfo aggr : pred.getAggregatesInvolved()) {

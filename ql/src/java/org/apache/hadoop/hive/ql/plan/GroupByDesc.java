@@ -73,6 +73,7 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   // ABM
   private boolean uncertain = false;
+  private List<Boolean> flags = null;
 
   public GroupByDesc() {
   }
@@ -283,6 +284,14 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   public void setUncertain(boolean uncertain) {
     this.uncertain = uncertain;
+  }
+
+  public List<Boolean> getFlags() {
+    return flags;
+  }
+
+  public void setFlags(List<Boolean> flags) {
+    this.flags = flags;
   }
 
 }

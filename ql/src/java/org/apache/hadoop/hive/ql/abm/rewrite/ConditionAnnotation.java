@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.abm.algebra.Transform;
+import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
 import org.apache.hadoop.hive.ql.abm.lib.TopologicalSort;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
@@ -22,9 +22,9 @@ public class ConditionAnnotation {
 
   private final HashMap<GroupByOperator, TreeSet<AggregateInfo>> aggregates =
       new HashMap<GroupByOperator, TreeSet<AggregateInfo>>();
-  private final HashMap<GroupByOperator, Transform[]> dependencies =
-      new HashMap<GroupByOperator, Transform[]>();
-  private final ArrayList<Transform> transforms = new ArrayList<Transform>();
+  private final HashMap<GroupByOperator, ComparisonTransform[]> dependencies =
+      new HashMap<GroupByOperator, ComparisonTransform[]>();
+  private final ArrayList<ComparisonTransform> transforms = new ArrayList<ComparisonTransform>();
 
   private final HashMap<GroupByOperator, SelectOperator> inputs =
       new HashMap<GroupByOperator, SelectOperator>();
@@ -38,11 +38,11 @@ public class ConditionAnnotation {
   // <-- Used by TraceProcCtx
 
   public void groupByAt(GroupByOperator gby) {
-    dependencies.put(gby, transforms.toArray(new Transform[transforms.size()]));
+    dependencies.put(gby, transforms.toArray(new ComparisonTransform[transforms.size()]));
     transforms.clear();
   }
 
-  public void conditionOn(Transform trans) {
+  public void conditionOn(ComparisonTransform trans) {
     transforms.add(trans);
     for (AggregateInfo ai : trans.getAggregatesInvolved()) {
       GroupByOperator gby = ai.getGroupByOperator();
@@ -238,7 +238,8 @@ public class ConditionAnnotation {
     }
 
     select.getConf().setMCSim(cTags, dTags, inKeys, inVals, inTids,
-        outCKeys, outCAggrs, outCLins, outCConds, outCGbyIds, outCTypes, outDAggrs, outDConds, outDGbyIds);
+        outCKeys, outCAggrs, outCLins, outCConds, outCGbyIds, outCTypes, outDAggrs, outDConds,
+        outDGbyIds);
 
     // TODO: GBYs' dependency structure
     // TODO: Detailed structure (of each predicate) of every condition column
@@ -247,9 +248,9 @@ public class ConditionAnnotation {
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
     Map<GroupByOperator, Set<GroupByOperator>> map =
         new HashMap<GroupByOperator, Set<GroupByOperator>>();
-    for (Map.Entry<GroupByOperator, Transform[]> entry : dependencies.entrySet()) {
+    for (Map.Entry<GroupByOperator, ComparisonTransform[]> entry : dependencies.entrySet()) {
       Set<GroupByOperator> parents = new HashSet<GroupByOperator>();
-      for (Transform trans : entry.getValue()) {
+      for (ComparisonTransform trans : entry.getValue()) {
         for (AggregateInfo ai : trans.getAggregatesInvolved()) {
           parents.add(ai.getGroupByOperator());
         }
@@ -267,6 +268,15 @@ public class ConditionAnnotation {
     Set<GroupByOperator> ret = new HashSet<GroupByOperator>(outputs.keySet());
     ret.removeAll(getAllContinousGbys());
     return ret;
+  }
+
+  public List<Boolean> getCondFlags(GroupByOperator gby) {
+    ComparisonTransform[] trans = dependencies.get(gby);
+    List<Boolean> flags = new ArrayList<Boolean>(trans.length);
+    for (ComparisonTransform tran : trans) {
+      flags.add(tran.isAscending());
+    }
+    return flags;
   }
 
   // -->
