@@ -1,13 +1,13 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
 
 public class SrvLessConstant extends SrvCompareConstant {
 
 	@Override
-  protected void updateRet(int id, double value)
+  protected void updateRet(long id, double value)
 	{
-		CondGroup.update(this.ret, id, Double.NEGATIVE_INFINITY, value);
+		CondList.update(this.ret, id, Double.NEGATIVE_INFINITY, value);
 	}
 
 }

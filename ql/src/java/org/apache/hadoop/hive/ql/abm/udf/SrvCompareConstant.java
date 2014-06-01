@@ -1,16 +1,12 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 
 public class SrvCompareConstant  extends GenericUDF {
 
@@ -28,12 +24,12 @@ public class SrvCompareConstant  extends GenericUDF {
     inputIDOI = (PrimitiveObjectInspector) arguments[0];
     inputValueOI = (PrimitiveObjectInspector) arguments[1];
 
-    if(!(inputIDOI instanceof IntObjectInspector)) {
-      throw new UDFArgumentException("Srv_ID must be integer!");
+    if(!(inputIDOI instanceof LongObjectInspector)) {
+      throw new UDFArgumentException("Srv_ID must be long!");
     }
 
     ret = this.initRet();
-    return CondGroup.condGroupInspector;
+    return CondList.condListOI;
   }
 
   @Override
@@ -44,9 +40,9 @@ public class SrvCompareConstant  extends GenericUDF {
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
 
-    int id = ((IntObjectInspector)inputIDOI).get(arg[0].get());
+    long id = ((LongObjectInspector)inputIDOI).get(arg[0].get());
     double value = Double.parseDouble(inputValueOI.getPrimitiveJavaObject(arg[1].get()).toString());
-
+    
     this.updateRet(id, value);
     return this.ret;
   }
@@ -54,15 +50,19 @@ public class SrvCompareConstant  extends GenericUDF {
 
   protected Object initRet()
   {
-    CondGroup condGroup = new CondGroup();
-    List<ConditionRange> rangeArray = new ArrayList<ConditionRange>(1);
-    rangeArray.add(new ConditionRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
-    condGroup.addKey(-1);
-    condGroup.addRangeList(rangeArray);
-    return condGroup.toArray();
+//    CondGroup condGroup = new CondGroup();
+//    List<ConditionRange> rangeArray = new ArrayList<ConditionRange>(1);
+//    rangeArray.add(new ConditionRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
+//    condGroup.addKey(-1);
+//    condGroup.addRangeList(rangeArray);
+//    return condGroup.toArray();
+    CondList condList = new CondList();
+    condList.addKey(-1);
+    condList.addRange(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+    return condList.toArray();
   }
 
-  protected void updateRet(int id, double value)
+  protected void updateRet(long id, double value)
   {
     // override it here
   }

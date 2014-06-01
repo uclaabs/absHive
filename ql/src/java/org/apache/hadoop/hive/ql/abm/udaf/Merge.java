@@ -7,7 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
+import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.udaf.SorterFactory.Sorter;
 
 public class Merge {
@@ -18,7 +18,7 @@ public class Merge {
   private final ArrayList<Boolean> dimFlags = new ArrayList<Boolean>();
   private UDAFComputation op = null;
 
-  public void addDimension(List<ConditionRange> conditions) {
+  public void addDimension(RangeList conditions) {
     if (len == -1) {
       len = conditions.size();
     } else {

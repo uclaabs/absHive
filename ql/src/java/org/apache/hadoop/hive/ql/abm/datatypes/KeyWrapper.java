@@ -1,22 +1,18 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 
-public class KeyWrapper extends IntArrayList {
+public class KeyWrapper extends LongArrayList {
 
   private static final long serialVersionUID = 1L;
-
-  public void parseKey(Object o, ObjectInspector oi) {
+  
+  public void parseKey(Object keyObj, ListObjectInspector keyOI, LongObjectInspector keyValueOI) {
     clear();
-    ListObjectInspector loi = (ListObjectInspector) oi;
-    IntObjectInspector eoi = (IntObjectInspector) loi.getListElementObjectInspector();
-    int length = loi.getListLength(o);
-    for (int i = 0; i < length; ++i) {
-      add(eoi.get(loi.getListElement(o, i)));
+    for(int j = 0; j < keyOI.getListLength(keyObj); j ++) {
+      add(keyValueOI.get(keyOI.getListElement(keyObj, j)));
     }
   }
 

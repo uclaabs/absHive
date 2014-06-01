@@ -4,15 +4,13 @@ import it.unimi.dsi.fastutil.Swapper;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntComparator;
 
-import java.util.List;
-
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionRange;
+import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 
 public class SorterFactory {
 
-  public static Sorter getSorter(List<ConditionRange> conditions) {
+  public static Sorter getSorter(RangeList conditions) {
     assert !conditions.isEmpty();
-    boolean flag = conditions.get(0).getFlag();
+    boolean flag = conditions.getFlag();
     if (flag) {
       return new AscendSorter(conditions, flag);
     } else {
@@ -29,10 +27,10 @@ public class SorterFactory {
   private static class AscendSorter extends Sorter {
 
     private final IntArrayList indexes;
-    private final List<ConditionRange> conditions;
+    private final RangeList conditions;
     private final boolean flag;
 
-    public AscendSorter(List<ConditionRange> conditions, boolean f) {
+    public AscendSorter(RangeList conditions, boolean f) {
       this.indexes = new IntArrayList(conditions.size());
 
       for (int i = 0; i < conditions.size(); ++i) {
@@ -51,8 +49,8 @@ public class SorterFactory {
     @Override
     public int compare(int arg0, int arg1) {
       return Double.compare(
-          conditions.get(this.indexes.getInt(arg0)).getValue(flag),
-          conditions.get(this.indexes.getInt(arg1)).getValue(flag));
+          conditions.getValue(flag, this.indexes.getInt(arg0)),
+          conditions.getValue(flag, this.indexes.getInt(arg1)));
     }
 
     @Override
@@ -77,7 +75,7 @@ public class SorterFactory {
 
   private static class DescendSorter extends AscendSorter {
 
-    public DescendSorter(List<ConditionRange> conditions, boolean f) {
+    public DescendSorter(RangeList conditions, boolean f) {
       super(conditions, f);
     }
 
