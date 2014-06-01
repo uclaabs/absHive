@@ -88,8 +88,8 @@ public class CondList {
   }
 
   public void clear() {
-    this.keyList.clear();
-    this.rangeMatrix.clear();
+    keyList.clear();
+    rangeMatrix.clear();
   }
 
   public Object toArray() {
