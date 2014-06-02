@@ -9,7 +9,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class DummyCondMergeEvaluator extends CondMergeEvaluator {
-  
+
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
@@ -17,7 +17,7 @@ public class DummyCondMergeEvaluator extends CondMergeEvaluator {
       // partialTerminate() will be called
       return ObjectInspectorFactory.getStandardStructObjectInspector(columnNames, Arrays.asList(
           (ObjectInspector) ObjectInspectorFactory.getStandardListObjectInspector(
-              ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector)),
+              ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector)),
           ObjectInspectorFactory.getStandardListObjectInspector(
               ObjectInspectorFactory.getStandardListObjectInspector(
                   ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector))))
@@ -25,7 +25,7 @@ public class DummyCondMergeEvaluator extends CondMergeEvaluator {
     } else {
       return CondList.condListOI;
     }
-    
+
   }
 
   @Override

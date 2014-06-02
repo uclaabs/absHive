@@ -98,7 +98,10 @@ public class SrvAvgComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
-    unfoldSrvList(0, this.baseSum, this.baseSsum, this.baseCnt);
+
+    if(groupCnt >= 0) {
+      unfoldSrvList(0, this.baseSum, this.baseSsum, this.baseCnt);
+    }
 
     addDistribution(this.baseSum,this.baseSsum, this.baseCnt);
     this.result.add(0, this.confidenceLower);

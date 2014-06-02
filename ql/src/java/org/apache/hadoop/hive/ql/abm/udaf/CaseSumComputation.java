@@ -18,7 +18,11 @@ public class CaseSumComputation extends SrvSumComputation {
 
   @Override
   public void unfold() {
-    unfoldSrvList(0, this.baseSum);
+
+    if(groupCnt >= 0) {
+      unfoldSrvList(0, this.baseSum);
+    }
+
     addDistribution(this.baseSum);
 
     this.result.add(0, this.confidenceLower);
