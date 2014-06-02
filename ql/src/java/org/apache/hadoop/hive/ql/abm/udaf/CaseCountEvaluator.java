@@ -3,29 +3,29 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class CaseCountEvaluator extends SrvCountEvaluator {
 
-  protected static class MyAggregationBuffer implements AggregationBuffer {
-    int baseCnt = 0;
-    CaseCountComputation compute = new CaseCountComputation();
+  private CaseCountComputation compute = null;
 
-    public void addBase(int cnt) {
-      baseCnt += cnt;
+  @Override
+  public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
+    super.init(m, parameters);
+
+    if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
+      return PrimitiveObjectInspectorFactory.javaIntObjectInspector;
+    } else {
+      compute = new CaseCountComputation();
+      return doubleListOI;
     }
-
-    public void reset() {
-      baseCnt = 0;
-      compute.clear();
-    }
-
   }
 
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
 
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    CaseCountComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     compute.setCount(myagg.baseCnt);

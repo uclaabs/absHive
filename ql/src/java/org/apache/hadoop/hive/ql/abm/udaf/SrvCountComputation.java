@@ -77,7 +77,10 @@ public class SrvCountComputation extends UDAFComputation {
   @Override
   public void unfold() {
 
-    unfoldSrvList(0, this.baseCnt);
+    if(groupCnt >= 0) {
+      unfoldSrvList(0, this.baseCnt);
+    }
+
     addDistribution(this.baseCnt);
     this.result.add(0, this.confidenceLower);
     this.result.add(1, this.confidenceUpper);

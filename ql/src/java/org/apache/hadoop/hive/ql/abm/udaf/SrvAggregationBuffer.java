@@ -52,9 +52,10 @@ public abstract class SrvAggregationBuffer implements AggregationBuffer{
   public void addGroupToRet() {
     ret.clear();
     partialResult.clear();
-    for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
-      partialResult.add(entry.getValue());
-    }
+//    for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
+//      partialResult.add(entry.getValue());
+//    }
+    partialResult.addAll(groups.values());
     ret.add(partialResult);
   }
   

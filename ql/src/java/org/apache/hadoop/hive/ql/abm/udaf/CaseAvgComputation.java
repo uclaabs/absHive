@@ -34,7 +34,10 @@ public class CaseAvgComputation extends SrvAvgComputation {
 
   @Override
   public void unfold() {
-    unfoldSrvList(0, this.baseSum, this.baseCnt);
+
+    if(groupCnt >= 0) {
+      unfoldSrvList(0, this.baseSum, this.baseCnt);
+    }
 
     addDistribution(this.baseSum, this.baseCnt);
     this.result.add(0, this.confidenceLower);
