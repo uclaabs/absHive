@@ -39,33 +39,36 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.ql.abm.fake.CaseAvg;
-import org.apache.hadoop.hive.ql.abm.fake.CaseCount;
-import org.apache.hadoop.hive.ql.abm.fake.CaseSum;
-import org.apache.hadoop.hive.ql.abm.fake.LinSum;
-import org.apache.hadoop.hive.ql.abm.fake.SrvAvg;
-import org.apache.hadoop.hive.ql.abm.fake.SrvCount;
-import org.apache.hadoop.hive.ql.abm.fake.SrvSum;
 import org.apache.hadoop.hive.ql.abm.fake.udf.Conf_Inv;
 import org.apache.hadoop.hive.ql.abm.fake.udf.Exist_prob;
 import org.apache.hadoop.hive.ql.abm.fake.udf.Mean;
 import org.apache.hadoop.hive.ql.abm.fake.udf.Variance;
-import org.apache.hadoop.hive.ql.abm.fake.udf.four.SrvGreaterEqualFour;
-import org.apache.hadoop.hive.ql.abm.fake.udf.three.SrvGreaterThree;
-import org.apache.hadoop.hive.ql.abm.fake.udf.three.SrvLessEqualThree;
-import org.apache.hadoop.hive.ql.abm.fake.udf.three.SrvLessThree;
-import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvGreater;
-import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvGreaterEqual;
-import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvLess;
-import org.apache.hadoop.hive.ql.abm.fake.udf.two.SrvLessEqual;
+import org.apache.hadoop.hive.ql.abm.udaf.CaseAvg;
+import org.apache.hadoop.hive.ql.abm.udaf.CaseCount;
+import org.apache.hadoop.hive.ql.abm.udaf.CaseSum;
 import org.apache.hadoop.hive.ql.abm.udaf.CondMerge;
+import org.apache.hadoop.hive.ql.abm.udaf.SrvAvg;
+import org.apache.hadoop.hive.ql.abm.udaf.SrvCount;
+import org.apache.hadoop.hive.ql.abm.udaf.SrvLin;
+import org.apache.hadoop.hive.ql.abm.udaf.SrvSum;
 import org.apache.hadoop.hive.ql.abm.udf.ConditionJoin;
 import org.apache.hadoop.hive.ql.abm.udf.GenRowId;
-import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterConstant;
-import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqualConstant;
-import org.apache.hadoop.hive.ql.abm.udf.SrvLessConstant;
-import org.apache.hadoop.hive.ql.abm.udf.SrvLessEqualConstant;
-import org.apache.hadoop.hive.ql.abm.udf.return_test;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreater;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqual;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqualFilter;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqualSrv;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqualSrvFilter;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterFilter;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterSrv;
+import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterSrvFilter;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLess;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLessEqual;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLessEqualFilter;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLessEqualSrv;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLessEqualSrvFilter;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLessFilter;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLessSrv;
+import org.apache.hadoop.hive.ql.abm.udf.SrvLessSrvFilter;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
@@ -195,11 +198,12 @@ public final class FunctionRegistry {
   /**
    * The mapping from expression function names to expression classes.
    */
-  static Map<String, FunctionInfo> mFunctions = Collections.synchronizedMap(new LinkedHashMap<String, FunctionInfo>());
+  static Map<String, FunctionInfo> mFunctions = Collections
+      .synchronizedMap(new LinkedHashMap<String, FunctionInfo>());
 
   /*
    * PTF variables
-   * */
+   */
 
   public static final String LEAD_FUNC_NAME = "lead";
   public static final String LAG_FUNC_NAME = "lag";
@@ -210,7 +214,8 @@ public final class FunctionRegistry {
   public static final String NOOP_TABLE_FUNCTION = "noop";
   public static final String NOOP_MAP_TABLE_FUNCTION = "noopwithmap";
 
-  static Map<String, WindowFunctionInfo> windowFunctions = Collections.synchronizedMap(new LinkedHashMap<String, WindowFunctionInfo>());
+  static Map<String, WindowFunctionInfo> windowFunctions = Collections
+      .synchronizedMap(new LinkedHashMap<String, WindowFunctionInfo>());
 
   /*
    * UDAFS that only work when the input rows have an order.
@@ -404,73 +409,55 @@ public final class FunctionRegistry {
 
     registerGenericUDAF("ewah_bitmap", new GenericUDAFEWAHBitmap());
 
-    registerGenericUDAF("compute_stats" , new GenericUDAFComputeStats());
+    registerGenericUDAF("compute_stats", new GenericUDAFComputeStats());
 
     registerUDAF("percentile", UDAFPercentile.class);
 
     /**
      * ABM functions
      */
-//    private static final String SRV_SUM = "srv_sum";
-//    private static final String SRV_AVG = "srv_avg";
-//    private static final String SRV_COUNT = "srv_count";
-//    private static final String COND_JOIN = "cond_join";
-//    private static final String COND_MERGE = "cond_merge";
-//    private static final String LIN_SUM = "lin_sum";
-//    private static final String GEN_ID = "gen_id";
 
-    //registerGenericUDAF("srv_lin" , new SrvLin());
-    //UDAFs
-    registerGenericUDAF("srv_sum" , new SrvSum());
-    registerGenericUDAF("srv_avg" , new SrvAvg());
-    registerGenericUDAF("srv_count" , new SrvCount());
+    // UDAFs
+    registerGenericUDAF("srv_sum", new SrvSum());
+    registerGenericUDAF("srv_avg", new SrvAvg());
+    registerGenericUDAF("srv_count", new SrvCount());
 
-    registerGenericUDAF("lin_sum", new LinSum());
-    registerGenericUDAF("cond_merge" , new CondMerge());
+    registerGenericUDAF("lin_sum", new SrvLin());
+    registerGenericUDAF("cond_merge", new CondMerge());
 
     registerGenericUDAF("case_sum", new CaseSum());
     registerGenericUDAF("case_avg", new CaseAvg());
     registerGenericUDAF("case_count", new CaseCount());
 
-
-    //computation UDFs
+    // computation UDFs
     registerGenericUDF("mean", Mean.class);
     registerGenericUDF("variance", Variance.class);
     registerGenericUDF("conf_inv_5_95", Conf_Inv.class);
     registerGenericUDF("exist_prob", Exist_prob.class);
 
     registerGenericUDF("gen_id", GenRowId.class);
-    registerGenericUDF("cond_join" , ConditionJoin.class);
-    registerGenericUDF("return_test" , return_test.class);
-    //registerGenericUDF("cond_join" , CondJoin.class);
+    registerGenericUDF("cond_join", ConditionJoin.class);
+    // registerGenericUDF("return_test" , return_test.class);
 
-//    registerGenericUDF("srv_equal_or_less_than" , SrvLessEqualConstant.class);
-//    registerGenericUDF("srv_equal_or_greater_than" , SrvGreaterEqualConstant.class);
-//    registerGenericUDF("srv_less_than" , SrvLessConstant.class);
-//    registerGenericUDF("srv_greater_than" , SrvGreaterConstant.class);
-//    registerGenericUDF("srv_equal_or_less_than" , SrvLessEqualThree.class);
-//    registerGenericUDF("srv_equal_or_greater_than" , SrvGreaterEqualThree.class);
-//    registerGenericUDF("srv_less_than" , SrvLessThree.class);
-//    registerGenericUDF("srv_greater_than" , SrvGreaterThree.class);
-    registerGenericUDF("srv_equal_or_less_than" , SrvLessEqualConstant.class);
-    registerGenericUDF("srv_equal_or_greater_than" , SrvGreaterEqualConstant.class);
-    registerGenericUDF("srv_less_than" , SrvLessConstant.class);
-    registerGenericUDF("srv_greater_than" , SrvGreaterConstant.class);
+    registerGenericUDF("srv_equal_or_less_than", SrvLessEqual.class);
+    registerGenericUDF("srv_equal_or_greater_than", SrvGreaterEqual.class);
+    registerGenericUDF("srv_less_than", SrvLess.class);
+    registerGenericUDF("srv_greater_than", SrvGreater.class);
 
-    registerGenericUDF("srv_equal_or_greater_than_srv" , SrvGreaterEqualFour.class);
-    registerGenericUDF("srv_equal_or_less_than_srv" , SrvLessEqualThree.class);
-    registerGenericUDF("srv_greater_than_srv" , SrvGreaterThree.class);
-    registerGenericUDF("srv_less_than_srv" , SrvLessThree.class);
+    registerGenericUDF("srv_equal_or_greater_than_srv", SrvGreaterEqualSrv.class);
+    registerGenericUDF("srv_equal_or_less_than_srv", SrvLessEqualSrv.class);
+    registerGenericUDF("srv_greater_than_srv", SrvGreaterSrv.class);
+    registerGenericUDF("srv_less_than_srv", SrvLessSrv.class);
 
-    registerGenericUDF("x>=" , SrvGreaterEqual.class);
-    registerGenericUDF("x<=" , SrvLessEqual.class);
-    registerGenericUDF("x>" , SrvGreater.class);
-    registerGenericUDF("x<" , SrvLess.class);
+    registerGenericUDF("x>=", SrvGreaterEqualFilter.class);
+    registerGenericUDF("x<=", SrvLessEqualFilter.class);
+    registerGenericUDF("x>", SrvGreaterFilter.class);
+    registerGenericUDF("x<", SrvLessFilter.class);
 
-    registerGenericUDF("x>=x" , SrvGreaterEqual.class);
-    registerGenericUDF("x<=x" , SrvLessEqual.class);
-    registerGenericUDF("x>x" , SrvGreater.class);
-    registerGenericUDF("x<x" , SrvLess.class);
+    registerGenericUDF("x>=x", SrvGreaterEqualSrvFilter.class);
+    registerGenericUDF("x<=x", SrvLessEqualSrvFilter.class);
+    registerGenericUDF("x>x", SrvGreaterSrvFilter.class);
+    registerGenericUDF("x<x", SrvLessSrvFilter.class);
 
 
     // Generic UDFs
@@ -516,7 +503,7 @@ public final class FunctionRegistry {
     registerGenericUDTF("parse_url_tuple", GenericUDTFParseUrlTuple.class);
     registerGenericUDTF("stack", GenericUDTFStack.class);
 
-    //PTF declarations
+    // PTF declarations
     registerGenericUDF(true, LEAD_FUNC_NAME, GenericUDFLead.class);
     registerGenericUDF(true, LAG_FUNC_NAME, GenericUDFLag.class);
 
@@ -543,7 +530,7 @@ public final class FunctionRegistry {
 
     registerTableFunction(NOOP_TABLE_FUNCTION, NoopResolver.class);
     registerTableFunction(NOOP_MAP_TABLE_FUNCTION, NoopWithMapResolver.class);
-    registerTableFunction(WINDOWING_TABLE_FUNCTION,  WindowingTableFunctionResolver.class);
+    registerTableFunction(WINDOWING_TABLE_FUNCTION, WindowingTableFunctionResolver.class);
     registerTableFunction("matchpath", MatchPathResolver.class);
   }
 
@@ -864,17 +851,19 @@ public final class FunctionRegistry {
       boolean isAllColumns) throws SemanticException {
 
     WindowFunctionInfo finfo = windowFunctions.get(name.toLowerCase());
-    if (finfo == null) { return null;}
-    if ( !name.toLowerCase().equals(LEAD_FUNC_NAME) &&
-    !name.toLowerCase().equals(LAG_FUNC_NAME) ) {
-    return getGenericUDAFEvaluator(name, argumentOIs, isDistinct, isAllColumns);
+    if (finfo == null) {
+      return null;
+    }
+    if (!name.toLowerCase().equals(LEAD_FUNC_NAME) &&
+        !name.toLowerCase().equals(LAG_FUNC_NAME)) {
+      return getGenericUDAFEvaluator(name, argumentOIs, isDistinct, isAllColumns);
     }
 
     // this must be lead/lag UDAF
     ObjectInspector args[] = new ObjectInspector[argumentOIs.size()];
     GenericUDAFResolver udafResolver = finfo.getfInfo().getGenericUDAFResolver();
     GenericUDAFParameterInfo paramInfo = new SimpleGenericUDAFParameterInfo(
-    argumentOIs.toArray(args), isDistinct, isAllColumns);
+        argumentOIs.toArray(args), isDistinct, isAllColumns);
     return ((GenericUDAFResolver2) udafResolver).getEvaluator(paramInfo);
   }
 
@@ -882,6 +871,7 @@ public final class FunctionRegistry {
    * This method is shared between UDFRegistry and UDAFRegistry. methodName will
    * be "evaluate" for UDFRegistry, and "aggregate"/"evaluate"/"evaluatePartial"
    * for UDAFRegistry.
+   *
    * @throws UDFArgumentException
    */
   public static <T> Method getMethodInternal(Class<? extends T> udfClass,
@@ -928,7 +918,7 @@ public final class FunctionRegistry {
       Class<? extends UDAF> udafClass) {
     mFunctions.put(functionName.toLowerCase(), new FunctionInfo(isNative,
         functionName.toLowerCase(), new GenericUDAFBridge(
-        (UDAF) ReflectionUtils.newInstance(udafClass, null))));
+            (UDAF) ReflectionUtils.newInstance(udafClass, null))));
   }
 
   public static void unregisterTemporaryUDF(String functionName) throws HiveException {
@@ -1086,8 +1076,8 @@ public final class FunctionRegistry {
       }
       if (LOG.isDebugEnabled()) {
         LOG.debug("Method " + (match ? "did" : "didn't") + " match: passed = "
-                  + argumentsPassed + " accepted = " + argumentsAccepted +
-                  " method = " + m);
+            + argumentsPassed + " accepted = " + argumentsAccepted +
+            " method = " + m);
       }
       if (match) {
         // Always choose the function with least implicit conversions.
@@ -1123,10 +1113,11 @@ public final class FunctionRegistry {
       Method candidate = null;
       List<TypeInfo> referenceArguments = null;
 
-      for (Method m: udfMethods) {
+      for (Method m : udfMethods) {
         int maxNumericType = 0;
 
-        List<TypeInfo> argumentsAccepted = TypeInfoUtils.getParameterTypeInfos(m, argumentsPassed.size());
+        List<TypeInfo> argumentsAccepted = TypeInfoUtils.getParameterTypeInfos(m,
+            argumentsPassed.size());
 
         if (referenceArguments == null) {
           // keep the arguments for reference - we want all the non-numeric
@@ -1136,7 +1127,7 @@ public final class FunctionRegistry {
 
         Iterator<TypeInfo> referenceIterator = referenceArguments.iterator();
 
-        for (TypeInfo accepted: argumentsAccepted) {
+        for (TypeInfo accepted : argumentsAccepted) {
           TypeInfo reference = referenceIterator.next();
 
           if (numericTypes.containsKey(accepted)) {
@@ -1334,10 +1325,10 @@ public final class FunctionRegistry {
     if (!(desc instanceof ExprNodeGenericFuncDesc)) {
       return false;
     }
-    GenericUDF genericUDF = ((ExprNodeGenericFuncDesc)desc).getGenericUDF();
+    GenericUDF genericUDF = ((ExprNodeGenericFuncDesc) desc).getGenericUDF();
     Class udfClass;
     if (genericUDF instanceof GenericUDFBridge) {
-      udfClass = ((GenericUDFBridge)genericUDF).getUdfClass();
+      udfClass = ((GenericUDFBridge) genericUDF).getUdfClass();
     } else {
       udfClass = genericUDF.getClass();
     }
@@ -1359,35 +1350,37 @@ public final class FunctionRegistry {
    * Registers the appropriate kind of temporary function based on a class's
    * type.
    *
-   * @param functionName name under which to register function
+   * @param functionName
+   *          name under which to register function
    *
-   * @param udfClass class implementing UD[A|T]F
+   * @param udfClass
+   *          class implementing UD[A|T]F
    *
    * @return true if udfClass's type was recognized (so registration
-   * succeeded); false otherwise
+   *         succeeded); false otherwise
    */
   public static boolean registerTemporaryFunction(
-    String functionName, Class<?> udfClass) {
+      String functionName, Class<?> udfClass) {
 
     if (UDF.class.isAssignableFrom(udfClass)) {
       FunctionRegistry.registerTemporaryUDF(
-        functionName, (Class<? extends UDF>) udfClass, false);
+          functionName, (Class<? extends UDF>) udfClass, false);
     } else if (GenericUDF.class.isAssignableFrom(udfClass)) {
       FunctionRegistry.registerTemporaryGenericUDF(
-        functionName, (Class<? extends GenericUDF>) udfClass);
+          functionName, (Class<? extends GenericUDF>) udfClass);
     } else if (GenericUDTF.class.isAssignableFrom(udfClass)) {
       FunctionRegistry.registerTemporaryGenericUDTF(
-        functionName, (Class<? extends GenericUDTF>) udfClass);
+          functionName, (Class<? extends GenericUDTF>) udfClass);
     } else if (UDAF.class.isAssignableFrom(udfClass)) {
       FunctionRegistry.registerTemporaryUDAF(
-        functionName, (Class<? extends UDAF>) udfClass);
+          functionName, (Class<? extends UDAF>) udfClass);
     } else if (GenericUDAFResolver.class.isAssignableFrom(udfClass)) {
       FunctionRegistry.registerTemporaryGenericUDAF(
-        functionName, (GenericUDAFResolver)
-        ReflectionUtils.newInstance(udfClass, null));
-    } else if(TableFunctionResolver.class.isAssignableFrom(udfClass)) {
+          functionName, (GenericUDAFResolver)
+          ReflectionUtils.newInstance(udfClass, null));
+    } else if (TableFunctionResolver.class.isAssignableFrom(udfClass)) {
       FunctionRegistry.registerTableFunction(
-        functionName, (Class<? extends TableFunctionResolver>)udfClass);
+          functionName, (Class<? extends TableFunctionResolver>) udfClass);
     } else {
       return false;
     }
@@ -1398,13 +1391,15 @@ public final class FunctionRegistry {
    * Registers Hive functions from a plugin jar, using metadata from
    * the jar's META-INF/class-info.xml.
    *
-   * @param jarLocation URL for reading jar file
+   * @param jarLocation
+   *          URL for reading jar file
    *
-   * @param classLoader classloader to use for loading function classes
+   * @param classLoader
+   *          classloader to use for loading function classes
    */
   public static void registerFunctionsFromPluginJar(
-    URL jarLocation,
-    ClassLoader classLoader) throws Exception {
+      URL jarLocation,
+      ClassLoader classLoader) throws Exception {
 
     URL url = new URL("jar:" + jarLocation + "!/META-INF/class-info.xml");
     InputStream inputStream = null;
@@ -1426,7 +1421,7 @@ public final class FunctionRegistry {
         boolean registered = registerTemporaryFunction(sqlName, udfClass);
         if (!registered) {
           throw new RuntimeException(
-            "Class " + udfClass + " is not a Hive function implementation");
+              "Class " + udfClass + " is not a Hive function implementation");
         }
       }
     } finally {
@@ -1439,7 +1434,7 @@ public final class FunctionRegistry {
   }
 
 
-  //---------PTF functions------------
+  // ---------PTF functions------------
 
   public static void registerWindowFunction(String name, GenericUDAFResolver wFn)
   {
@@ -1447,11 +1442,12 @@ public final class FunctionRegistry {
   }
 
   /**
-   * Typically a WindowFunction is the same as a UDAF. The only exceptions are Lead & Lag UDAFs. These
+   * Typically a WindowFunction is the same as a UDAF. The only exceptions are Lead & Lag UDAFs.
+   * These
    * are not registered as regular UDAFs because
    * - we plan to support Lead & Lag as UDFs (usable only within argument expressions
-   *   of UDAFs when windowing is involved). Since mFunctions holds both UDFs and UDAFs we cannot
-   *   add both FunctionInfos to mFunctions.
+   * of UDAFs when windowing is involved). Since mFunctions holds both UDFs and UDAFs we cannot
+   * add both FunctionInfos to mFunctions.
    * We choose to only register UDFs in mFunctions. The implication of this is that Lead/Lag UDAFs
    * are only usable when windowing is involved.
    *
@@ -1459,7 +1455,8 @@ public final class FunctionRegistry {
    * @param wFn
    * @param registerAsUDAF
    */
-  public static void registerWindowFunction(String name, GenericUDAFResolver wFn, boolean registerAsUDAF)
+  public static void registerWindowFunction(String name, GenericUDAFResolver wFn,
+      boolean registerAsUDAF)
   {
     FunctionInfo fInfo = null;
     if (registerAsUDAF) {
@@ -1487,10 +1484,10 @@ public final class FunctionRegistry {
   static void registerHiveUDAFsAsWindowFunctions()
   {
     Set<String> fNames = getFunctionNames();
-    for(String fName : fNames)
+    for (String fName : fNames)
     {
       FunctionInfo fInfo = getFunctionInfo(fName);
-      if ( fInfo.isGenericUDAF())
+      if (fInfo.isGenericUDAF())
       {
         WindowFunctionInfo wInfo = new WindowFunctionInfo(fInfo);
         windowFunctions.put(fName, wInfo);
@@ -1507,7 +1504,7 @@ public final class FunctionRegistry {
   public static TableFunctionResolver getTableFunctionResolver(String name)
   {
     FunctionInfo tfInfo = mFunctions.get(name.toLowerCase());
-    if(tfInfo.isTableFunction()) {
+    if (tfInfo.isTableFunction()) {
       return (TableFunctionResolver) ReflectionUtils.newInstance(tfInfo.getFunctionClass(), null);
     }
     return null;
@@ -1523,7 +1520,8 @@ public final class FunctionRegistry {
     return getTableFunctionResolver(NOOP_TABLE_FUNCTION);
   }
 
-  public static void registerTableFunction(String name, Class<? extends TableFunctionResolver> tFnCls)
+  public static void registerTableFunction(String name,
+      Class<? extends TableFunctionResolver> tFnCls)
   {
     FunctionInfo tInfo = new FunctionInfo(name, tFnCls);
     mFunctions.put(name.toLowerCase(), tInfo);
