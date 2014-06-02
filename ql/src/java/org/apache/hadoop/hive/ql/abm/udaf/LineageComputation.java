@@ -32,7 +32,7 @@ public class LineageComputation extends UDAFComputation {
     currentLineage = lineage;
     totalLineage.addAll(lineage);
   }
-  
+
   public void clear() {
     bitmaps.clear();
     result.clear();
@@ -71,7 +71,8 @@ public class LineageComputation extends UDAFComputation {
     converter.setIntList(totalLineage);
     converter.sort();
     totalBitmap = converter.getBitmap();
-    this.recursiveList = new EWAHCompressedBitmap[this.groupCnt + 1];
+    this.recursiveList = new EWAHCompressedBitmap[this.groupCnt + 2];
+    recursiveList[0] = totalBitmap;
     unfoldLineageList(0);
     result.add(totalBitmap);
   }
@@ -80,11 +81,11 @@ public class LineageComputation extends UDAFComputation {
     boolean leaf = (level == this.groupCnt);
 
     for(int i = 0; i < this.bitmaps.get(level).size(); i ++) {
-      
-      this.recursiveList[level] = this.bitmaps.get(level).get(i);
-      
+
+      this.recursiveList[level + 1] = this.bitmaps.get(level).get(i);
+
       if(leaf) {
-        result.add(totalBitmap.xor(this.recursiveList));
+        result.add(EWAHCompressedBitmap.xor(this.recursiveList));
       } else {
         unfoldLineageList(level + 1);
       }
