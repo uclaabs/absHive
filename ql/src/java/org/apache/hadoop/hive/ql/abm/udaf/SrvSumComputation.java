@@ -12,7 +12,7 @@ public class SrvSumComputation extends UDAFComputation {
   protected DoubleArrayList currentList = new DoubleArrayList();
   protected double baseSum = 0;
   protected double baseSsum = 0;
-  protected int N = 0;
+  protected long N = 0;
   protected int groupCnt = -1;
 
   protected double currentSum = 0;
@@ -20,7 +20,7 @@ public class SrvSumComputation extends UDAFComputation {
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
 
-  public void setTotalNumber(int N) {
+  public void setTotalNumber(long N) {
     this.N = N;
   }
 
@@ -36,7 +36,7 @@ public class SrvSumComputation extends UDAFComputation {
     this.currentSsum = 0;
     this.groupCnt++;
   }
-  
+
   public void clear() {
     result.clear();
     doubleMatrix.clear();

@@ -36,6 +36,7 @@ public final class AbmUtilities {
 
   private static String sampledTable;
   private static String queryResultFileFormat;
+  private static long numTuples;
   private static final Map<String, Set<String>> schemaPrimaryKeyMap = new HashMap<String, Set<String>>();
   private static ErrorMeasure measure;
   private static final ArrayList<String> fieldNames = new ArrayList<String>();
@@ -56,7 +57,8 @@ public final class AbmUtilities {
       setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEOPTGBYUSINGINDEX, false);
 
       // Turn off map join hints
-      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false); // BUT no one is using this!
+      setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEIGNOREMAPJOINHINT, false); // BUT no one is
+                                                                                 // using this!
       setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEOPTBUCKETMAPJOIN, false);
       setAndRecordBoolVar(conf, HiveConf.ConfVars.HIVEOPTSORTMERGEBUCKETMAPJOIN, false);
 
@@ -68,7 +70,7 @@ public final class AbmUtilities {
       // No correlation optimizer support in hive 0.11
       // Turn off correlation optimizer.
       // Anyway, shark does not support it (no Demux and Mux).
-      //conf.setBoolVar(HiveConf.ConfVars.HIVEOPTCORRELATION, false);
+      // conf.setBoolVar(HiveConf.ConfVars.HIVEOPTCORRELATION, false);
 
       // Configure schema functional dependency
       String path = conf.getVar(HiveConf.ConfVars.HIVE_ABM_SCHEMA);
@@ -79,6 +81,9 @@ public final class AbmUtilities {
 
       // QueryResultFileFormat: for caching Select outputs
       queryResultFileFormat = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEQUERYRESULTFILEFORMAT);
+
+      // Size of the sampled table
+      numTuples = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_SAMPLED_TABLE_SIZE);
 
       // Error measure
       measure = ErrorMeasure.get(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_MEASURE));
@@ -190,10 +195,9 @@ public final class AbmUtilities {
   public static ErrorMeasure getErrorMeasure() {
     return measure;
   }
-  
-  //TODO fix this
-  public static int getTotalTupleNumber() {
-    return 6000000;
+
+  public static long getTotalTupleNumber() {
+    return numTuples;
   }
 
 }

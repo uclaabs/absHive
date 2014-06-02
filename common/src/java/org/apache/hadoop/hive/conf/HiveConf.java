@@ -771,13 +771,14 @@ public class HiveConf extends Configuration {
 
     // ABM confs start here.
     // Enable analytical bootstrap method.
-    HIVE_ABM("hive.abm", true),
+    HIVE_ABM("hive.abm", false),
 
     // User specified ABM schema (primary keys)
     HIVE_ABM_SCHEMA("hive.abm.schema", "schema_tpch.txt"),
 
     // User specified ABM sampled table
     HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "lineitem"),
+    HIVE_ABM_SAMPLED_TABLE_SIZE("hive.abm.sample.size", 6000000),
 //    HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "emp"),
 
     // Label, for debugging

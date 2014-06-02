@@ -10,18 +10,18 @@ public class SrvCountComputation extends UDAFComputation {
 
   protected List<IntArrayList> cntMatrix = new ArrayList<IntArrayList>();
   protected DoubleArrayList result = new DoubleArrayList();
-  protected int N = 0;
+  protected long N = 0;
   protected int baseCnt = 0;
   protected int currentCnt = 0;
   protected int groupCnt = -1;
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
 
-  public void setCount (int tot, int base) {
+  public void setCount (long tot, int base) {
     this.N = tot;
     this.baseCnt = base;
   }
-  
+
   public void clear() {
     result.clear();
     cntMatrix.clear();

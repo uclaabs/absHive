@@ -11,7 +11,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspecto
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class SrvCompareSrvFilter extends GenericUDF {
-  
+
   protected DoubleObjectInspector doubleOI;
   protected IntObjectInspector inputOI;
   protected ListObjectInspector inputSrvOI;
@@ -26,7 +26,7 @@ public class SrvCompareSrvFilter extends GenericUDF {
     doubleOI = PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
     inputOI = PrimitiveObjectInspectorFactory.javaIntObjectInspector;
     inputSrvOI = ObjectInspectorFactory.getStandardListObjectInspector(doubleOI);
-   
+
     return PrimitiveObjectInspectorFactory.javaBooleanObjectInspector;
   }
 
@@ -37,20 +37,18 @@ public class SrvCompareSrvFilter extends GenericUDF {
 
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
-    
+
     // read the first two values which are the range of Srv
     double lower1 = doubleOI.get(inputSrvOI.getListElement(arg[0], 0));
     double upper1 = doubleOI.get(inputSrvOI.getListElement(arg[0], 1));
-    
+
     double lower2 = doubleOI.get(inputSrvOI.getListElement(arg[1], 0));
     double upper2 = doubleOI.get(inputSrvOI.getListElement(arg[1], 1));
-    
-    
-    return  this.updateRet(lower1, lower2, upper1, upper2);
+
+    return this.updateRet(lower1, lower2, upper1, upper2);
   }
 
-
-  protected boolean updateRet( double lower1, double lower2, double upper1, double upper2)
+  protected boolean updateRet(double lower1, double lower2, double upper1, double upper2)
   {
     // override it here
     return true;
