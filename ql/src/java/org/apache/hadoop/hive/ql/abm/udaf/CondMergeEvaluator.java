@@ -34,9 +34,9 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   protected ConditionComputation compute = null;
 
-  // TODO: this variable should be set by shark
+  //  this variable should be set by shark
   // remember to remove the function fakeFlags
-  protected List<Boolean> flags = new ArrayList<Boolean>();
+  protected List<Boolean> flags = null;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
@@ -55,8 +55,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     keyField = fields.get(0);
     rangeField = fields.get(1);
 
-    // TODO
-    ins = new Instruction();
+//   
+//    ins = new Instruction();
 
     if (m == Mode.PARTIAL1 || m == Mode.COMPLETE) {
       keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
@@ -77,17 +77,17 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
           )
           );
     } else {
-      // TODO remove later
-      fakeFlags();
+      // remove later
+//      fakeFlags();
       return CondList.condListOI;
     }
 
   }
 
-  // TODO
-  protected void fakeFlags() {
-    setFlags(Arrays.asList(true));
-  }
+//  // 
+//  protected void fakeFlags() {
+//    setFlags(Arrays.asList(true));
+//  }
 
   public void setFlags(List<Boolean> flags) {
     this.flags = flags;

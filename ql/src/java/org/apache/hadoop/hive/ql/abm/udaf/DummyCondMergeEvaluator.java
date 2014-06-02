@@ -13,10 +13,6 @@ public class DummyCondMergeEvaluator extends CondMergeEvaluator {
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
-    
-    // TODO
-    ins = new Instruction();
-    
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       // partialTerminate() will be called
       return ObjectInspectorFactory.getStandardStructObjectInspector(columnNames, Arrays.asList(
@@ -27,10 +23,7 @@ public class DummyCondMergeEvaluator extends CondMergeEvaluator {
                   ObjectInspectorFactory.getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector))))
           );
     } else {
-      // TODO remove later
-      fakeFlags();
       return CondList.condListOI;
-      
     }
     
   }
