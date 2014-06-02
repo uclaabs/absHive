@@ -16,15 +16,15 @@ public class CondList {
   private final List<RangeList> rangeMatrix = new ArrayList<RangeList>();
   private final Object[] ret = {keyList, rangeMatrix};
 
-  public static ListObjectInspector longListOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
+  public static ListObjectInspector intListOI = ObjectInspectorFactory
+      .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
   public static ListObjectInspector doubleMatrixOI = ObjectInspectorFactory
       .getStandardListObjectInspector(
       ObjectInspectorFactory
           .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
   public static List<String> columnName = Arrays.asList("Keys", "Ranges");
   public static List<ObjectInspector> objectInspectorType = Arrays.asList(
-      (ObjectInspector) longListOI, (ObjectInspector) doubleMatrixOI);
+      (ObjectInspector) intListOI, (ObjectInspector) doubleMatrixOI);
   public static StructObjectInspector condListOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(columnName, objectInspectorType);
 
