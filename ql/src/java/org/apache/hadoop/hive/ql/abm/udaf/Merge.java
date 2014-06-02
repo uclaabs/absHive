@@ -46,7 +46,6 @@ public class Merge {
       ends.add(j);
       i = j;
     }
-
     dimEnds.add(ends);
   }
 
