@@ -16,16 +16,18 @@ public abstract class SrvCompareSrvFilter extends CompareUDF {
       throw new UDFArgumentException("This function takes four arguments: Srv[], Srv_ID[]");
     }
 
+    super.initialize(arguments);
+
     return PrimitiveObjectInspectorFactory.writableBooleanObjectInspector;
   }
 
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
     // read the first two values which are the range of Srv
-    double lower1 = elemOI.get(srvOI.getListElement(arg[0], 0));
-    double upper1 = elemOI.get(srvOI.getListElement(arg[0], 1));
-    double lower2 = elemOI.get(srvOI.getListElement(arg[1], 0));
-    double upper2 = elemOI.get(srvOI.getListElement(arg[1], 1));
+    double lower1 = elemOI.get(srvOI.getListElement(arg[0].get(), 0));
+    double upper1 = elemOI.get(srvOI.getListElement(arg[0].get(), 1));
+    double lower2 = elemOI.get(srvOI.getListElement(arg[1].get(), 0));
+    double upper2 = elemOI.get(srvOI.getListElement(arg[1].get(), 1));
     updateRet(lower1, lower2, upper1, upper2);
     return ret;
   }

@@ -33,8 +33,8 @@ public abstract class SrvCompare extends CompareUDF {
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
     // read the first two values which are the range of Srv
-    double lower = elemOI.get(srvOI.getListElement(arg[0], 0));
-    double upper = elemOI.get(srvOI.getListElement(arg[0], 1));
+    double lower = elemOI.get(srvOI.getListElement(arg[0].get(), 0));
+    double upper = elemOI.get(srvOI.getListElement(arg[0].get(), 1));
     double value = PrimitiveObjectInspectorUtils.getDouble(arg[1].get(), valOI);
     int id = idOI.get(arg[2].get());
 
