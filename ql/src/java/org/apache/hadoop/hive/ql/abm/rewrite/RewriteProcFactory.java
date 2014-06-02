@@ -1070,38 +1070,38 @@ public class RewriteProcFactory {
       switch (code) {
       case 1:
         if (udf instanceof GenericUDFOPEqualOrGreaterThan) {
-          return "x<=";
+          return "srv_equal_or_less_than_f";
         } else if (udf instanceof GenericUDFOPEqualOrLessThan) {
-          return "x>=";
+          return "srv_equal_or_greater_than_f";
         } else if (udf instanceof GenericUDFOPGreaterThan) {
-          return "x<";
+          return "srv_less_than_f";
         } else {
           assert udf instanceof GenericUDFOPLessThan;
-          return "x>";
+          return "srv_greater_than_f";
         }
 
       case 2:
         if (udf instanceof GenericUDFOPEqualOrGreaterThan) {
-          return "x>=";
+          return "srv_equal_or_greater_than_f";
         } else if (udf instanceof GenericUDFOPEqualOrLessThan) {
-          return "x<=";
+          return "srv_equal_or_less_than_f";
         } else if (udf instanceof GenericUDFOPGreaterThan) {
-          return "x>";
+          return "srv_greater_than_f";
         } else {
           assert udf instanceof GenericUDFOPLessThan;
-          return "x<";
+          return "srv_less_than_f";
         }
 
       default: // 3
         if (udf instanceof GenericUDFOPEqualOrGreaterThan) {
-          return "x>=x";
+          return "srv_equal_or_greater_than_srv_f";
         } else if (udf instanceof GenericUDFOPEqualOrLessThan) {
-          return "x<=x";
+          return "srv_equal_or_less_than_srv_f";
         } else if (udf instanceof GenericUDFOPGreaterThan) {
-          return "x>x";
+          return "srv_greater_than_srv_f";
         } else {
           assert udf instanceof GenericUDFOPLessThan;
-          return "x<x";
+          return "srv_less_than_srv_f";
         }
       }
     }

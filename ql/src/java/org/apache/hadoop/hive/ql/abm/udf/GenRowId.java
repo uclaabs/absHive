@@ -26,7 +26,7 @@ public class GenRowId extends GenericUDF {
       throw new UDFArgumentException("This function takes no argument!");
     }
 	  id = new IntWritable(0);
-    return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
+    return PrimitiveObjectInspectorFactory.writableIntObjectInspector;
   }
 
   public void setSplitId(int split) {
