@@ -287,18 +287,7 @@ public class RewriteProcFactory {
 
   private static ExprNodeDesc joinConditions(List<ExprNodeDesc> conditions)
       throws UDFArgumentException {
-    ExprNodeDesc column = null;
-    GenericUDF condJoin = getUdf(COND_JOIN);
-    for (ExprNodeDesc condition : conditions) {
-      if (column == null) {
-        column = condition;
-      } else {
-        // Note: use Arrays.asList will cause bugs
-        column = ExprNodeGenericFuncDesc.newInstance(
-            condJoin, new ArrayList<ExprNodeDesc>(Arrays.asList(column, condition)));
-      }
-    }
-    return column;
+    return ExprNodeGenericFuncDesc.newInstance(getUdf(COND_JOIN), conditions);
   }
 
   public static abstract class RewriteProcessor implements NodeProcessor {
@@ -394,7 +383,8 @@ public class RewriteProcFactory {
 
   /**
    *
-   * FileSinkProcessor adds a Select before FileSink to Monte-Carlo simulate the final distributions.
+   * FileSinkProcessor adds a Select before FileSink to Monte-Carlo simulate the final
+   * distributions.
    *
    */
   public static class FileSinkProcessor extends RewriteProcessor {

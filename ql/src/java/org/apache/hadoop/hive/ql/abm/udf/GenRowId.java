@@ -7,7 +7,7 @@ import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.IntWritable;
 
 /**
  *
@@ -18,19 +18,19 @@ import org.apache.hadoop.io.LongWritable;
 @UDFType(stateful = true)
 public class GenRowId extends GenericUDF {
 
-	private LongWritable id = null;
+	private IntWritable id = null;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
 	  if (arguments.length != 0) {
       throw new UDFArgumentException("This function takes no argument!");
     }
-	  id = new LongWritable(0);
+	  id = new IntWritable(0);
     return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
   }
 
-  public void setSplitId(long split) {
-    id.set(split << 32);
+  public void setSplitId(int split) {
+    id.set(split << 16);
   }
 
 	@Override

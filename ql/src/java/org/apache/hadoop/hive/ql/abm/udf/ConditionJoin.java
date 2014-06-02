@@ -15,29 +15,29 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 public class ConditionJoin extends GenericUDF {
 
-  private Object[] ret = new Object[2];
-  private KeyWrapper inputKeys = new KeyWrapper();
-  private List<Object> inputRanges = new ArrayList<Object>();
+  private final KeyWrapper inputKeys = new KeyWrapper();
+  private final List<Object> inputRanges = new ArrayList<Object>();
+  private final Object[] ret = new Object[] {inputKeys, inputRanges};
+
   private KeyWrapperParser keyParser = null;
   private RangeMatrixParser rangeParser = null;
   private StructObjectInspector inputOI;
   private StructField keyField;
   private StructField rangeField;
-  
+
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-
-    if (arguments.length != 2) {
-      throw new UDFArgumentException("This function takes two arguments: CondGroup, CondGroup");
+    if (arguments.length < 2) {
+      throw new UDFArgumentException("This function takes at least two arguments of type CondGroup");
     }
+
     inputOI = (StructObjectInspector) arguments[0];
     List<? extends StructField> fields = inputOI.getAllStructFieldRefs();
     keyField = fields.get(0);
     rangeField = fields.get(1);
-    
     keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
     rangeParser = new RangeMatrixParser(rangeField.getFieldObjectInspector());
-    
+
     return arguments[0];
   }
 
@@ -45,30 +45,23 @@ public class ConditionJoin extends GenericUDF {
   public String getDisplayString(String[] arg0) {
     return "Function for Cond Group Join";
   }
-  
-  protected void parseCondGroupObj(Object condGroupObj, int i) {
-    Object keyObj = inputOI.getStructFieldData(condGroupObj, keyField);
-    Object rangeObj = inputOI.getStructFieldData(condGroupObj, rangeField);
-    
-    keyParser.parseInto(keyObj, inputKeys);
-    rangeParser.shallowCopyInto(rangeObj, inputRanges);
+
+  private void parseCondGroupObj(Object condGroupObj) {
+    keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
+    rangeParser.shallowCopyInto(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges);
   }
 
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
-   
-   this.inputKeys.clear();
-   this.inputRanges.clear();
-   
-   parseCondGroupObj(arg[0].get(), 0);
-   parseCondGroupObj(arg[1].get(), 1);
-   
-   ret[0] = this.inputKeys;
-   ret[1] = this.inputRanges;
-   
-   return this.ret;
+    inputKeys.clear();
+    inputRanges.clear();
+
+    for (DeferredObject o : arg) {
+      parseCondGroupObj(o.get());
+    }
+
+    return ret;
   }
 
 
 }
-

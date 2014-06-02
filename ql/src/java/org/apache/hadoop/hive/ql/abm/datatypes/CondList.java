@@ -36,33 +36,21 @@ public class CondList {
     rangeRet = new ArrayList<Object>();
   }
 
-  @SuppressWarnings("unchecked")
-  public static void update(Object condListObj, long id, double value) {
-    Object[] ret = (Object[]) condListObj;
-    KeyWrapper keyArray = (KeyWrapper) ret[0];
-    ArrayList<Object> rangeMatrix = (ArrayList<Object>) ret[1];
-
-    keyArray.set(0, id);
-    RangeList rangeArray = (RangeList) rangeMatrix.get(0);
-    rangeArray.set(0, value);
+  public void update(long id, double value) {
+    keyList.set(0, id);
+    rangeMatrix.get(0).set(0, value);
   }
 
-  @SuppressWarnings("unchecked")
-  public static void update(Object condListObj, long id1, long id2, double value) {
-    Object[] ret = (Object[]) condListObj;
-    KeyWrapper keyArray = (KeyWrapper) ret[0];
-    ArrayList<Object> rangeMatrix = (ArrayList<Object>) ret[1];
-
-    keyArray.set(0, id1);
-    keyArray.set(1, id2);
-    RangeList rangeArray = (RangeList) rangeMatrix.get(0);
-    rangeArray.set(0, value);
+  public void update(long id1, long id2, double value) {
+    keyList.set(0, id1);
+    keyList.set(1, id2);
+    rangeMatrix.get(0).set(0, value);
   }
 
   public void addKey(long key) {
     this.keyList.add(key);
   }
-  
+
   public void addRangeValue(double value) {
     RangeList newlist = new RangeList();
     newlist.add(value);
