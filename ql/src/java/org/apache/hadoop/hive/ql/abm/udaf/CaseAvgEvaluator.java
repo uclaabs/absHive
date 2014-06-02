@@ -2,68 +2,120 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.ql.abm.datatypes.ValueListParser;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
-public class CaseAvgEvaluator extends SrvAvgEvaluator {
+public class CaseAvgEvaluator  extends SrvEvaluatorWithInstruction {
 
-  protected static class MyAggregationBuffer implements AggregationBuffer {
 
-    Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
-    List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
-    List<Object> ret = new ArrayList<Object>();
-    CaseAvgComputation compute = new CaseAvgComputation();
+  private final List<String> columnName = Arrays.asList("Group","BaseSum", "BaseCnt");
+  
+  private final List<ObjectInspector> objectInspectorType = Arrays.asList(
+      (ObjectInspector)partialGroupOI,  
+      PrimitiveObjectInspectorFactory.javaDoubleObjectInspector, 
+      PrimitiveObjectInspectorFactory.javaIntObjectInspector);
+  
+  private final StructObjectInspector partialOI = ObjectInspectorFactory
+      .getStandardStructObjectInspector(columnName, objectInspectorType);
+  
+  private DoubleObjectInspector baseSumOI;
+  private IntObjectInspector baseCntOI;
+  private StructField sumField, cntField;
+  private CaseAvgComputation compute = null;
+
+  @Override
+  public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
+    super.init(m, parameters);
     
-    double baseSum = 0;
-    int baseCnt = 0;
+    if(m == Mode.PARTIAL2|| m == Mode.FINAL) {
+      sumField = fields.get(1);
+      cntField = fields.get(2);
+      baseSumOI = (DoubleObjectInspector) sumField.getFieldObjectInspector();
+      baseCntOI = (IntObjectInspector) cntField.getFieldObjectInspector();
+    }
 
-    public void addBase(double value) {
+    if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
+      return partialOI;
+    } else {
+      compute = new CaseAvgComputation();
+      return doubleListOI;
+    }
+  }
+
+  protected static class CaseAvgAggregationBuffer extends SrvAggregationBuffer{
+    
+    public double baseSum = 0;
+    public int baseCnt = 0;
+    
+    public CaseAvgAggregationBuffer(ValueListParser inputParser) {
+      super(inputParser);
+    }
+
+    @Override
+    public void processBase(double value) {
       this.baseSum += value;
       this.baseCnt += 1;
     }
-
-    public void addBase(double partialSum, double partialSsum, int partialCnt) {
-      baseSum += partialSum;
-      baseCnt += partialCnt;
+    
+    public void processPartialBase(double sum,  int cnt) {
+      this.baseSum += sum;
+      this.baseCnt += cnt;
     }
 
+    @Override
     public Object getPartialResult() {
-
-      ret.clear();
-      partialResult.clear();
-      for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
-        partialResult.add(entry.getValue());
-      }
+      super.addGroupToRet();
       ret.add(baseSum);
-      ret.add(0);
       ret.add(baseCnt);
-      ret.add(partialResult);
       return ret;
     }
-
+    
+    @Override
     public void reset() {
+      super.reset();
       baseSum = 0;
       baseCnt = 0;
-      groups.clear();
-      partialResult.clear();
-      ret.clear();
-      compute.clear();
     }
   }
 
   @Override
+  public AggregationBuffer getNewAggregationBuffer() throws HiveException {
+    return new CaseAvgAggregationBuffer(this.valueListParser);
+  }
+
+  @Override
+  public void reset(AggregationBuffer agg) throws HiveException {
+    ((CaseAvgAggregationBuffer) agg).reset();
+    compute.clear();
+  }
+  
+  @Override
+  protected void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes) {
+    Object sumObj = this.mergeInputOI.getStructFieldData(partialRes, sumField);
+    Object cntObj = this.mergeInputOI.getStructFieldData(partialRes, cntField);
+    double sum = this.baseSumOI.get(sumObj);
+    int cnt = this.baseCntOI.get(cntObj);
+    ((CaseAvgAggregationBuffer)agg).processPartialBase(sum, cnt);
+  }
+
+  @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    CaseAvgComputation compute = myagg.compute;
+    CaseAvgAggregationBuffer myagg = (CaseAvgAggregationBuffer) agg;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;
-    compute.setTotalNumber(tot);
-    compute.setBase(myagg.baseSum, myagg.baseCnt);
+    compute.setBase(myagg.baseSum,  myagg.baseCnt);
     for (Map.Entry<Integer, DoubleArrayList> entry : myagg.groups.entrySet()) {
 
       compute.setCurrentList(entry.getValue());
@@ -72,6 +124,7 @@ public class CaseAvgEvaluator extends SrvAvgEvaluator {
       i++;
     }
     return compute.getFinalResult();
+
   }
 
 }

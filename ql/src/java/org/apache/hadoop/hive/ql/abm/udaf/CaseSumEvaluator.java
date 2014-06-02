@@ -2,71 +2,107 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hive.ql.abm.datatypes.ValueListParser;
+import org.apache.hadoop.hive.ql.abm.udaf.SrvSumEvaluator.SrvSumAggregationBuffer;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
-public class CaseSumEvaluator extends SrvSumEvaluator {
-
-  protected static class MyAggregationBuffer implements AggregationBuffer {
-
-    Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
-    List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
-    List<Object> ret = new ArrayList<Object>();
-    CaseSumComputation compute = new CaseSumComputation();
-    double sum = 0;
-
-    public void addBase(double value) {
-      this.sum += value;
+public class CaseSumEvaluator extends SrvEvaluatorWithInstruction {
+  
+  private final List<String> columnName = Arrays.asList("Group","BaseSum");
+  private final List<ObjectInspector> objectInspectorType = Arrays.asList((ObjectInspector)partialGroupOI,  PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
+  private final StructObjectInspector partialOI = ObjectInspectorFactory.getStandardStructObjectInspector(columnName, objectInspectorType);
+  
+  private DoubleObjectInspector baseSumOI;
+  private StructField sumField;
+  private CaseSumComputation compute = null;
+  
+  @Override
+  public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
+    super.init(m, parameters);
+    
+    if(m == Mode.PARTIAL2|| m == Mode.FINAL) {
+      sumField = fields.get(1);
+      baseSumOI = (DoubleObjectInspector) sumField.getFieldObjectInspector();
     }
 
-    public void addBase(double partialSum, double partialSsum) {
-      this.sum += partialSum;
+    if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
+      return partialOI;
+    } else {
+      compute = new CaseSumComputation();
+      return doubleListOI;
+    }
+  }
+ 
+  protected static class CaseSumAggregationBuffer extends SrvAggregationBuffer {
+    
+    public double baseSum = 0;
+
+    public CaseSumAggregationBuffer(ValueListParser inputParser) {
+      super(inputParser);
     }
 
+    @Override
+    public void processBase(double value) {
+      this.baseSum += value;
+    }
+
+    @Override
     public Object getPartialResult() {
-
-      ret.clear();
-      partialResult.clear();
-      for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
-        partialResult.add(entry.getValue());
-      }
-      ret.add(this.sum);
-      ret.add(0);
-      ret.add(partialResult);
-
+      super.addGroupToRet();
+      ret.add(baseSum);
       return ret;
     }
 
+    @Override
     public void reset() {
-      sum = 0;
-      groups.clear();
-      partialResult.clear();
-      ret.clear();
-      compute.clear();
+      super.reset();
+      baseSum = 0;
     }
+  }
+  
+  @Override
+  public AggregationBuffer getNewAggregationBuffer() throws HiveException {
+    return new CaseSumAggregationBuffer(this.valueListParser);
   }
 
   @Override
+  public void reset(AggregationBuffer agg) throws HiveException {
+    ((CaseSumAggregationBuffer) agg).reset();
+    compute.clear();
+  }
+  
+  @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    CaseSumComputation compute = myagg.compute;
+    CaseSumAggregationBuffer myagg = (CaseSumAggregationBuffer) agg;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;
-    compute.setTotalNumber(tot);
-    compute.setBase(myagg.sum);
+    compute.setBase(myagg.baseSum);
     for (Map.Entry<Integer, DoubleArrayList> entry : myagg.groups.entrySet()) {
-
       compute.setCurrentList(entry.getValue());
       Merge merge = instructions.get(i);
       merge.enumerate(compute);
       i++;
     }
     return compute.getFinalResult();
+  }
+
+  @Override
+  protected void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes) {
+    Object sumObj = this.mergeInputOI.getStructFieldData(partialRes, this.sumField);
+    double sum = this.baseSumOI.get(sumObj);
+    ((SrvSumAggregationBuffer)agg).processBase(sum);
+    
   }
 
 }

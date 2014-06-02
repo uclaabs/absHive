@@ -34,8 +34,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   protected ConditionComputation compute = null;
 
-  //  this variable should be set by shark
-  // remember to remove the function fakeFlags
   protected List<Boolean> flags = null;
 
   @Override

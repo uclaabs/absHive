@@ -36,7 +36,7 @@ public final class AbmUtilities {
 
   private static String sampledTable;
   private static String queryResultFileFormat;
-  private static long numTuples;
+  private static int numTuples;
   private static final Map<String, Set<String>> schemaPrimaryKeyMap = new HashMap<String, Set<String>>();
   private static ErrorMeasure measure;
   private static final ArrayList<String> fieldNames = new ArrayList<String>();
@@ -196,7 +196,7 @@ public final class AbmUtilities {
     return measure;
   }
 
-  public static long getTotalTupleNumber() {
+  public static int getTotalTupleNumber() {
     return numTuples;
   }
 

@@ -1,186 +1,112 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
+import org.apache.hadoop.hive.ql.abm.datatypes.ValueListParser;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.serde2.io.DoubleWritable;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryStruct;
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
-import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 
-public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
+public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
 
-  protected final DoubleObjectInspector doubleOI = PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
-  protected final ListObjectInspector doubleListOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(doubleOI);
-  protected final ListObjectInspector partialGroupOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(doubleListOI);
-
-  protected final List<String> columnName = Arrays.asList("BaseSum", "BaseSsum", "Group");
-  protected final List<ObjectInspector> objectInspectorType = Arrays.asList(
-      (ObjectInspector) doubleOI, (ObjectInspector) doubleOI, (ObjectInspector) partialGroupOI);
-  protected final StructObjectInspector partialOI = ObjectInspectorFactory
+  private final List<String> columnName = Arrays.asList("Group","BaseSum", "BaseSsum");
+  private final List<ObjectInspector> objectInspectorType = Arrays.asList(
+      (ObjectInspector)partialGroupOI,  PrimitiveObjectInspectorFactory.javaDoubleObjectInspector, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
+  private final StructObjectInspector partialOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(columnName, objectInspectorType);
-
-
-  protected PrimitiveObjectInspector inputValueOI = null;
-  protected long tot = AbmUtilities.getTotalTupleNumber();
+  
+  private DoubleObjectInspector baseSumOI, baseSsumOI;
+  private StructField sumField, ssumField;
   private SrvSumComputation compute = null;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
+    
+    if(m == Mode.PARTIAL2|| m == Mode.FINAL) {
+      sumField = fields.get(1);
+      ssumField = fields.get(2);
+      baseSumOI = (DoubleObjectInspector) sumField.getFieldObjectInspector();
+      baseSsumOI = (DoubleObjectInspector) ssumField.getFieldObjectInspector();
+    }
 
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
-      inputValueOI = (PrimitiveObjectInspector) parameters[0];
       return partialOI;
     } else {
       compute = new SrvSumComputation();
       return doubleListOI;
     }
   }
+  
+  protected static class SrvSumAggregationBuffer extends SrvAggregationBuffer{
+    
+    public double baseSum = 0;
+    public double baseSsum = 0;
+    
+    public SrvSumAggregationBuffer(ValueListParser inputParser) {
+      super(inputParser);
+    }
 
-  protected static class MyAggregationBuffer implements AggregationBuffer {
-    Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
-    List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
-    List<Object> ret = new ArrayList<Object>();
-    double baseSum = 0;
-    double baseSsum = 0;
-
-    public void addBase(double value) {
+    @Override
+    public void processBase(double value) {
       this.baseSum += value;
-      this.baseSsum += (value * value);
+      this.baseSsum += (value * value); 
+    }
+    
+    public void processPartialBase(double sum, double ssum) {
+      this.baseSum += sum;
+      this.baseSsum += ssum;
     }
 
-    public void addBase(double partialSum, double partialSsum) {
-      baseSum += partialSum;
-      baseSsum += partialSsum;
-    }
-
+    @Override
     public Object getPartialResult() {
-
-      ret.clear();
-      partialResult.clear();
-      for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
-        partialResult.add(entry.getValue());
-      }
+      super.addGroupToRet();
       ret.add(baseSum);
       ret.add(baseSsum);
-      ret.add(partialResult);
       return ret;
     }
-
+    
+    @Override
     public void reset() {
+      super.reset();
       baseSum = baseSsum = 0;
-      groups.clear();
-      partialResult.clear();
-      ret.clear();
     }
   }
 
   @Override
   public AggregationBuffer getNewAggregationBuffer() throws HiveException {
-    return new MyAggregationBuffer();
+    return new SrvSumAggregationBuffer(this.valueListParser);
   }
 
   @Override
   public void reset(AggregationBuffer agg) throws HiveException {
-    ((MyAggregationBuffer) agg).reset();
+    ((SrvSumAggregationBuffer) agg).reset();
     compute.clear();
   }
 
   @Override
-  public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-    if (parameters[0] != null) {
-
-      int instruction = ins.getGroupInstruction().getInt(0);
-
-      MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-      double value = PrimitiveObjectInspectorUtils.getDouble(parameters, inputValueOI);
-
-      if (instruction >= 0) {
-        DoubleArrayList lineageList = myagg.groups.get(instruction);
-
-        if (lineageList == null) {
-          lineageList = new DoubleArrayList();
-          lineageList.add(value);
-          myagg.groups.put(instruction, lineageList);
-        } else {
-          lineageList.add(value);
-        }
-      } else {
-        myagg.addBase(value);
-      }
-    }
-  }
-
-  @Override
-  public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-    return ((MyAggregationBuffer) agg).getPartialResult();
-  }
-
-  protected LazyBinaryArray parsePartialInput(AggregationBuffer agg, LazyBinaryStruct binaryStruct) {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    double partialSum = ((DoubleWritable) binaryStruct.getField(0)).get();
-    double partialSsum = ((DoubleWritable) binaryStruct.getField(1)).get();
-    myagg.addBase(partialSum, partialSsum);
-    return (LazyBinaryArray) binaryStruct.getField(2);
-  }
-
-
-  @Override
-  public void merge(AggregationBuffer agg, Object partial) throws HiveException {
-    if (!(partial instanceof LazyBinaryStruct)) {
-      throw new UDFArgumentException("SrvSum: Unknown Data Type");
-    }
-
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-
-    LazyBinaryStruct binaryStruct = (LazyBinaryStruct) partial;
-    LazyBinaryArray binaryValues = parsePartialInput(agg, binaryStruct);
-
-    IntArrayList instruction = ins.getGroupInstruction();
-
-    int numEntries = binaryValues.getListLength(); // Number of map entry
-    for (int i = 0; i < numEntries; i++) {
-      LazyBinaryArray lazyIntArray = (LazyBinaryArray) binaryValues.getListElementObject(i);
-      int key = instruction.getInt(i);
-      DoubleArrayList currentList = myagg.groups.get(key);
-
-      if (currentList == null) {
-        currentList = new DoubleArrayList();
-        myagg.groups.put(key, currentList);
-      }
-
-      for (int j = 0; j < lazyIntArray.getListLength(); j++) {
-        currentList.add(((DoubleWritable) lazyIntArray.getListElementObject(j)).get());
-      }
-    }
+  protected void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes) {
+    Object sumObj = this.mergeInputOI.getStructFieldData(partialRes, this.sumField);
+    Object ssumObj = this.mergeInputOI.getStructFieldData(partialRes, this.ssumField);
+    double sum = this.baseSumOI.get(sumObj);
+    double ssum = this.baseSsumOI.get(ssumObj);
+    ((SrvSumAggregationBuffer)agg).processPartialBase(sum, ssum);
   }
 
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
+    SrvSumAggregationBuffer myagg = (SrvSumAggregationBuffer) agg;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;
-    compute.setTotalNumber(tot);
     compute.setBase(myagg.baseSum, myagg.baseSsum);
     for (Map.Entry<Integer, DoubleArrayList> entry : myagg.groups.entrySet()) {
 
@@ -191,5 +117,7 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
     }
     return compute.getFinalResult();
   }
+
+
 
 }

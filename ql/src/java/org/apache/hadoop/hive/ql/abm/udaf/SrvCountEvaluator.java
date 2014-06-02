@@ -2,7 +2,6 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -14,7 +13,6 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   protected final ListObjectInspector doubleListOI = ObjectInspectorFactory
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
-  protected long tot = AbmUtilities.getTotalTupleNumber();
   private SrvCountComputation compute = null;
 
   @Override
@@ -82,7 +80,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
 
-    compute.setCount(this.tot, myagg.baseCnt);
+    compute.setCount(myagg.baseCnt);
     List<Merge> instructions = ins.getMergeInstruction();
 
     for (int i = 0; i < instructions.size(); i++) {
