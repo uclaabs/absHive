@@ -16,15 +16,16 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
 public class LineageComputation extends UDAFComputation {
+  private int groupCnt = -1;
+  private final List<List<EWAHCompressedBitmap>> bitmaps = new ArrayList<List<EWAHCompressedBitmap>>();
+  private final List<EWAHCompressedBitmap> result = new ArrayList<EWAHCompressedBitmap>();
+  private EWAHCompressedBitmap[] recursiveList = null;
+  private final IntArrayList totalLineage = new IntArrayList();
+  private final IntAVLTreeSet newLineage = new IntAVLTreeSet();
+  private EWAHCompressedBitmap totalBitmap = null;
+  private IntArrayList currentLineage = null;
 
-  int groupCnt = -1;
-  List<List<EWAHCompressedBitmap>> bitmaps = new ArrayList<List<EWAHCompressedBitmap>>();
-  List<EWAHCompressedBitmap> result = new ArrayList<EWAHCompressedBitmap>();
-  EWAHCompressedBitmap[] recursiveList = null;
-  IntArrayList totalLineage = new IntArrayList();
-  IntAVLTreeSet newLineage = new IntAVLTreeSet();
-  EWAHCompressedBitmap totalBitmap = null;
-  IntArrayList currentLineage = null;
+  private final List<Object> ret = new ArrayList<Object>();
 
   public void setGroupBitmap(IntArrayList lineage) {
     groupCnt ++;
@@ -42,6 +43,8 @@ public class LineageComputation extends UDAFComputation {
     totalBitmap = null;
     currentLineage = null;
     recursiveList = null;
+
+    ret.clear();
   }
 
   @Override
@@ -55,14 +58,13 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public void terminate() {
-
     // create a new bitmap for current lineage
     EWAHCompressedBitmap bitMap = new EWAHCompressedBitmap();
-    Iterator<Integer> it = this.newLineage.iterator();
+    Iterator<Integer> it = newLineage.iterator();
     while(it.hasNext()) {
       bitMap.set(it.next());
     }
-    this.bitmaps.get(groupCnt).add(bitMap);
+    bitmaps.get(groupCnt).add(bitMap);
   }
 
   @Override
@@ -71,42 +73,35 @@ public class LineageComputation extends UDAFComputation {
     converter.setIntList(totalLineage);
     converter.sort();
     totalBitmap = converter.getBitmap();
-    this.recursiveList = new EWAHCompressedBitmap[this.groupCnt + 2];
+    recursiveList = new EWAHCompressedBitmap[this.groupCnt + 2];
     recursiveList[0] = totalBitmap;
     unfoldLineageList(0);
     result.add(totalBitmap);
   }
 
   private void unfoldLineageList(int level) {
-    boolean leaf = (level == this.groupCnt);
-
-    for(int i = 0; i < this.bitmaps.get(level).size(); i ++) {
-
-      this.recursiveList[level + 1] = this.bitmaps.get(level).get(i);
-
+    boolean leaf = (level == groupCnt);
+    for(int i = 0; i < bitmaps.get(level).size(); i ++) {
+      recursiveList[level + 1] = bitmaps.get(level).get(i);
       if(leaf) {
-        result.add(EWAHCompressedBitmap.xor(this.recursiveList));
+        result.add(EWAHCompressedBitmap.xor(recursiveList));
       } else {
         unfoldLineageList(level + 1);
       }
-
     }
   }
 
   @Override
   public Object serializeResult() {
-
-    Object[] ret = new Object[result.size()];
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ObjectOutputStream oo;
     try {
       oo = new ObjectOutputStream(baos);
       for(int i = 0; i < result.size(); i ++) {
-
         baos.reset();
         oo.reset();
         result.get(i).writeExternal(oo);
-        ret[i] = ObjectInspectorUtils.copyToStandardObject(baos.toByteArray(), PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector);
+        ret.add(ObjectInspectorUtils.copyToStandardObject(baos.toByteArray(), PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector));
       }
       oo.close();
     } catch (IOException e) {
@@ -117,7 +112,7 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public void reset() {
-    this.newLineage.clear();
+    newLineage.clear();
   }
 
 }
