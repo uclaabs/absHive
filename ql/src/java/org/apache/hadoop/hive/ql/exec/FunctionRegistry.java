@@ -449,16 +449,15 @@ public final class FunctionRegistry {
     registerGenericUDF("srv_greater_than_srv", SrvGreaterSrv.class);
     registerGenericUDF("srv_less_than_srv", SrvLessSrv.class);
 
-    registerGenericUDF("x>=", SrvGreaterEqualFilter.class);
-    registerGenericUDF("x<=", SrvLessEqualFilter.class);
-    registerGenericUDF("x>", SrvGreaterFilter.class);
-    registerGenericUDF("x<", SrvLessFilter.class);
+    registerGenericUDF("srv_equal_or_greater_than_f", SrvGreaterEqualFilter.class);
+    registerGenericUDF("srv_equal_or_less_than_f", SrvLessEqualFilter.class);
+    registerGenericUDF("srv_greater_than_f", SrvGreaterFilter.class);
+    registerGenericUDF("srv_less_than_f", SrvLessFilter.class);
 
-    registerGenericUDF("x>=x", SrvGreaterEqualSrvFilter.class);
-    registerGenericUDF("x<=x", SrvLessEqualSrvFilter.class);
-    registerGenericUDF("x>x", SrvGreaterSrvFilter.class);
-    registerGenericUDF("x<x", SrvLessSrvFilter.class);
-
+    registerGenericUDF("srv_equal_or_greater_than_srv_f", SrvGreaterEqualSrvFilter.class);
+    registerGenericUDF("srv_equal_or_less_than_srv_f", SrvLessEqualSrvFilter.class);
+    registerGenericUDF("srv_greater_than_srv_f", SrvGreaterSrvFilter.class);
+    registerGenericUDF("srv_less_than_srv_f", SrvLessSrvFilter.class);
 
     // Generic UDFs
     registerGenericUDF("reflect", GenericUDFReflect.class);
