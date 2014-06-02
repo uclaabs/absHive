@@ -183,7 +183,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       boolean isBase = rangeParser.isBase(rangeObj);
       if (isBase) {
         ins.addGroupInstruction(-1);
-        System.out.println("It is base!");
         return;
       }
 

@@ -35,7 +35,7 @@ public class RangeListParser extends Parser {
     int length = oi.getListLength(o);
     for (int i = 0; i < length; ++i) {
       double e = eoi.get(oi.getListElement(o, i));
-      if (e != Double.NEGATIVE_INFINITY || e != Double.POSITIVE_INFINITY) {
+      if (e != Double.NEGATIVE_INFINITY && e != Double.POSITIVE_INFINITY) {
         return false;
       }
     }

@@ -20,6 +20,29 @@ public class CondGroup {
     ranges.add(rangeMatrix);
   }
 
+  public void print() {
+
+    System.out.println("Keys");
+    for (KeyWrapper currentKeys : keys) {
+      for(int key:currentKeys) {
+        System.out.print(key + "\t");
+      }
+      System.out.println();
+    }
+
+    System.out.println("Ranges");
+    for (List<RangeList> rangeLists : ranges) {
+      for(RangeList rangeList: rangeLists) {
+        for(double range:rangeList) {
+          System.out.print(range + "\t");
+        }
+        System.out.println();
+      }
+      System.out.println();
+    }
+
+  }
+
   public void addKeys(KeyWrapper keyList) {
     keys.add(keyList);
   }

@@ -3,7 +3,6 @@ package org.apache.hadoop.hive.ql.abm.udf;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapperParser;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeMatrixParser;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
@@ -15,7 +14,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 public class ConditionJoin extends GenericUDF {
 
-  private final KeyWrapper inputKeys = new KeyWrapper();
+  private final List<Object> inputKeys = new ArrayList<Object>();
   private final List<Object> inputRanges = new ArrayList<Object>();
   private final Object[] ret = new Object[] {inputKeys, inputRanges};
 
@@ -43,11 +42,11 @@ public class ConditionJoin extends GenericUDF {
 
   @Override
   public String getDisplayString(String[] arg0) {
-    return "Function for Cond Group Join";
+    return "Function for Cond Join";
   }
 
   private void parseCondGroupObj(Object condGroupObj) {
-    keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
+    keyParser.shallowCopyInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
     rangeParser.shallowCopyInto(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges);
   }
 

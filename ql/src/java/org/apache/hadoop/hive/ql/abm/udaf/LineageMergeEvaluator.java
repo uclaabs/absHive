@@ -19,7 +19,8 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   private final static ListObjectInspector binaryListOI = ObjectInspectorFactory
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector);
   private final static ListObjectInspector partialOI = ObjectInspectorFactory
-      .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
+      .getStandardListObjectInspector(ObjectInspectorFactory.getStandardListObjectInspector(
+          PrimitiveObjectInspectorFactory.javaIntObjectInspector));
 
   private LineageInputParser parser = null;
   private ListObjectInspector listOI = null;
@@ -64,7 +65,7 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     }
 
     public Object getPartialResult() {
-      return new ArrayList<Object>(groups.values());
+      return new ArrayList<IntArrayList>(groups.values());
     }
 
     public void reset() {
