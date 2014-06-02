@@ -28,7 +28,7 @@ public class CaseSumEvaluator extends SrvSumEvaluator {
     }
 
     public Object getPartialResult() {
-      
+
       ret.clear();
       partialResult.clear();
       for (Map.Entry<Integer, DoubleArrayList> entry : groups.entrySet()) {
@@ -37,7 +37,7 @@ public class CaseSumEvaluator extends SrvSumEvaluator {
       ret.add(this.sum);
       ret.add(0);
       ret.add(partialResult);
-      
+
       return ret;
     }
 

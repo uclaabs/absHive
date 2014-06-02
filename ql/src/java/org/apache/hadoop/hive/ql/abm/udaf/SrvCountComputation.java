@@ -11,7 +11,7 @@ public class SrvCountComputation extends UDAFComputation {
   protected List<IntArrayList> cntMatrix = new ArrayList<IntArrayList>();
   protected DoubleArrayList result = new DoubleArrayList();
   protected long N = 0;
-  protected int baseCnt = 0;
+  protected long baseCnt = 0;
   protected int currentCnt = 0;
   protected int groupCnt = -1;
   protected double confidenceLower = Double.POSITIVE_INFINITY;
@@ -82,12 +82,12 @@ public class SrvCountComputation extends UDAFComputation {
     this.result.add(1, this.confidenceUpper);
   }
 
-  protected void unfoldSrvList(int level, int cnt) {
+  protected void unfoldSrvList(int level, long cnt) {
 
     boolean leaf = (level == this.groupCnt);
     for(int i = 0; i < this.cntMatrix.get(level).size(); i ++) {
 
-      int tmpCnt = cnt + this.cntMatrix.get(level).getInt(i);
+      long tmpCnt = cnt + this.cntMatrix.get(level).getInt(i);
 
       if(leaf) {
         addDistribution(tmpCnt);

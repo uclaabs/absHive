@@ -40,17 +40,18 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
 
   protected PrimitiveObjectInspector inputValueOI = null;
-  protected int tot = AbmUtilities.getTotalTupleNumber();
+  protected long tot = AbmUtilities.getTotalTupleNumber();
+  private SrvSumComputation compute = null;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
-    if (m == Mode.PARTIAL1 || !(parameters[0] instanceof ListObjectInspector)) {
-
+    if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       inputValueOI = (PrimitiveObjectInspector) parameters[0];
       return partialOI;
     } else {
+      compute = new SrvSumComputation();
       return doubleListOI;
     }
   }
@@ -58,7 +59,6 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
   protected static class MyAggregationBuffer implements AggregationBuffer {
     Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
     List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
-    SrvSumComputation compute = new SrvSumComputation();
     List<Object> ret = new ArrayList<Object>();
     double baseSum = 0;
     double baseSsum = 0;
@@ -91,7 +91,6 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
       groups.clear();
       partialResult.clear();
       ret.clear();
-      compute.clear();
     }
   }
 
@@ -102,8 +101,8 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public void reset(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    myagg.reset();
+    ((MyAggregationBuffer) agg).reset();
+    compute.clear();
   }
 
   @Override
@@ -133,8 +132,7 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    return myagg.getPartialResult();
+    return ((MyAggregationBuffer) agg).getPartialResult();
   }
 
   protected LazyBinaryArray parsePartialInput(AggregationBuffer agg, LazyBinaryStruct binaryStruct) {
@@ -179,7 +177,6 @@ public class SrvSumEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    SrvSumComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;

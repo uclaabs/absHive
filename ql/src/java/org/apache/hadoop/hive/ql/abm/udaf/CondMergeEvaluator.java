@@ -55,9 +55,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     keyField = fields.get(0);
     rangeField = fields.get(1);
 
-//   
-//    ins = new Instruction();
-
     if (m == Mode.PARTIAL1 || m == Mode.COMPLETE) {
       keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
       rangeParser = new RangeMatrixParser(rangeField.getFieldObjectInspector());
@@ -77,14 +74,12 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
           )
           );
     } else {
-      // remove later
-//      fakeFlags();
       return CondList.condListOI;
     }
 
   }
 
-//  // 
+//  //
 //  protected void fakeFlags() {
 //    setFlags(Arrays.asList(true));
 //  }

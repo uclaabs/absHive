@@ -12,7 +12,6 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryArray;
 import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryStruct;
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
@@ -32,14 +31,17 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
   protected final StructObjectInspector avgPartialOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(avgColumnName, avgObjectInspectorType);
 
+  private SrvAvgComputation compute = null;
+
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
-    if (m == Mode.PARTIAL1 || !(parameters[0] instanceof ListObjectInspector)) {
+    if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       inputValueOI = (PrimitiveObjectInspector) parameters[0];
       return avgPartialOI;
     } else {
+      compute = new SrvAvgComputation();
       return doubleListOI;
     }
   }
@@ -49,7 +51,6 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
     Map<Integer, DoubleArrayList> groups = new LinkedHashMap<Integer, DoubleArrayList>();
     List<DoubleArrayList> partialResult = new ArrayList<DoubleArrayList>();
     List<Object> ret = new ArrayList<Object>();
-    SrvAvgComputation compute = new SrvAvgComputation();
     double baseSum = 0;
     double baseSsum = 0;
     int baseCnt = 0;
@@ -86,7 +87,6 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
       groups.clear();
       partialResult.clear();
       ret.clear();
-      compute.clear();
     }
   }
 
@@ -101,9 +101,14 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
   }
 
   @Override
+  public void reset(AggregationBuffer agg) throws HiveException {
+    ((MyAggregationBuffer) agg).reset();
+    compute.clear();
+  }
+
+  @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    SrvAvgComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;
@@ -119,9 +124,5 @@ public class SrvAvgEvaluator extends SrvSumEvaluator {
     return compute.getFinalResult();
 
   }
-
-
-
-
 
 }

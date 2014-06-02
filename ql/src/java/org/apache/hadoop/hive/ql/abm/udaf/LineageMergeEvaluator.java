@@ -35,35 +35,36 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   private final ListObjectInspector partialOI = ObjectInspectorFactory
       .getStandardListObjectInspector(intOI);
 
+  private LineageComputation compute = null;
+
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
-    if (m == Mode.PARTIAL1 || !(parameters[0] instanceof ListObjectInspector)) {
+    if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       return partialOI;
     } else {
+      compute = new LineageComputation();
       return binaryListOI;
     }
   }
 
   private static class MyAggregationBuffer implements AggregationBuffer {
-    
+
     Map<Integer, IntArrayList> groups = new LinkedHashMap<Integer, IntArrayList>();
-    LineageComputation compute = new LineageComputation();
     List<Object> ret = new ArrayList<Object>();
-    
+
     public Object getPartialResult() {
-      
+
       ret.clear();
       for (Map.Entry<Integer, IntArrayList> entry : groups.entrySet()) {
         ret.add( entry.getValue());
       }
       return ret;
     }
-    
+
     public void reset() {
       groups.clear();
-      compute.clear();
       ret.clear();
     }
   }
@@ -90,8 +91,8 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public void reset(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    myagg.reset();
+    ((MyAggregationBuffer) agg).reset();
+    compute.clear();
   }
 
   @Override
@@ -117,8 +118,7 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    return myagg.getPartialResult();
+    return ((MyAggregationBuffer) agg).getPartialResult();
   }
 
   @Override
@@ -155,7 +155,6 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    LineageComputation compute = myagg.compute;
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;

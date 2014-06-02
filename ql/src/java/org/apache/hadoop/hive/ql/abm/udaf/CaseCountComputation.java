@@ -2,7 +2,7 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 public class CaseCountComputation extends SrvCountComputation {
 
-  public void setCount(int cnt) {
+  public void setCount(long cnt) {
     this.baseCnt = cnt;
   }
 

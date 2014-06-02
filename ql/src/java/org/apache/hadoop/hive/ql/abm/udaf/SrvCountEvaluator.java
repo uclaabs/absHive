@@ -14,7 +14,8 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   protected final ListObjectInspector doubleListOI = ObjectInspectorFactory
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
-  protected int tot = AbmUtilities.getTotalTupleNumber();
+  protected long tot = AbmUtilities.getTotalTupleNumber();
+  private SrvCountComputation compute = null;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
@@ -23,6 +24,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       return PrimitiveObjectInspectorFactory.javaIntObjectInspector;
     } else {
+      compute = new SrvCountComputation();
       return doubleListOI;
     }
   }
@@ -30,7 +32,6 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   protected static class MyAggregationBuffer implements AggregationBuffer {
 
     int baseCnt = 0;
-    SrvCountComputation compute = new SrvCountComputation();
 
     public void addBase(int cnt) {
       baseCnt += cnt;
@@ -38,7 +39,6 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
     public void reset() {
       baseCnt = 0;
-      compute.clear();
     }
 
   }
@@ -50,8 +50,8 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public void reset(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    myagg.reset();
+    ((MyAggregationBuffer) agg).reset();
+    compute.clear();
   }
 
   @Override
@@ -68,8 +68,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-    MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    return myagg.baseCnt;
+    return ((MyAggregationBuffer) agg).baseCnt;
   }
 
   @Override
@@ -82,7 +81,6 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    SrvCountComputation compute = myagg.compute;
 
     compute.setCount(this.tot, myagg.baseCnt);
     List<Merge> instructions = ins.getMergeInstruction();
