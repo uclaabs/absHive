@@ -3,7 +3,10 @@ package org.apache.hadoop.hive.ql.abm.udf;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
+import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapperParser;
+import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeMatrixParser;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
@@ -14,9 +17,11 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 public class ConditionJoin extends GenericUDF {
 
-  private final List<Object> inputKeys = new ArrayList<Object>();
-  private final List<Object> inputRanges = new ArrayList<Object>();
+  private final KeyWrapper inputKeys = new KeyWrapper();
+  private final List<RangeList> inputRanges = new ArrayList<RangeList>();
   private final Object[] ret = new Object[] {inputKeys, inputRanges};
+
+  private boolean first = true;
 
   private KeyWrapperParser keyParser = null;
   private RangeMatrixParser rangeParser = null;
@@ -37,7 +42,7 @@ public class ConditionJoin extends GenericUDF {
     keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
     rangeParser = new RangeMatrixParser(rangeField.getFieldObjectInspector());
 
-    return arguments[0];
+    return CondList.condListOI;
   }
 
   @Override
@@ -45,22 +50,27 @@ public class ConditionJoin extends GenericUDF {
     return "Function for Cond Join";
   }
 
-  private void parseCondGroupObj(Object condGroupObj) {
-    keyParser.shallowCopyInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
-    rangeParser.shallowCopyInto(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges);
-  }
-
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
-    inputKeys.clear();
-    inputRanges.clear();
+    if (first) {
+      for (DeferredObject o : arg) {
+        Object condGroupObj = o.get();
+        keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
+        rangeParser.append(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges);
+      }
+      first = false;
+    }
 
+    inputKeys.clear();
+
+    int cursor = 0;
     for (DeferredObject o : arg) {
-      parseCondGroupObj(o.get());
+      Object condGroupObj = o.get();
+      keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
+      cursor += rangeParser.overwrite(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges, cursor);
     }
 
     return ret;
   }
-
 
 }
