@@ -4,7 +4,7 @@ public class SrvLessFilter extends SrvCompareFilter {
 
   @Override
   protected void updateRet(double value, double lower, double upper) {
-    ret.set(value >= lower);
+    ret.set(value > lower);
   }
 
 }
