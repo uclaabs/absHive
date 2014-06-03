@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.Arrays;
+import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -17,6 +18,8 @@ public class Merge {
   private final ArrayList<IntArrayList> dimEnds = new ArrayList<IntArrayList>();
   private final List<Boolean> dimFlags;
   private UDAFComputation op = null;
+
+  private final ArrayList<BooleanArrayList> dimDuplicates = new ArrayList<BooleanArrayList>();
 
   public Merge(List<Boolean> flags, List<RangeList> rangeMatrix) {
     dimFlags = flags;
@@ -58,6 +61,84 @@ public class Merge {
     Int2IntOpenHashMap lineage = new Int2IntOpenHashMap();
     lineage.defaultReturnValue(-1);
     enumerate(0, lineage);
+  }
+
+  private void zk(int level, Int2IntOpenHashMap lineage) {
+    boolean leaf = (level == dimIndexes.size() - 1);
+    int parent = level - 1;
+    IntArrayList indexes = dimIndexes.get(level);
+    BooleanArrayList duplicates = dimDuplicates.get(level);
+
+    if (!leaf) {
+      // filter out the empty partition in the beginning
+      int from = 0;
+      for (; from < indexes.size() && lineage.get(indexes.getInt(from)) != parent; ++from) {
+      }
+
+      for (; from < indexes.size();) {
+        // the starting point of a new partition
+        lineage.put(indexes.getInt(from), level);
+        // add all duplicates
+        int to = from + 1;
+        for (; to < indexes.size() && duplicates.get(to); ++from) {
+          if (lineage.get(indexes.getInt(to)) == parent) {
+            lineage.put(indexes.getInt(to), level);
+          }
+        }
+        // add the empty partition following this partition
+        for (; to < indexes.size() && lineage.get(indexes.getInt(to)) != parent; ++to) {
+        }
+
+        // do operation
+        op.partialTerminate(level, indexes.getInt(from));
+        // recursively call next level
+        enumerate(level + 1, lineage);
+
+        // recover
+        for (int i = from; i < to; ++i) {
+          if (lineage.get(indexes.getInt(i)) == level) {
+            lineage.put(indexes.getInt(i), parent);
+          }
+        }
+
+        // prepare for the next partition
+        from = to;
+      }
+    } else {
+      // filter out the empty partition in the beginning
+      int from = 0;
+      for (; from < indexes.size() && lineage.get(indexes.getInt(from)) != parent; ++from) {
+      }
+
+      for (; from < indexes.size();) {
+        // the starting point of a new partition
+        lineage.put(indexes.getInt(from), level);
+        // do operation
+        op.iterate(indexes.getInt(from));
+        // add all duplicates
+        int to = from + 1;
+        for (; to < indexes.size() && duplicates.get(to); ++from) {
+          if (lineage.get(indexes.getInt(to)) == parent) {
+            lineage.put(indexes.getInt(to), level);
+            // do operation
+            op.iterate(indexes.getInt(to));
+          }
+        }
+        // add the empty partition following this partition
+        for (; to < indexes.size() && lineage.get(indexes.getInt(to)) != parent; ++to) {
+        }
+
+        // do operation
+        op.partialTerminate(level, indexes.getInt(from));
+        op.terminate();
+
+        // prepare for the next partition
+        from = to;
+      }
+
+      // local reset
+      op.reset();
+    }
   }
 
   private void enumerate(int level, Int2IntOpenHashMap lineage) {
@@ -134,9 +215,6 @@ public class Merge {
               // terminate
               op.terminate();
 
-              if(level == 0) {
-                op.reset();
-              }
               propagate = true;
             }
             lineage.put(indexes.getInt(k), level);
