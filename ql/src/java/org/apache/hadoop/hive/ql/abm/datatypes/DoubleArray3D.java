@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
 
+
 public class DoubleArray3D {
 
   private final double[] buf;
@@ -36,7 +37,7 @@ public class DoubleArray3D {
 
   public void updateByRow(int row1, int row2) {
     for (int i = 0; i < dim2; ++i) {
-      buf[row1 + i] = get(row1 + i);
+      buf[row1 + i] += get(row2 + i);
     }
   }
 
@@ -74,6 +75,28 @@ public class DoubleArray3D {
       updateByRow(rowOffset, baseOffset);
       rowOffset += dim2;
     }
+  }
+  
+  public int getOffset(int row1, int row2) {
+    return row1 * dim1 + row2 * dim2;
+  }
+  
+  public void print() {
+    
+    int numRow1 = buf.length / dim1;
+    int numRow2 = dim1 / dim2;
+    
+    for(int i = 0; i < numRow1; i ++) {
+      for(int j = 0; j < numRow2; j ++) {
+        int offset = getOffset(i, j);
+        System.out.println("Row " + i + "-" + j);
+        for(int c = 0; c < dim2; c ++) {
+          System.out.print(get(offset + c) + "\t");;
+        }
+        System.out.println();
+      }
+    }
+    
   }
 
 }

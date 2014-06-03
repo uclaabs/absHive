@@ -175,7 +175,7 @@ public class PartialCovMap {
     // update interGbyCovs
     for(int i = 0; i < interGbyCovs.length; i ++) {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
-      for(int j = 0; j < interGbyCovList.length; j ++) {
+      for(int j = i + 1; j < interGbyCovList.length; j ++) {
         InterCovMap currentMap = interGbyCovs[i][j];
 
         for(Map.Entry<Long, DoubleArray3D> entry: partialMap.interGbyCovs[i][j].entrySet()) {
@@ -206,7 +206,8 @@ public class PartialCovMap {
     //
     for(int i = 0; i < interGbyCovs.length; i ++) {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
-      for(int j = 0; j < interGbyCovList.length; j ++) {
+      
+      for(int j = i + 1; j < interGbyCovList.length; j ++) {
         InterCovMap currentMap = interGbyCovs[i][j];
         for(Map.Entry<Long, DoubleArray3D> entry: currentMap.entrySet()) {
           DoubleArray3D inputArray = entry.getValue();
@@ -215,5 +216,39 @@ public class PartialCovMap {
        }
     }
   }
+  
+  public void print() {
+    
+    System.out.println("-----------------------------------PartialCovMap Print--------------------------------------------------");
+    
+    for(int i = 0; i < innerGbyCovs.length; i ++) {
+      InnerCovMap currentMap = innerGbyCovs[i];
+      System.out.println("Inner Map: " + i);
+      
+      for(Map.Entry<Integer, DoubleArray2D> entry: currentMap.entrySet()) {
+        DoubleArray2D currentArray = entry.getValue();
+        System.out.println("Inner Key:" + entry.getKey());
+        currentArray.print();
+      }
+    }
 
+    //
+    for(int i = 0; i < interGbyCovs.length; i ++) {
+      InterCovMap[] interGbyCovList = interGbyCovs[i];
+      for(int j = i + 1; j < interGbyCovList.length; j ++) {
+        InterCovMap currentMap = interGbyCovs[i][j];
+        
+        System.out.println("Inter Map: " + i + " " + j);
+        
+        for(Map.Entry<Long, DoubleArray3D> entry: currentMap.entrySet()) {
+          DoubleArray3D currentArray = entry.getValue();
+          
+          System.out.println("Inner Key:" + entry.getKey());
+          currentArray.print();
+        }
+       }
+    }
+    System.out.println("-----------------------------------PartialCovMap Print--------------------------------------------------");
+  }
 }
+

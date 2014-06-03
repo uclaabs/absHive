@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
 
+
 public class DoubleArray2D {
 
   private final double[] buf;
@@ -41,6 +42,19 @@ public class DoubleArray2D {
         buf[rowOffset + j] += get(baseOffset + j);
       }
       rowOffset += cols;
+    }
+  }
+  
+  // 
+  public void print() {
+    int rowNum = buf.length / cols;
+    
+    for(int i = 0; i < rowNum; i ++) {
+       int rowOffset = cols * i;
+      for(int j = 0; j < cols; j ++) {
+        System.out.print(get(rowOffset + j) + "\t");;
+      }
+      System.out.println();
     }
   }
 
