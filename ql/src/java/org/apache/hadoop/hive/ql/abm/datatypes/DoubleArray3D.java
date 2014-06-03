@@ -48,10 +48,10 @@ public class DoubleArray3D {
     // both are base
     int baseOffset = numRow1 * dim1 + numRow2 * dim2;
 
+    int rowOffset = 0;
     int baseOffset1 = numRow2 * dim2;
     for (int i = 0; i < numRow1; i++) {
       int baseOffset2 = numRow1 * dim1;
-      int rowOffset = i * dim1;
       for (int j = 0; j < numRow2; j++) {
         updateByRow(rowOffset, baseOffset);
         updateByRow(rowOffset, baseOffset1);
@@ -59,10 +59,11 @@ public class DoubleArray3D {
         baseOffset2 += dim2;
         rowOffset += dim2;
       }
+      rowOffset += dim2;
       baseOffset1 += dim1;
     }
 
-    int rowOffset = numRow2 * dim2;
+    rowOffset = numRow2 * dim2;
     for (int i = 0; i < numRow1; i++) {
       updateByRow(rowOffset, baseOffset);
       rowOffset += dim1;
