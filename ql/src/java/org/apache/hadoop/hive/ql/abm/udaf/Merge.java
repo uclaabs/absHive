@@ -41,22 +41,22 @@ public class Merge {
     IntArrayList indexes = sorter.getIndexes();
     dimIndexes.add(indexes);
 
-    IntArrayList ends = new IntArrayList(len);
-    for (int i = 0; i < len;) {
-      int j = i + 1;
-      for (; j < len && sorter.compare((j - 1), j) == 0; ++j) {
-      }
-      ends.add(j);
-      i = j;
-    }
-    dimEnds.add(ends);
-
-//    BooleanArrayList duplicates = new BooleanArrayList(len);
-//    duplicates.add(false);
-//    for (int i = 1; i < len; ++i) {
-//      duplicates.add(sorter.compare(i-1, i) == 0);
+//    IntArrayList ends = new IntArrayList(len);
+//    for (int i = 0; i < len;) {
+//      int j = i + 1;
+//      for (; j < len && sorter.compare((j - 1), j) == 0; ++j) {
+//      }
+//      ends.add(j);
+//      i = j;
 //    }
-//    dimDuplicates.add(duplicates);
+//    dimEnds.add(ends);
+
+    BooleanArrayList duplicates = new BooleanArrayList(len);
+    duplicates.add(false);
+    for (int i = 1; i < len; ++i) {
+      duplicates.add(sorter.compare(i-1, i) == 0);
+    }
+    dimDuplicates.add(duplicates);
   }
 
   public void enumerate(UDAFComputation compute) {
@@ -70,7 +70,7 @@ public class Merge {
     enumerate(0, lineage);
   }
 
-  private void zk(int level, Int2IntOpenHashMap lineage) {
+  private void enumerate(int level, Int2IntOpenHashMap lineage) {
     boolean leaf = (level == dimIndexes.size() - 1);
     int parent = level - 1;
     IntArrayList indexes = dimIndexes.get(level);
@@ -148,7 +148,7 @@ public class Merge {
     }
   }
 
-  private void enumerate(int level, Int2IntOpenHashMap lineage) {
+  private void gs(int level, Int2IntOpenHashMap lineage) {
     boolean leaf = (level == dimIndexes.size() - 1);
 
     int parent = level - 1;

@@ -1,7 +1,9 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 
 import java.util.ArrayList;
@@ -159,8 +161,8 @@ public class PartialCovMap {
     // update innerGbyCovs
     for(int i = 0; i < innerGbyCovs.length; i ++) {
       InnerCovMap currentMap = innerGbyCovs[i];
-      for(Map.Entry<Integer, DoubleArray2D> entry: partialMap.innerGbyCovs[i].entrySet()) {
-        int groupOpId = entry.getKey();
+      for(Int2ReferenceMap.Entry<DoubleArray2D> entry: partialMap.innerGbyCovs[i].int2ReferenceEntrySet()) {
+        int groupOpId = entry.getIntKey();
         DoubleArray2D inputArray = entry.getValue();
         DoubleArray2D currentArray = currentMap.get(groupOpId);
 
@@ -178,8 +180,8 @@ public class PartialCovMap {
       for(int j = i + 1; j < interGbyCovList.length; j ++) {
         InterCovMap currentMap = interGbyCovs[i][j];
 
-        for(Map.Entry<Long, DoubleArray3D> entry: partialMap.interGbyCovs[i][j].entrySet()) {
-          long id = entry.getKey();
+        for(Long2ReferenceMap.Entry<DoubleArray3D> entry: partialMap.interGbyCovs[i][j].long2ReferenceEntrySet()) {
+          long id = entry.getLongKey();
           DoubleArray3D inputArray = entry.getValue();
           DoubleArray3D currentArray = currentMap.get(id);
 
@@ -197,8 +199,7 @@ public class PartialCovMap {
     //
     for(int i = 0; i < innerGbyCovs.length; i ++) {
       InnerCovMap currentMap = innerGbyCovs[i];
-      for(Map.Entry<Integer, DoubleArray2D> entry: currentMap.entrySet()) {
-        DoubleArray2D currentArray = entry.getValue();
+      for(DoubleArray2D currentArray: currentMap.values()) {
         currentArray.updateByBase();
       }
     }
@@ -206,25 +207,24 @@ public class PartialCovMap {
     //
     for(int i = 0; i < interGbyCovs.length; i ++) {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
-      
+
       for(int j = i + 1; j < interGbyCovList.length; j ++) {
         InterCovMap currentMap = interGbyCovs[i][j];
-        for(Map.Entry<Long, DoubleArray3D> entry: currentMap.entrySet()) {
-          DoubleArray3D inputArray = entry.getValue();
+        for(DoubleArray3D inputArray: currentMap.values()) {
           inputArray.updateByBase();
         }
        }
     }
   }
-  
+
   public void print() {
-    
+
     System.out.println("-----------------------------------PartialCovMap Print--------------------------------------------------");
-    
+
     for(int i = 0; i < innerGbyCovs.length; i ++) {
       InnerCovMap currentMap = innerGbyCovs[i];
       System.out.println("Inner Map: " + i);
-      
+
       for(Map.Entry<Integer, DoubleArray2D> entry: currentMap.entrySet()) {
         DoubleArray2D currentArray = entry.getValue();
         System.out.println("Inner Key:" + entry.getKey());
@@ -237,12 +237,12 @@ public class PartialCovMap {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
       for(int j = i + 1; j < interGbyCovList.length; j ++) {
         InterCovMap currentMap = interGbyCovs[i][j];
-        
+
         System.out.println("Inter Map: " + i + " " + j);
-        
+
         for(Map.Entry<Long, DoubleArray3D> entry: currentMap.entrySet()) {
           DoubleArray3D currentArray = entry.getValue();
-          
+
           System.out.println("Inner Key:" + entry.getKey());
           currentArray.print();
         }
