@@ -20,8 +20,8 @@ public class CondList {
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
   public static ListObjectInspector doubleMatrixOI = ObjectInspectorFactory
       .getStandardListObjectInspector(
-      ObjectInspectorFactory
-          .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
+          ObjectInspectorFactory.getStandardListObjectInspector(
+              PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
   public static List<String> columnName = Arrays.asList("Keys", "Ranges");
   public static List<ObjectInspector> objectInspectorType = Arrays.asList(
       (ObjectInspector) intListOI, (ObjectInspector) doubleMatrixOI);

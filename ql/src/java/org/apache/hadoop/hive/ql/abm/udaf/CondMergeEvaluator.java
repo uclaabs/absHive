@@ -66,10 +66,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       // partialTerminate() will be called
       return ObjectInspectorFactory.getStandardStructObjectInspector(columnNames, Arrays.asList(
-          (ObjectInspector) ObjectInspectorFactory.getStandardListObjectInspector(keyParser
-              .getObjectInspector()),
-          ObjectInspectorFactory.getStandardListObjectInspector(rangeParser.getObjectInspector())
-          )
+          (ObjectInspector) ObjectInspectorFactory.getStandardListObjectInspector(CondList.intListOI),
+            ObjectInspectorFactory.getStandardListObjectInspector(CondList.doubleMatrixOI))
           );
     } else {
       return CondList.condListOI;
@@ -177,12 +175,13 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
 
     if (parameters[0] != null) {
+      ins.resetGroupInstruction();
 
       Object rangeObj = inputOI.getStructFieldData(parameters[0], rangeField);
-
       boolean isBase = rangeParser.isBase(rangeObj);
       if (isBase) {
         ins.addGroupInstruction(-1);
+//        System.out.println("Iterate " + -1);
         return;
       }
 
@@ -194,7 +193,10 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       int inst = myagg.addRanges(key, rangeObj);
       // Set the instruction here
       ins.addGroupInstruction(inst);
+
     }
+
+
 
 
   }
@@ -219,6 +221,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     if (partialRes == null) {
       return;
     }
+    ins.resetMergeInstruction();
 
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
     Object keyGroupObj = inputOI.getStructFieldData(partialRes, this.keyField);

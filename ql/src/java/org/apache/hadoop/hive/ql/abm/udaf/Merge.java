@@ -133,6 +133,10 @@ public class Merge {
               op.partialTerminate(level, indexes.getInt(fstart));
               // terminate
               op.terminate();
+
+              if(level == 0) {
+                op.reset();
+              }
               propagate = true;
             }
             lineage.put(indexes.getInt(k), level);
