@@ -10,6 +10,5 @@ public class SrvGreater extends SrvCompare {
     } else {
       ret.update(id, value);
     }
-
   }
 }

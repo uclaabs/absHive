@@ -1,5 +1,14 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-public class SrvGreaterEqual extends SrvGreater {
+public class SrvGreaterEqual extends SrvCompare {
+
+  @Override
+  protected void updateRet(int id, double value, double lower, double upper) {
+    if (value <= lower) {
+      ret.update(id, Double.NEGATIVE_INFINITY);
+    } else {
+      ret.update(id, value);
+    }
+  }
 
 }
