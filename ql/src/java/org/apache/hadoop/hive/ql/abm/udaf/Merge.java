@@ -50,6 +50,13 @@ public class Merge {
       i = j;
     }
     dimEnds.add(ends);
+
+//    BooleanArrayList duplicates = new BooleanArrayList(len);
+//    duplicates.add(false);
+//    for (int i = 1; i < len; ++i) {
+//      duplicates.add(sorter.compare(i-1, i) == 0);
+//    }
+//    dimDuplicates.add(duplicates);
   }
 
   public void enumerate(UDAFComputation compute) {
@@ -95,9 +102,9 @@ public class Merge {
         enumerate(level + 1, lineage);
 
         // recover
-        for (int i = from; i < to; ++i) {
-          if (lineage.get(indexes.getInt(i)) == level) {
-            lineage.put(indexes.getInt(i), parent);
+        for (int i = 0; i < to; ++i) {
+          if (lineage.get(indexes.getInt(i)) > level) {
+            lineage.put(indexes.getInt(i), level);
           }
         }
 
