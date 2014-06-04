@@ -1,40 +1,36 @@
-package org.apache.hadoop.hive.ql.abm.fake.udf;
+package org.apache.hadoop.hive.ql.abm.udf.simulation;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
-public class Conf_Inv extends GenericUDF {
-
-//  private final StructObjectInspector structOI = null;
-  private Object obj;
-  private static final String opDisplayName = "Conf_Inv_5_95";
+public class Mean extends GenericUDFWithSimulation {
+  private static final String opDisplayName = "Mean";
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
 	  if (arguments.length != 2) {
-      throw new UDFArgumentException("This function takes exactly two arguments.");
+      //throw new UDFArgumentException("This function takes exactly two arguments.");
     }
 
-	  /*
-	  obj = (new SrvAno()).toArray();
-
-    return ObjectInspectorFactory.getStandardStructObjectInspector(SrvAno.columnName, SrvAno.objectInspectorType);*/
     return PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
   }
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
-
-  	return obj;
+    Double mean = 0.0;
+    for (Double sample: samples) {
+      mean += sample;
+    }
+    mean = mean / samples.size();
+    return mean;
   }
 
 	@Override
   public String getDisplayString(String[] children) {
-	  assert (children.length == 2);
-    return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
+	  //assert (children.length == 2);
+    //return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
+	  return opDisplayName;
   }
-
 }
