@@ -173,7 +173,7 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     funcs.add(func);
   }
 
-  public int getAggregateId(AggregateInfo ai) {
+  public int[] getAggregateId(AggregateInfo ai) {
     return condAnno.getAggregateId(ai);
   }
 

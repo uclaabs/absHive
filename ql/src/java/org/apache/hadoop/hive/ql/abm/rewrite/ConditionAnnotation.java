@@ -33,6 +33,7 @@ public class ConditionAnnotation {
   private List<GroupByOperator> sortedContinuous = null;
   private List<GroupByOperator> sortedDiscrete = null;
   private Dictionary<GroupByOperator> gbyDict = null;
+
   // <-- Used by TraceProcCtx
 
   public void groupByAt(GroupByOperator gby) {
@@ -89,7 +90,7 @@ public class ConditionAnnotation {
     }
     return new int[] {
         gbyDict.get(ai.getGroupByOperator()),
-        ai.getIndex() != -1 ? ai.getIndex() : aggregates.get(ai.getGroupByOperator()).size()
+        ai.getIndex() != -1 ? ai.getIndex() : aggregates.get(ai.getGroupByOperator()).size() - 1
     };
   }
 

@@ -444,9 +444,11 @@ public class RewriteProcFactory {
           if (linfo != null) {
             GenericUDF udf = getUdf(getMeasureFuncName(AbmUtilities.getErrorMeasure()));
             ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
+            int[] aggrIds = ctx.getAggregateId(linfo);
             int gbyIdIndex = ctx.getGbyIdColumnIndex(parent, linfo.getGroupByOperator());
+            params.add(new ExprNodeConstantDesc(aggrIds[0]));
             params.add(Utils.generateColumnDescs(parent, gbyIdIndex).get(0));
-            params.add(new ExprNodeConstantDesc(ctx.getAggregateId(linfo)));
+            params.add(new ExprNodeConstantDesc(aggrIds[1]));
             selFactory.addColumn(
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
                 internalName);
