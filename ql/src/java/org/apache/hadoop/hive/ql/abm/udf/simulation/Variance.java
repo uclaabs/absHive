@@ -10,8 +10,8 @@ public class Variance extends GenericUDFWithSimulation {
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-    if (arguments.length != 2) {
-      //throw new UDFArgumentException("This function takes exactly two arguments.");
+    if (arguments.length != 0) {
+      throw new UDFArgumentException("This function takes exactly 0 argument.");
     }
 
     return PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
@@ -19,27 +19,22 @@ public class Variance extends GenericUDFWithSimulation {
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
-    Double mean = 0.0;
-    for (Double sample: samples) {
-      mean += sample;
-    }
-    mean = mean / samples.size();
+    double sum = 0;
+    double ssum = 0;
 
-    Double variance = 0.0;
-    Double diff = 0.0;
-    for (Double sample: samples) {
-      diff = sample - mean;
-      variance += diff * diff;
+    for(double sample:samples) {
+      sum += sample;
+      ssum += (sample * sample);
     }
-    variance = variance / (samples.size() - 1);
+
+    int cnt = samples.size();
+    double variance = (ssum - (sum * sum)/cnt) / (cnt - 1);
 
     return variance;
   }
 
 	@Override
   public String getDisplayString(String[] children) {
-	  //assert (children.length == 2);
-    //return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
 	  return opDisplayName;
   }
 }

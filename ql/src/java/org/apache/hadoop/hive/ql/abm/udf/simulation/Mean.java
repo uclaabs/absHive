@@ -10,8 +10,8 @@ public class Mean extends GenericUDFWithSimulation {
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-	  if (arguments.length != 2) {
-      //throw new UDFArgumentException("This function takes exactly two arguments.");
+	  if (arguments.length != 0) {
+      throw new UDFArgumentException("This function takes exactly 0 argument.");
     }
 
     return PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
@@ -19,8 +19,8 @@ public class Mean extends GenericUDFWithSimulation {
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
-    Double mean = 0.0;
-    for (Double sample: samples) {
+    double mean = 0.0;
+    for (double sample: samples) {
       mean += sample;
     }
     mean = mean / samples.size();
@@ -29,8 +29,6 @@ public class Mean extends GenericUDFWithSimulation {
 
 	@Override
   public String getDisplayString(String[] children) {
-	  //assert (children.length == 2);
-    //return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
 	  return opDisplayName;
   }
 }

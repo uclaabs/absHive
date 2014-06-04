@@ -10,8 +10,8 @@ public class Exist_prob extends GenericUDFWithSimulation {
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-    if (arguments.length != 2) {
-      //throw new UDFArgumentException("This function takes exactly two arguments.");
+    if (arguments.length != 0) {
+      throw new UDFArgumentException("This function takes exactly 0 argument.");
     }
 
     return PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
@@ -19,15 +19,13 @@ public class Exist_prob extends GenericUDFWithSimulation {
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
-    Double exist_prob = (samples.size() + 0.0) / numSimulation;
+    double exist_prob = (samples.size() + 0.0) / numSimulation;
 
     return exist_prob;
   }
 
 	@Override
   public String getDisplayString(String[] children) {
-	  //assert (children.length == 2);
-    //return opDisplayName + " " +  "(" + children[0] + ", " + children[1] + ")";
 	  return opDisplayName;
   }
 }
