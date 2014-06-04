@@ -46,7 +46,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   private String tableName = null;
 
   // ABM
-  private boolean sim = false;
+  private boolean simulated = false;
   private List<Integer> numKeysContinuous = null;
 
   private List<Integer> numKeysDiscrete = null;
@@ -204,12 +204,12 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.tableName = tableName;
   }
 
-  public boolean getSim() {
-    return sim;
+  public boolean isSimulated() {
+    return simulated;
   }
 
-  public void setSim(boolean sim) {
-    this.sim = sim;
+  public void setSimulated(boolean simulated) {
+    this.simulated = simulated;
   }
 
   public List<Integer> getNumKeysContinuous() {
@@ -229,7 +229,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   }
 
   public void setMCSim(List<Integer> numKeysContinuous, List<Integer> numKeysDiscrete) {
-    sim = true;
+    simulated = true;
 
     this.numKeysContinuous = numKeysContinuous;
     this.numKeysDiscrete = numKeysDiscrete;
