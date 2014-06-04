@@ -4,17 +4,19 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.io.DoubleWritable;
 
 public class Variance extends GenericUDFWithSimulation {
-  private static final String opDisplayName = "Mean";
+
+  private final DoubleWritable ret = new DoubleWritable(0);
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-    if (arguments.length != 0) {
-      throw new UDFArgumentException("This function takes exactly 0 argument.");
-    }
+//    if (arguments.length != 0) {
+//      throw new UDFArgumentException("This function takes exactly 0 argument.");
+//    }
 
-    return PrimitiveObjectInspectorFactory.javaDoubleObjectInspector;
+    return PrimitiveObjectInspectorFactory.writableDoubleObjectInspector;
   }
 
   @Override
@@ -28,13 +30,13 @@ public class Variance extends GenericUDFWithSimulation {
     }
 
     int cnt = samples.size();
-    double variance = (ssum - (sum * sum)/cnt) / (cnt - 1);
+    ret.set((ssum - (sum * sum)/cnt) / (cnt - 1));
 
-    return variance;
+    return ret;
   }
 
 	@Override
   public String getDisplayString(String[] children) {
-	  return opDisplayName;
+	  return "Variance";
   }
 }
