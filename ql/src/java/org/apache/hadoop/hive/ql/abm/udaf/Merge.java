@@ -87,7 +87,7 @@ public class Merge {
         lineage.put(indexes.getInt(from), level);
         // add all duplicates
         int to = from + 1;
-        for (; to < indexes.size() && duplicates.get(to); ++from) {
+        for (; to < indexes.size() && duplicates.get(to); ++to) {
           if (lineage.get(indexes.getInt(to)) == parent) {
             lineage.put(indexes.getInt(to), level);
           }
@@ -124,7 +124,7 @@ public class Merge {
         op.iterate(indexes.getInt(from));
         // add all duplicates
         int to = from + 1;
-        for (; to < indexes.size() && duplicates.get(to); ++from) {
+        for (; to < indexes.size() && duplicates.get(to); ++to) {
           if (lineage.get(indexes.getInt(to)) == parent) {
             lineage.put(indexes.getInt(to), level);
             // do operation
