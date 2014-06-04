@@ -173,7 +173,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-
     if (parameters[0] != null) {
       ins.resetGroupInstruction();
 
@@ -195,10 +194,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       ins.addGroupInstruction(inst);
 
     }
-
-
-
-
   }
 
   protected void print(List<Integer> list) {
