@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 import org.apache.hadoop.hive.serde.serdeConstants;
 
 
@@ -47,24 +46,10 @@ public class SelectDesc extends AbstractOperatorDesc {
   private String tableName = null;
 
   // ABM
-  private boolean sim = false;
-  private ArrayList<Integer> cTags = null;
-  private ArrayList<Integer> dTags = null;
+  private boolean simulated = false;
+  private List<Integer> numKeysContinuous = null;
 
-  private ArrayList<ArrayList<ExprNodeDesc>> inKeys = null;
-  private ArrayList<ArrayList<ExprNodeDesc>> inVals = null;
-  private ArrayList<ExprNodeDesc> inTids = null;
-
-  private ArrayList<ArrayList<ExprNodeDesc>> outCKeys = null;
-  private ArrayList<ArrayList<ExprNodeDesc>> outCAggrs = null;
-  private ArrayList<ExprNodeDesc> outCLins = null;
-  private ArrayList<ExprNodeDesc> outCConds = null;
-  private ArrayList<ExprNodeDesc> outCGbyIds = null;
-  private ArrayList<ArrayList<UdafType>> outCTypes = null;
-
-  private ArrayList<ArrayList<ExprNodeDesc>> outDAggrs = null;
-  private ArrayList<ExprNodeDesc> outDConds = null;
-  private ArrayList<ExprNodeDesc> outDGbyIds = null;
+  private List<Integer> numKeysDiscrete = null;
 
   public SelectDesc() {
   }
@@ -219,152 +204,35 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.tableName = tableName;
   }
 
-  public boolean getSim() {
-    return sim;
+  public boolean isSimulated() {
+    return simulated;
   }
 
-  public void setSim(boolean sim) {
-    this.sim = sim;
+  public void setSimulated(boolean simulated) {
+    this.simulated = simulated;
   }
 
-  public ArrayList<Integer> getCTags() {
-    return cTags;
+  public List<Integer> getNumKeysContinuous() {
+    return numKeysContinuous;
   }
 
-  public void setCTags(ArrayList<Integer> cTags) {
-    this.cTags = cTags;
+  public void setNumKeysContinuous(List<Integer> numKeysContinuous) {
+    this.numKeysContinuous = numKeysContinuous;
   }
 
-  public ArrayList<Integer> getDTags() {
-    return dTags;
+  public List<Integer> getNumKeysDiscrete() {
+    return numKeysDiscrete;
   }
 
-  public void setDTags(ArrayList<Integer> dTags) {
-    this.dTags = dTags;
+  public void setNumKeysDiscrete(List<Integer> numKeysDiscrete) {
+    this.numKeysDiscrete = numKeysDiscrete;
   }
 
-  public ArrayList<ArrayList<ExprNodeDesc>> getInKeys() {
-    return inKeys;
-  }
+  public void setMCSim(List<Integer> numKeysContinuous, List<Integer> numKeysDiscrete) {
+    simulated = true;
 
-  public void setInKeys(ArrayList<ArrayList<ExprNodeDesc>> inKeys) {
-    this.inKeys = inKeys;
-  }
-
-  public ArrayList<ArrayList<ExprNodeDesc>> getInVals() {
-    return inVals;
-  }
-
-  public void setInVals(ArrayList<ArrayList<ExprNodeDesc>> inVals) {
-    this.inVals = inVals;
-  }
-
-  public ArrayList<ExprNodeDesc> getInTids() {
-    return inTids;
-  }
-
-  public void setInTids(ArrayList<ExprNodeDesc> inTids) {
-    this.inTids = inTids;
-  }
-
-  public ArrayList<ArrayList<ExprNodeDesc>> getOutCKeys() {
-    return outCKeys;
-  }
-
-  public void setOutCKeys(ArrayList<ArrayList<ExprNodeDesc>> outCKeys) {
-    this.outCKeys = outCKeys;
-  }
-
-  public ArrayList<ArrayList<ExprNodeDesc>> getOutCAggrs() {
-    return outCAggrs;
-  }
-
-  public void setOutCAggrs(ArrayList<ArrayList<ExprNodeDesc>> outCAggrs) {
-    this.outCAggrs = outCAggrs;
-  }
-
-  public ArrayList<ExprNodeDesc> getOutCLins() {
-    return outCLins;
-  }
-
-  public void setOutCLins(ArrayList<ExprNodeDesc> outCLins) {
-    this.outCLins = outCLins;
-  }
-
-  public ArrayList<ExprNodeDesc> getOutCConds() {
-    return outCConds;
-  }
-
-  public void setOutCConds(ArrayList<ExprNodeDesc> outCConds) {
-    this.outCConds = outCConds;
-  }
-
-  public ArrayList<ExprNodeDesc> getOutCGbyIds() {
-    return outCGbyIds;
-  }
-
-  public void setOutCGbyIds(ArrayList<ExprNodeDesc> outCGbyIds) {
-    this.outCGbyIds = outCGbyIds;
-  }
-
-  public ArrayList<ArrayList<UdafType>> getOutCTypes() {
-    return outCTypes;
-  }
-
-  public void setOutCTypes(ArrayList<ArrayList<UdafType>> outCTypes) {
-    this.outCTypes = outCTypes;
-  }
-
-  public ArrayList<ArrayList<ExprNodeDesc>> getOutDAggrs() {
-    return outDAggrs;
-  }
-
-  public void setOutDAggrs(ArrayList<ArrayList<ExprNodeDesc>> outDAggrs) {
-    this.outDAggrs = outDAggrs;
-  }
-
-  public ArrayList<ExprNodeDesc> getOutDConds() {
-    return outDConds;
-  }
-
-  public void setOutDConds(ArrayList<ExprNodeDesc> outDConds) {
-    this.outDConds = outDConds;
-  }
-
-  public ArrayList<ExprNodeDesc> getOutDGbyIds() {
-    return outDGbyIds;
-  }
-
-  public void setOutDGbyIds(ArrayList<ExprNodeDesc> outDGbyIds) {
-    this.outDGbyIds = outDGbyIds;
-  }
-
-  public void setMCSim(ArrayList<Integer> cTags, ArrayList<Integer> dTags,
-      ArrayList<ArrayList<ExprNodeDesc>> inKeys, ArrayList<ArrayList<ExprNodeDesc>> inVals,
-      ArrayList<ExprNodeDesc> inTids, ArrayList<ArrayList<ExprNodeDesc>> outCKeys,
-      ArrayList<ArrayList<ExprNodeDesc>> outCAggrs, ArrayList<ExprNodeDesc> outCLins,
-      ArrayList<ExprNodeDesc> outCConds, ArrayList<ExprNodeDesc> outCGbyIds,
-      ArrayList<ArrayList<UdafType>> outCTypes, ArrayList<ArrayList<ExprNodeDesc>> outDAggrs,
-      ArrayList<ExprNodeDesc> outDConds, ArrayList<ExprNodeDesc> outDGbyIds) {
-    sim = true;
-
-    this.cTags = cTags;
-    this.dTags = dTags;
-
-    this.inKeys = inKeys;
-    this.inVals = inVals;
-    this.inTids = inTids;
-
-    this.outCKeys = outCKeys;
-    this.outCAggrs = outCAggrs;
-    this.outCLins = outCLins;
-    this.outCConds = outCConds;
-    this.outCGbyIds = outCGbyIds;
-    this.outCTypes = outCTypes;
-
-    this.outDAggrs = outDAggrs;
-    this.outDConds = outDConds;
-    this.outDGbyIds = outDGbyIds;
+    this.numKeysContinuous = numKeysContinuous;
+    this.numKeysDiscrete = numKeysDiscrete;
   }
 
 }
