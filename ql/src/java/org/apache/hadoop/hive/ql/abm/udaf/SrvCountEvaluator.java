@@ -17,7 +17,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   protected final LongWritable ret = new LongWritable(0);
   protected LongObjectInspector partialResOI = null;
-  
+
   private SrvCountComputation compute = null;
 
   @Override
@@ -27,7 +27,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
     if(m == Mode.PARTIAL2 || m == Mode.FINAL) {
       partialResOI = (LongObjectInspector) parameters[0];
     }
-    
+
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
     } else {
@@ -82,8 +82,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public void merge(AggregationBuffer agg, Object partial) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    long partialCnt = this.partialResOI.get(partial);
-    myagg.addBase(partialCnt);
+    myagg.addBase(partialResOI.get(partial));
   }
 
   @Override
