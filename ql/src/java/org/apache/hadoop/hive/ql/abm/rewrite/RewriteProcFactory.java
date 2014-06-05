@@ -405,6 +405,10 @@ public class RewriteProcFactory {
         Object... nodeOutputs) throws SemanticException {
       super.process(nd, stack, procCtx, nodeOutputs);
 
+      if (!ctx.isUncertain(fs)) {
+        return null;
+      }
+
       int probIndex = insertSelect();
       initialize(nd, procCtx);
 
@@ -452,9 +456,10 @@ public class RewriteProcFactory {
             params.add(new ExprNodeConstantDesc(aggrIds[0]));
             params.add(Utils.generateColumnDescs(parent, gbyIdIndex).get(0));
             params.add(new ExprNodeConstantDesc(aggrIds[1]));
-            selFactory.addColumn(
+            int index = selFactory.addColumn(
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
                 internalName);
+            selFactory.putLineage(index, linfo);
           } else {
             selFactory.forwardColumn(parent, i, true);
           }
