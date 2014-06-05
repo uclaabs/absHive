@@ -4,16 +4,16 @@ import java.util.Arrays;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.io.DoubleWritable;
 
 public class Conf_Inv extends GenericUDFWithSimulation {
 
-  private final Double lowerPercent = 0.05;
-  private final Double upperPercent = 0.95;
+  private final double lowerPercent = 0.05;
+  private final double upperPercent = 0.95;
 
   private final DoubleWritable[] ret = new DoubleWritable[] {new DoubleWritable(0), new DoubleWritable(0)};
 
