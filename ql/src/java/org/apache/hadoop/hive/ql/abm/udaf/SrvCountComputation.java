@@ -1,7 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,11 +10,11 @@ import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 
 public class SrvCountComputation extends UDAFComputation {
 
-  protected List<IntArrayList> cntMatrix = new ArrayList<IntArrayList>();
+  protected List<LongArrayList> cntMatrix = new ArrayList<LongArrayList>();
   protected DoubleArrayList result = new DoubleArrayList();
   protected int N = AbmUtilities.getTotalTupleNumber();
   protected long baseCnt = 0;
-  protected int currentCnt = 0;
+  protected long currentCnt = 0;
   protected int groupCnt = -1;
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
@@ -33,7 +33,7 @@ public class SrvCountComputation extends UDAFComputation {
   }
 
   public void addNewGroup() {
-    cntMatrix.add(new IntArrayList());
+    cntMatrix.add(new LongArrayList());
     groupCnt += 1;
   }
 
@@ -56,8 +56,8 @@ public class SrvCountComputation extends UDAFComputation {
     currentCnt = 0;
   }
 
-  protected void addDistribution(double cnt) {
-    double variance = cnt * (1 - cnt / this.N);
+  protected void addDistribution(long cnt) {
+    double variance = cnt * (1 - cnt * 1.0 / this.N);
     double std = Math.sqrt(variance);
 
     this.result.add(cnt);
@@ -91,7 +91,7 @@ public class SrvCountComputation extends UDAFComputation {
     boolean leaf = (level == this.groupCnt);
     for(int i = 0; i < this.cntMatrix.get(level).size(); i ++) {
 
-      long tmpCnt = cnt + this.cntMatrix.get(level).getInt(i);
+      long tmpCnt = cnt + this.cntMatrix.get(level).getLong(i);
 
       if(leaf) {
         addDistribution(tmpCnt);

@@ -6,8 +6,8 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 
 public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
@@ -16,13 +16,18 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
 
   protected final LongWritable ret = new LongWritable(0);
-
+  protected LongObjectInspector partialResOI = null;
+  
   private SrvCountComputation compute = null;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
+    if(m == Mode.PARTIAL2 || m == Mode.FINAL) {
+      partialResOI = (LongObjectInspector) parameters[0];
+    }
+    
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
     } else {
@@ -77,7 +82,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public void merge(AggregationBuffer agg, Object partial) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    int partialCnt = ((IntWritable) partial).get();
+    long partialCnt = this.partialResOI.get(partial);
     myagg.addBase(partialCnt);
   }
 

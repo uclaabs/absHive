@@ -7,7 +7,7 @@ public class CaseCountComputation extends SrvCountComputation {
   }
 
   @Override
-  protected void addDistribution(double cnt) {
+  protected void addDistribution(long cnt) {
     this.result.add(cnt);
 
     if(cnt < this.confidenceLower) {

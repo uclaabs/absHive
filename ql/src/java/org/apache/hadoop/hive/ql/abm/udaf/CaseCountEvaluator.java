@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class CaseCountEvaluator extends SrvCountEvaluator {
@@ -14,8 +15,12 @@ public class CaseCountEvaluator extends SrvCountEvaluator {
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
+    if(m == Mode.PARTIAL2 || m == Mode.FINAL) {
+      partialResOI = (LongObjectInspector) parameters[0];
+    }
+    
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
-      return PrimitiveObjectInspectorFactory.javaIntObjectInspector;
+      return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
     } else {
       compute = new CaseCountComputation();
       return doubleListOI;
