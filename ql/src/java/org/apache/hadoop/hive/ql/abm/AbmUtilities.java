@@ -5,12 +5,14 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.abm.rewrite.ErrorMeasure;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
@@ -184,8 +186,17 @@ public final class AbmUtilities {
     fieldNames.add("_existence_prob.");
   }
 
-  public static ArrayList<String> getViewSchema() {
-    return fieldNames;
+  public List<FieldSchema> convertRowSchemaToViewSchema(RowResolver rr) {
+    List<FieldSchema> fieldSchemas = new ArrayList<FieldSchema>();
+    int i = 0;
+    for (ColumnInfo colInfo : rr.getColumnInfos()) {
+      if (colInfo.isHiddenVirtualCol()) {
+        continue;
+      }
+      fieldSchemas.add(new FieldSchema(fieldNames.get(i++),
+          colInfo.getType().getTypeName(), null));
+    }
+    return fieldSchemas;
   }
 
   public static String getQueryResultFileFormat() {
