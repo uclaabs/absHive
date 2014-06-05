@@ -186,7 +186,7 @@ public final class AbmUtilities {
     fieldNames.add("_existence_prob.");
   }
 
-  public List<FieldSchema> convertRowSchemaToViewSchema(RowResolver rr) {
+  public static List<FieldSchema> convertRowSchemaToViewSchema(RowResolver rr) {
     List<FieldSchema> fieldSchemas = new ArrayList<FieldSchema>();
     int i = 0;
     for (ColumnInfo colInfo : rr.getColumnInfos()) {
