@@ -29,14 +29,10 @@ public class BitmapObjectOutputStream implements ObjectOutput {
   @Override
   public void writeLong(long arg0) throws IOException {
     
-    buffer[cursor] = (byte) (arg0 >> 56);
-    buffer[cursor + 1] = (byte) (arg0 >> 48);
-    buffer[cursor + 2] = (byte) (arg0 >> 40);
-    buffer[cursor + 3] = (byte) (arg0 >> 32);
-    buffer[cursor + 4] = (byte) (arg0 >> 24);
-    buffer[cursor + 5] = (byte) (arg0 >> 16);
-    buffer[cursor + 6] = (byte) (arg0 >> 8);
-    buffer[cursor + 7] = (byte) (arg0);
+    for(int i = 0; i < 8; i ++) {
+      buffer[cursor + i] = (byte) (arg0 >> (8 * (7 - i)));
+    }
+    
     cursor += 8;
   }
   
