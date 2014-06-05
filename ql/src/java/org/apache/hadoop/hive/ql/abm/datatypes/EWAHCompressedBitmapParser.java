@@ -23,11 +23,21 @@ public class EWAHCompressedBitmapParser extends Parser {
     byte[] buf = oi.getPrimitiveJavaObject(o);
     ByteArrayInputStream bytesIn = new ByteArrayInputStream(buf);
 
-    try (ObjectInputStream in = new ObjectInputStream(bytesIn)) {
+    ObjectInputStream in = null;
+    try {
+      in = new ObjectInputStream(bytesIn);
       bitmap.readExternal(in);
       return bitmap;
     } catch (IOException e) {
       e.printStackTrace();
+    } finally {
+      if (in != null) {
+        try {
+          in.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
     }
 
     return null;
