@@ -19,7 +19,7 @@ public class SrvCountComputation extends UDAFComputation {
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
 
-  public void setCount (int base) {
+  public void setCount (long base) {
     this.baseCnt = base;
   }
 
