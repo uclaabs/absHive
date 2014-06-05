@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -19,17 +20,17 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
 
 
-  private final List<String> columnName = Arrays.asList("Group","BaseSum", "BaseSsum", "BaseCnt");
-  
-  private final List<ObjectInspector> objectInspectorType = Arrays.asList(
-      (ObjectInspector)partialGroupOI,  
-      PrimitiveObjectInspectorFactory.javaDoubleObjectInspector, 
-      PrimitiveObjectInspectorFactory.javaDoubleObjectInspector, 
-      PrimitiveObjectInspectorFactory.javaIntObjectInspector);
-  
+  private final List<String> columnName = new ArrayList<String>(Arrays.asList("Group","BaseSum", "BaseSsum", "BaseCnt"));
+
+  private final List<ObjectInspector> objectInspectorType = new ArrayList<ObjectInspector>(Arrays.asList(
+      (ObjectInspector)partialGroupOI,
+      PrimitiveObjectInspectorFactory.javaDoubleObjectInspector,
+      PrimitiveObjectInspectorFactory.javaDoubleObjectInspector,
+      PrimitiveObjectInspectorFactory.javaIntObjectInspector));
+
   private final StructObjectInspector partialOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(columnName, objectInspectorType);
-  
+
   private DoubleObjectInspector baseSumOI, baseSsumOI;
   private IntObjectInspector baseCntOI;
   private StructField sumField, ssumField, cntField;
@@ -38,7 +39,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
-    
+
     if(m == Mode.PARTIAL2|| m == Mode.FINAL) {
       sumField = fields.get(1);
       ssumField = fields.get(2);
@@ -57,11 +58,11 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
   }
 
   protected static class SrvAvgAggregationBuffer extends SrvAggregationBuffer{
-    
+
     public double baseSum = 0;
     public double baseSsum = 0;
     public int baseCnt = 0;
-    
+
     public SrvAvgAggregationBuffer(ValueListParser inputParser) {
       super(inputParser);
     }
@@ -72,7 +73,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
       this.baseSsum += (value * value);
       this.baseCnt += 1;
     }
-    
+
     public void processPartialBase(double sum, double ssum, int cnt) {
       this.baseSum += sum;
       this.baseSsum += ssum;
@@ -87,7 +88,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
       ret.add(baseCnt);
       return ret;
     }
-    
+
     @Override
     public void reset() {
       super.reset();
@@ -106,7 +107,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
     ((SrvAvgAggregationBuffer) agg).reset();
     compute.clear();
   }
-  
+
   @Override
   protected void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes) {
     Object sumObj = this.mergeInputOI.getStructFieldData(partialRes, sumField);

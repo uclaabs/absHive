@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -17,9 +18,13 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 
 public class CaseSumEvaluator extends SrvEvaluatorWithInstruction {
 
-  private final List<String> columnName = Arrays.asList("Group","BaseSum");
-  private final List<ObjectInspector> objectInspectorType = Arrays.asList((ObjectInspector)partialGroupOI,  PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
-  private final StructObjectInspector partialOI = ObjectInspectorFactory.getStandardStructObjectInspector(columnName, objectInspectorType);
+  private final List<String> columnName = new ArrayList<String>(Arrays.asList("Group", "BaseSum"));
+  private final List<ObjectInspector> objectInspectorType =
+      new ArrayList<ObjectInspector>(Arrays.asList(
+          (ObjectInspector) partialGroupOI,
+          PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
+  private final StructObjectInspector partialOI = ObjectInspectorFactory
+      .getStandardStructObjectInspector(columnName, objectInspectorType);
 
   private DoubleObjectInspector baseSumOI;
   private StructField sumField;
@@ -29,7 +34,7 @@ public class CaseSumEvaluator extends SrvEvaluatorWithInstruction {
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
-    if(m == Mode.PARTIAL2|| m == Mode.FINAL) {
+    if (m == Mode.PARTIAL2 || m == Mode.FINAL) {
       sumField = fields.get(1);
       baseSumOI = (DoubleObjectInspector) sumField.getFieldObjectInspector();
     }
@@ -100,7 +105,7 @@ public class CaseSumEvaluator extends SrvEvaluatorWithInstruction {
   protected void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes) {
     Object sumObj = this.mergeInputOI.getStructFieldData(partialRes, this.sumField);
     double sum = this.baseSumOI.get(sumObj);
-    ((CaseSumAggregationBuffer)agg).processBase(sum);
+    ((CaseSumAggregationBuffer) agg).processBase(sum);
 
   }
 

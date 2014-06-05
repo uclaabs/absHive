@@ -775,9 +775,10 @@ public class RewriteProcFactory {
         }
         appendSelect(sel, ctx, false, false, ExprNodeGenericFuncDesc.newInstance(
             getUdf("srv_greater_than"),
-            Arrays.asList(Utils.generateColumnDescs(sel, ctx.getCountColumnIndex(sel)).get(0),
+            new ArrayList<ExprNodeDesc>(Arrays.asList(
+                Utils.generateColumnDescs(sel, ctx.getCountColumnIndex(sel)).get(0),
                 new ExprNodeConstantDesc(new Double(0)),
-                Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0))
+                Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0)))
             ));
       }
 

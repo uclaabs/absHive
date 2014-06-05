@@ -26,7 +26,14 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   protected StructField keyField;
   protected StructField rangeField;
 
-  protected static List<String> columnNames = Arrays.asList("Keys", "Ranges");
+  protected static List<String> columnNames = new ArrayList<String>(Arrays.asList("Keys", "Ranges"));
+  protected final static ObjectInspector partialOI = ObjectInspectorFactory
+      .getStandardStructObjectInspector(
+          columnNames, new ArrayList<ObjectInspector>(Arrays.asList(
+              (ObjectInspector) ObjectInspectorFactory
+                  .getStandardListObjectInspector(CondList.intListOI),
+              ObjectInspectorFactory.getStandardListObjectInspector(CondList.doubleMatrixOI)))
+      );
   protected final KeyWrapper key = new KeyWrapper();
 
   protected KeyWrapperParser keyParser = null;
@@ -65,20 +72,17 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
     if (m == Mode.PARTIAL1 || m == Mode.PARTIAL2) {
       // partialTerminate() will be called
-      return ObjectInspectorFactory.getStandardStructObjectInspector(columnNames, Arrays.asList(
-          (ObjectInspector) ObjectInspectorFactory.getStandardListObjectInspector(CondList.intListOI),
-            ObjectInspectorFactory.getStandardListObjectInspector(CondList.doubleMatrixOI))
-          );
+      return partialOI;
     } else {
       return CondList.condListOI;
     }
 
   }
 
-//  //
-//  protected void fakeFlags() {
-//    setFlags(Arrays.asList(true));
-//  }
+  // //
+  // protected void fakeFlags() {
+  // setFlags(Arrays.asList(true));
+  // }
 
   public void setFlags(List<Boolean> flags) {
     this.flags = flags;
@@ -180,7 +184,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       boolean isBase = rangeParser.isBase(rangeObj);
       if (isBase) {
         ins.addGroupInstruction(-1);
-//        System.out.println("Iterate " + -1);
+        // System.out.println("Iterate " + -1);
         return;
       }
 

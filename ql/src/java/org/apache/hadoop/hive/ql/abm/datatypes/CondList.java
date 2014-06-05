@@ -16,16 +16,17 @@ public class CondList {
   private final List<RangeList> rangeMatrix = new ArrayList<RangeList>();
   private final Object[] ret = {keyList, rangeMatrix};
 
-  public static ListObjectInspector intListOI = ObjectInspectorFactory
+  public final static ListObjectInspector intListOI = ObjectInspectorFactory
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
-  public static ListObjectInspector doubleMatrixOI = ObjectInspectorFactory
+  public final static ListObjectInspector doubleMatrixOI = ObjectInspectorFactory
       .getStandardListObjectInspector(
-          ObjectInspectorFactory.getStandardListObjectInspector(
-              PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
-  public static List<String> columnName = Arrays.asList("Keys", "Ranges");
-  public static List<ObjectInspector> objectInspectorType = Arrays.asList(
-      (ObjectInspector) intListOI, (ObjectInspector) doubleMatrixOI);
-  public static StructObjectInspector condListOI = ObjectInspectorFactory
+      ObjectInspectorFactory.getStandardListObjectInspector(
+          PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
+  public final static List<String> columnName = new ArrayList<String>(Arrays.asList("Keys", "Ranges"));
+  public final static List<ObjectInspector> objectInspectorType =
+      new ArrayList<ObjectInspector>(Arrays.asList(
+          (ObjectInspector) intListOI, (ObjectInspector) doubleMatrixOI));
+  public final static StructObjectInspector condListOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(columnName, objectInspectorType);
 
   public void update(int id, double value) {
@@ -58,7 +59,7 @@ public class CondList {
   }
 
   public void addRange(double[] rangeArray) {
-    for(int i = 0; i < rangeArray.length; i ++) {
+    for (int i = 0; i < rangeArray.length; i++) {
       this.rangeMatrix.get(i).add(rangeArray[i]);
     }
   }

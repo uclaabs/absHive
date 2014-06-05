@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.ql.abm.udf.simulation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
@@ -18,9 +19,11 @@ public class Conf_Inv extends GenericUDFWithSimulation {
   private final DoubleWritable[] ret = new DoubleWritable[] {new DoubleWritable(0), new DoubleWritable(0)};
 
   public static StructObjectInspector oi = ObjectInspectorFactory
-      .getStandardStructObjectInspector(Arrays.asList("Lower", "Upper"), Arrays.asList(
-          (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
-          (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector));
+      .getStandardStructObjectInspector(
+          new ArrayList<String>(Arrays.asList("Lower", "Upper")),
+          new ArrayList<ObjectInspector>(Arrays.asList(
+              (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
+              (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector)));
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
