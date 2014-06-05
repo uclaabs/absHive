@@ -41,6 +41,7 @@ public final class AbmUtilities {
   private static int numTuples;
   private static final Map<String, Set<String>> schemaPrimaryKeyMap = new HashMap<String, Set<String>>();
   private static ErrorMeasure measure;
+  private static int numSimulationSamples;
   private static final ArrayList<String> fieldNames = new ArrayList<String>();
 
   private static String label;
@@ -89,6 +90,9 @@ public final class AbmUtilities {
 
       // Error measure
       measure = ErrorMeasure.get(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_MEASURE));
+
+      // Simulation size
+      numSimulationSamples = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_SIMULATION_SIZE);
 
       // Label -- only for debugging purpose
       label = conf.getVar(HiveConf.ConfVars.HIVE_ABM_LABEL);
@@ -205,6 +209,10 @@ public final class AbmUtilities {
 
   public static ErrorMeasure getErrorMeasure() {
     return measure;
+  }
+
+  public static int getNumSimulationSamples() {
+    return numSimulationSamples;
   }
 
   public static int getTotalTupleNumber() {

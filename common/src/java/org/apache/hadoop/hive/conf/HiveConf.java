@@ -779,12 +779,12 @@ public class HiveConf extends Configuration {
     // User specified ABM sampled table
     HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "lineitem"),
     HIVE_ABM_SAMPLED_TABLE_SIZE("hive.abm.sample.size", 6000000),
-//    HIVE_ABM_SAMPLED_TABLE("hive.abm.sampled.table", "emp"),
 
     // Label, for debugging
     HIVE_ABM_LABEL("hive.abm.label", ""),
 
-    HIVE_ABM_MEASURE("hive.abm.measure", 2)
+    HIVE_ABM_MEASURE("hive.abm.measure", 2),
+    HIVE_ABM_SIMULATION_SIZE("hive.abm.simulation.size", 100),
     ;
 
     public final String varname;
