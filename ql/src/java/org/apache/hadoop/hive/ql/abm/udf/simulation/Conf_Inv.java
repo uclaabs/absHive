@@ -12,8 +12,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 
 public class Conf_Inv extends GenericUDFWithSimulation {
 
-  private final double lowerPercent = 0.05;
-  private final double upperPercent = 0.95;
+  private static double lowerPercent = 0.05;
+  private static double upperPercent = 0.95;
 
   private final DoubleWritable[] ret = new DoubleWritable[] {new DoubleWritable(0), new DoubleWritable(0)};
 
