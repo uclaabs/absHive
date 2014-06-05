@@ -771,7 +771,7 @@ public class HiveConf extends Configuration {
 
     // ABM confs start here.
     // Enable analytical bootstrap method.
-    HIVE_ABM("hive.abm", false),
+    HIVE_ABM("hive.abm", true),
 
     // User specified ABM schema (primary keys)
     HIVE_ABM_SCHEMA("hive.abm.schema", "schema_tpch.txt"),

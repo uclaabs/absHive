@@ -216,8 +216,6 @@ class Dictionary<T> {
   }
 
   public int get(T element) {
-    System.out.println("hehehe" + elem2Id);
-    System.out.println("hahaha " + element);
     return elem2Id.get(element);
   }
 

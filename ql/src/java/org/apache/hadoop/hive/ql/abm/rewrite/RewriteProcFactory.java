@@ -287,6 +287,9 @@ public class RewriteProcFactory {
 
   private static ExprNodeDesc joinConditions(List<ExprNodeDesc> conditions)
       throws UDFArgumentException {
+    if (conditions.size() == 1) {
+      return conditions.get(0);
+    }
     return ExprNodeGenericFuncDesc.newInstance(getUdf(COND_JOIN), conditions);
   }
 
@@ -687,6 +690,8 @@ public class RewriteProcFactory {
     private boolean firstGby = false;
     private GenericUDAFEvaluator.Mode evaluatorMode = null;
 
+    private GroupByOperator anchor = null;
+
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
@@ -774,6 +779,12 @@ public class RewriteProcFactory {
       firstGby = !(parent instanceof ReduceSinkOperator);
       aggregators = desc.getAggregators();
       evaluatorMode = SemanticAnalyzer.groupByDescModeToUDAFMode(desc.getMode(), false);
+
+      if (firstGby) {
+        anchor = (GroupByOperator) gby.getChildOperators().get(0).getChildOperators().get(0);
+      } else {
+        anchor = gby;
+      }
     }
 
     // Insert Select as input and cache it
@@ -836,8 +847,7 @@ public class RewriteProcFactory {
       }
 
       // Cache it!
-      ctx.putGroupByInput(
-          (GroupByOperator) gby.getChildOperators().get(0).getChildOperators().get(0), sel);
+      ctx.putGroupByInput(anchor, sel);
     }
 
     // Rewrite AggregationDesc to:
@@ -850,9 +860,14 @@ public class RewriteProcFactory {
       String udafName = convertUdafName(oldUdafName, continuous);
       ArrayList<ExprNodeDesc> parameters = aggregator.getParameters();
       boolean distinct = aggregator.getDistinct();
-      GenericUDAFEvaluator udafEvaluator =
-          SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
-              parameters, null, distinct, false);
+      GenericUDAFEvaluator udafEvaluator = null;
+      if (firstGby) {
+        udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
+            parameters, null, distinct, false);
+        ctx.putEvaluator(anchor, index, udafEvaluator);
+      } else {
+        udafEvaluator = ctx.getEvaluator(anchor, index);
+      }
       assert (udafEvaluator != null);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
           udafEvaluator, evaluatorMode, parameters);
@@ -880,9 +895,14 @@ public class RewriteProcFactory {
         throws SemanticException {
       ArrayList<ExprNodeDesc> parameters = new ArrayList<ExprNodeDesc>(
           Utils.generateColumnDescs(parent, parameterIndexes));
-      GenericUDAFEvaluator udafEvaluator =
-          SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
+      GenericUDAFEvaluator udafEvaluator = null;
+      if (firstGby) {
+        udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
               parameters, null, false, false);
+        ctx.putEvaluator(anchor, signature.size(), udafEvaluator);
+      } else {
+        udafEvaluator = ctx.getEvaluator(anchor, signature.size());
+      }
       assert (udafEvaluator != null);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
           udafEvaluator, evaluatorMode, parameters);

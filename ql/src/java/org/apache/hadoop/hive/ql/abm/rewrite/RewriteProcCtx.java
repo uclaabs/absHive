@@ -15,6 +15,7 @@ import org.apache.hadoop.hive.ql.parse.OpParseContext;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 
 public class RewriteProcCtx implements NodeProcessorCtx {
 
@@ -28,6 +29,9 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   new HashMap<Operator<? extends OperatorDesc>, ArrayList<Integer>>();
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
   new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
+
+  private final HashMap<GroupByOperator, HashMap<Integer, GenericUDAFEvaluator>> evaluators =
+      new HashMap<GroupByOperator, HashMap<Integer, GenericUDAFEvaluator>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
@@ -203,6 +207,23 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   public OpParseContext getOpParseContext(Operator<? extends OperatorDesc> op) {
     return tctx.getOpParseContext(op);
+  }
+
+  public void putEvaluator(GroupByOperator gby, int index, GenericUDAFEvaluator udafEvaluator) {
+    HashMap<Integer, GenericUDAFEvaluator> map = evaluators.get(gby);
+    if (map == null) {
+      map = new HashMap<Integer, GenericUDAFEvaluator>();
+      evaluators.put(gby, map);
+    }
+    map.put(index, udafEvaluator);
+  }
+
+  public GenericUDAFEvaluator getEvaluator(GroupByOperator gby, int index) {
+    HashMap<Integer, GenericUDAFEvaluator> map = evaluators.get(gby);
+    if (map == null) {
+      return null;
+    }
+    return map.get(index);
   }
 
 }

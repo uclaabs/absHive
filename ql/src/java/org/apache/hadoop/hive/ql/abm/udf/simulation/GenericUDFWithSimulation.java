@@ -2,8 +2,10 @@ package org.apache.hadoop.hive.ql.abm.udf.simulation;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
+import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 
+@UDFType(stateful = true)
 public abstract class GenericUDFWithSimulation extends GenericUDF {
 
   protected int numSimulation;
