@@ -113,7 +113,7 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public Object serializeResult() {
-    printRes();
+//    printRes();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ObjectOutputStream oo;
     try {
