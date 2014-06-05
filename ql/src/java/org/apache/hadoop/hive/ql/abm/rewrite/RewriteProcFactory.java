@@ -50,8 +50,10 @@ import org.apache.hadoop.hive.ql.plan.FilterDesc;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
+import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.SelectDesc;
+import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd;
@@ -603,6 +605,21 @@ public class RewriteProcFactory {
     private ArrayList<ExprNodeDesc> valueCols = null;
 
     @Override
+    public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
+        Object... nodeOutputs) throws SemanticException {
+      super.process(nd, stack, procCtx, nodeOutputs);
+
+      if (ctx.isUncertain(rs)) {
+        TableDesc newValueTable = PlanUtils.getReduceValueTableDesc(PlanUtils
+            .getFieldSchemasFromColumnList(desc.getValueCols(),
+                outputValueColumnNames, 0, ""));
+        desc.setValueSerializeInfo(newValueTable);
+      }
+
+      return null;
+    }
+
+    @Override
     protected void initialize(Node nd, NodeProcessorCtx procCtx) {
       super.initialize(nd, procCtx);
       rs = (ReduceSinkOperator) nd;
@@ -903,7 +920,7 @@ public class RewriteProcFactory {
       GenericUDAFEvaluator udafEvaluator = null;
       if (firstGby) {
         udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
-              parameters, null, false, false);
+            parameters, null, false, false);
         ctx.putEvaluator(anchor, signature.size(), udafEvaluator);
       } else {
         udafEvaluator = ctx.getEvaluator(anchor, signature.size());
