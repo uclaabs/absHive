@@ -98,7 +98,6 @@ public class LineageComputation extends UDAFComputation {
   }
 
   protected void printRes() {
-
     System.out.println("LinComputation Print Result");
     for(EWAHCompressedBitmap bitmap:result) {
       int[] resultArray = bitmap.toArray();
@@ -127,20 +126,20 @@ public class LineageComputation extends UDAFComputation {
 //    } catch (IOException e) {
 //      e.printStackTrace();
 //    }
-    
+
     BitmapObjectOutputStream oo;
     try {
-      for (int i = 0; i < result.size(); i++) {
-        oo = new BitmapObjectOutputStream(result.get(i).sizeInBytes());
+      for (int i = 0; i < result.size(); ++i) {
+        oo = new BitmapObjectOutputStream(result.get(i).sizeInBytes() + 12);
         result.get(i).writeExternal(oo);
         ret.add(ObjectInspectorUtils.copyToStandardObject(oo.getBuffer(),
             PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector));
+//        ret.add(oo.getBuffer());
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
-    
-    
+
     return ret;
   }
 
