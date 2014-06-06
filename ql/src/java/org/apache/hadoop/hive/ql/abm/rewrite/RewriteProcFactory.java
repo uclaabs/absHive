@@ -46,6 +46,7 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
+import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
@@ -395,6 +396,7 @@ public class RewriteProcFactory {
   public static class FileSinkProcessor extends RewriteProcessor {
 
     private FileSinkOperator fs = null;
+    private FileSinkDesc desc = null;
     private ArrayList<ColumnInfo> signature = null;
     private RowResolver rowResolver = null;
 
@@ -424,6 +426,8 @@ public class RewriteProcFactory {
       // Add the probability column
       forwardColumn(probIndex);
 
+      desc.setTableInfo(AbmUtilities.fixSerDe(signature));
+
       return null;
     }
 
@@ -432,6 +436,7 @@ public class RewriteProcFactory {
       super.initialize(nd, procCtx);
 
       fs = (FileSinkOperator) nd;
+      desc = fs.getConf();
       rowResolver = ctx.getOpParseContext(fs).getRowResolver();
       signature = fs.getSchema().getSignature();
 

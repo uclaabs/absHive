@@ -18,6 +18,9 @@ import org.apache.hadoop.hive.ql.abm.rewrite.ErrorMeasure;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.plan.PlanUtils;
+import org.apache.hadoop.hive.ql.plan.TableDesc;
+import org.apache.hadoop.hive.serde.serdeConstants;
 
 /**
  *
@@ -203,8 +206,29 @@ public final class AbmUtilities {
     return fieldSchemas;
   }
 
-  public static String getQueryResultFileFormat() {
-    return queryResultFileFormat;
+  public static TableDesc fixSerDe(ArrayList<ColumnInfo> signature) {
+    StringBuilder cols = new StringBuilder();
+    StringBuilder colTypes = new StringBuilder();
+
+    boolean first = true;
+    for (ColumnInfo ci : signature) {
+      if (!first) {
+        cols.append(',');
+        colTypes.append(':');
+      }
+      first = false;
+
+      cols = cols.append(ci.getInternalName());
+      String tName = ci.getType().getTypeName();
+      if (tName.equals(serdeConstants.VOID_TYPE_NAME)) {
+        colTypes = colTypes.append(serdeConstants.STRING_TYPE_NAME);
+      } else {
+        colTypes = colTypes.append(tName);
+      }
+    }
+
+    return PlanUtils.getDefaultQueryOutputTableDesc(
+        cols.toString(), colTypes.toString(), queryResultFileFormat);
   }
 
   public static ErrorMeasure getErrorMeasure() {

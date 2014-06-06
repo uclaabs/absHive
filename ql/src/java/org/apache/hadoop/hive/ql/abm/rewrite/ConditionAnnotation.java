@@ -75,12 +75,14 @@ public class ConditionAnnotation {
   // <-- Used by RewriteProcCtx
 
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
-    input.getConf().cache(AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString());
+    input.getConf().cache(AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString(),
+        AbmUtilities.fixSerDe(input.getSchema().getSignature()));
     inputs.put(gby, input);
   }
 
   public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
-    output.getConf().cache(AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString());
+    output.getConf().cache(AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString(),
+        AbmUtilities.fixSerDe(output.getSchema().getSignature()));
     outputs.put(gby, output);
   }
 

@@ -21,9 +21,6 @@ package org.apache.hadoop.hive.ql.plan;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.serde.serdeConstants;
-
 
 /**
  *
@@ -151,33 +148,11 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.selStarNoCompute = selStarNoCompute;
   }
 
-  public void cache(String tableName) {
+  public void cache(String tableName, TableDesc tableDesc) {
     cached = true;
     assert !selStarNoCompute;
-    tableDesc = generateTableDescToCache();
+    this.tableDesc = tableDesc;
     this.tableName = tableName;
-  }
-
-  private TableDesc generateTableDescToCache() {
-    String cols = "";
-    String colTypes = "";
-    boolean first = true;
-    for (int i = 0; i < colList.size(); i++) {
-      if (!first) {
-        cols = cols.concat(",");
-        colTypes = colTypes.concat(":");
-      }
-      first = false;
-      cols = cols.concat(outputColumnNames.get(i));
-      String tName = colList.get(i).getTypeInfo().getTypeName();
-      if (tName.equals(serdeConstants.VOID_TYPE_NAME)) {
-        colTypes = colTypes.concat(serdeConstants.STRING_TYPE_NAME);
-      } else {
-        colTypes = colTypes.concat(tName);
-      }
-    }
-    return PlanUtils.getDefaultQueryOutputTableDesc(cols, colTypes,
-        AbmUtilities.getQueryResultFileFormat());
   }
 
   public boolean isCached() {
