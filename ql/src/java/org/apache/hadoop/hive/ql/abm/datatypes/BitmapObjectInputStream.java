@@ -6,29 +6,41 @@ import java.io.ObjectInput;
 public class BitmapObjectInputStream implements ObjectInput {
   byte[] buffer = null;
   int cursor = 0;
-  
+
   public BitmapObjectInputStream(byte[] bytes) {
     buffer = bytes;
     cursor = 0;
   }
-  
+
   @Override
   public int readInt() throws IOException {
-    int value = buffer[cursor] << 24;
-    value ^= (buffer[cursor + 1] & 0xFF) << 16;
-    value ^= (buffer[cursor + 2] & 0xFF) << 8;
-    value ^= (buffer[cursor + 3] & 0xFF);
-    cursor += 4;
+    int value = buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
     return value;
   }
 
   @Override
-  public long readLong() throws IOException {    
-    long value = buffer[cursor] << 56;
-    for(int i = 1; i < 8; i ++) {
-      value ^= (buffer[cursor + i] & 0xFF) << (8 * (7 - i));
-    }
-    cursor += 8;
+  public long readLong() throws IOException {
+    long value = buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
     return value;
   }
 
@@ -60,14 +72,14 @@ public class BitmapObjectInputStream implements ObjectInput {
   @Override
   public void readFully(byte[] arg0) throws IOException {
     throw new UnsupportedOperationException();
-    
+
   }
 
   @Override
   public void readFully(byte[] arg0, int arg1, int arg2) throws IOException {
-    throw new UnsupportedOperationException(); 
+    throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public String readLine() throws IOException {
     throw new UnsupportedOperationException();
@@ -106,7 +118,7 @@ public class BitmapObjectInputStream implements ObjectInput {
   @Override
   public void close() throws IOException {
     throw new UnsupportedOperationException();
-    
+
   }
 
   @Override

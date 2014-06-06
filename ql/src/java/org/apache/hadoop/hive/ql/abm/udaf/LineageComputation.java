@@ -11,8 +11,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.BitmapObjectOutputStream;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
@@ -112,29 +110,12 @@ public class LineageComputation extends UDAFComputation {
   @Override
   public Object serializeResult() {
 //    printRes();
-//    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//    ObjectOutputStream oo;
-//    try {
-//      oo = new ObjectOutputStream(baos);
-//      for (int i = 0; i < result.size(); i++) {
-//        baos.reset();
-//        result.get(i).writeExternal(oo);
-//        oo.close();
-//        ret.add(ObjectInspectorUtils.copyToStandardObject(baos.toByteArray(),
-//            PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector));
-//      }
-//    } catch (IOException e) {
-//      e.printStackTrace();
-//    }
-
     BitmapObjectOutputStream oo;
     try {
       for (int i = 0; i < result.size(); ++i) {
         oo = new BitmapObjectOutputStream(result.get(i).sizeInBytes() + 12);
         result.get(i).writeExternal(oo);
-        ret.add(ObjectInspectorUtils.copyToStandardObject(oo.getBuffer(),
-            PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector));
-//        ret.add(oo.getBuffer());
+        ret.add(oo.getBuffer());
       }
     } catch (IOException e) {
       e.printStackTrace();
