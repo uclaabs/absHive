@@ -337,6 +337,7 @@ public class RewriteProcFactory {
           ci.setType(ai.getTypeInfo());
         }
       }
+      fixExtraTypes();
 
       return null;
     }
@@ -348,6 +349,10 @@ public class RewriteProcFactory {
       op = (Operator<? extends OperatorDesc>) nd;
       rowResolver = ctx.getOpParseContext(op).getRowResolver();
       signature = op.getSchema().getSignature();
+    }
+
+    protected void fixExtraTypes() throws SemanticException {
+
     }
 
   }
@@ -616,7 +621,7 @@ public class RewriteProcFactory {
 
       if (ctx.isUncertain(rs)) {
         TableDesc newValueTable = PlanUtils.getReduceValueTableDesc(PlanUtils
-            .getFieldSchemasFromColumnList(desc.getValueCols(),
+            .getFieldSchemasFromColumnList(valueCols,
                 outputValueColumnNames, 0, ""));
         desc.setValueSerializeInfo(newValueTable);
       }
@@ -646,6 +651,19 @@ public class RewriteProcFactory {
       rowResolver.put("", valName, new ColumnInfo(valName, column.getTypeInfo(), "", false));
 
       return signature.size() - 1;
+    }
+
+    @Override
+    protected void fixExtraTypes() throws SemanticException {
+      for (ExprNodeDesc val : valueCols) {
+        if (val instanceof ExprNodeColumnDesc) {
+          ExprNodeColumnDesc col = (ExprNodeColumnDesc) val;
+          AggregateInfo ai = ctx.getLineage(parent, col.getColumn());
+          if (ai != null) {
+            col.setTypeInfo(ai.getTypeInfo());
+          }
+        }
+      }
     }
 
   }
@@ -689,6 +707,19 @@ public class RewriteProcFactory {
           .put("", outputName, new ColumnInfo(outputName, column.getTypeInfo(), "", false));
 
       return signature.size() - 1;
+    }
+
+    @Override
+    protected void fixExtraTypes() throws SemanticException {
+      for (ExprNodeDesc val : colList) {
+        if (val instanceof ExprNodeColumnDesc) {
+          ExprNodeColumnDesc col = (ExprNodeColumnDesc) val;
+          AggregateInfo ai = ctx.getLineage(parent, col.getColumn());
+          if (ai != null) {
+            col.setTypeInfo(ai.getTypeInfo());
+          }
+        }
+      }
     }
 
   }
@@ -1265,6 +1296,25 @@ public class RewriteProcFactory {
               ci.getIsVirtualCol(), ci.isHiddenVirtualCol()));
 
       return signature.size() - 1;
+    }
+
+    @Override
+    protected void fixExtraTypes() throws SemanticException {
+      for (Operator<? extends OperatorDesc> parent : join.getParentOperators()) {
+        parentRS = (ReduceSinkOperator) parent;
+        tag = (byte) parentRS.getConf().getTag();
+        List<ExprNodeDesc> exprList = exprMap.get(tag);
+
+        for (ExprNodeDesc expr : exprList) {
+          if (expr instanceof ExprNodeColumnDesc) {
+            ExprNodeColumnDesc col = (ExprNodeColumnDesc) expr;
+            AggregateInfo ai = ctx.getLineage(parentRS, col.getColumn());
+            if (ai != null) {
+              col.setTypeInfo(ai.getTypeInfo());
+            }
+          }
+        }
+      }
     }
 
   }
