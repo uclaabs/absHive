@@ -886,7 +886,7 @@ public class RewriteProcFactory {
       AggregationDesc aggregator = aggregators.get(index);
       String oldUdafName = aggregator.getGenericUDAFName();
       String udafName = convertUdafName(oldUdafName, continuous);
-      ArrayList<ExprNodeDesc> parameters = aggregator.getParameters();
+      ArrayList<ExprNodeDesc> parameters = updateParameters(aggregator.getParameters());
       boolean distinct = aggregator.getDistinct();
       GenericUDAFEvaluator udafEvaluator = null;
       if (firstGby) {
@@ -906,6 +906,18 @@ public class RewriteProcFactory {
       // (2): We only need to change the ColumnInfo in the schema
       // as other places (e.g., RowResolver) reference to the same ColumnInfo
       signature.get(numKeys + index).setType(udaf.returnType);
+    }
+
+    private ArrayList<ExprNodeDesc> updateParameters(ArrayList<ExprNodeDesc> parameters) {
+      for (ExprNodeDesc param : parameters) {
+        ExprNodeColumnDesc par = (ExprNodeColumnDesc) param;
+        for (ColumnInfo ci : parent.getSchema().getSignature()) {
+          if (ci.getInternalName().equals(par.getColumn())) {
+            par.setTypeInfo(ci.getType());
+          }
+        }
+      }
+      return parameters;
     }
 
     private String convertUdafName(String udaf, boolean continuous) {

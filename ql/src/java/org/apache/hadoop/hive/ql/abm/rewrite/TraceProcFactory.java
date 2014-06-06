@@ -267,13 +267,6 @@ public class TraceProcFactory {
         return null;
       }
 
-      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
-      boolean firstGby = !(parent instanceof ReduceSinkOperator);
-
-      if (firstGby) {
-        return null;
-      }
-
       GroupByDesc desc = gby.getConf();
       ArrayList<ColumnInfo> allCols = gby.getSchema().getSignature();
       ArrayList<AggregationDesc> aggrs = desc.getAggregators();
@@ -284,6 +277,13 @@ public class TraceProcFactory {
         int idx = i - numKeys;
         ctx.putLineage(gby, allCols.get(i).getInternalName(),
             new AggregateInfo(gby, idx, aggrs.get(idx).getGenericUDAFName()));
+      }
+
+      Operator<? extends OperatorDesc> parent = gby.getParentOperators().get(0);
+      boolean firstGby = !(parent instanceof ReduceSinkOperator);
+
+      if (firstGby) {
+        return null;
       }
 
       // info (3)
