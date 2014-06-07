@@ -122,13 +122,13 @@ public class ConditionAnnotation {
 
   public void setupMCSim(SelectOperator select) {
     // Rearrange the connections
-    ArrayList<Operator<? extends OperatorDesc>> inputOps = new ArrayList<Operator<? extends OperatorDesc>>();
-    ArrayList<Operator<? extends OperatorDesc>> outputContinuousOps = new ArrayList<Operator<? extends OperatorDesc>>();
+    List<Operator<? extends OperatorDesc>> inputOps = new ArrayList<Operator<? extends OperatorDesc>>();
+    List<Operator<? extends OperatorDesc>> outputContinuousOps = new ArrayList<Operator<? extends OperatorDesc>>();
     for (GroupByOperator gby : sortedContinuous) {
       inputOps.add(inputs.get(gby));
       outputContinuousOps.add(outputs.get(gby));
     }
-    ArrayList<Operator<? extends OperatorDesc>> outputDiscreteOps = new ArrayList<Operator<? extends OperatorDesc>>();
+    List<Operator<? extends OperatorDesc>> outputDiscreteOps = new ArrayList<Operator<? extends OperatorDesc>>();
     for (GroupByOperator gby : sortedDiscrete) {
       outputDiscreteOps.add(outputs.get(gby));
     }
@@ -149,18 +149,24 @@ public class ConditionAnnotation {
 
     // Continuous input (no input cached for discrete GBYs): keys, vals, tid
     // Continuous output: keys, aggregates, lineage, condition, gby-id
-    ArrayList<Integer> numKeysContinuous = new ArrayList<Integer>();
+    List<Integer> numKeysContinuous = new ArrayList<Integer>();
+    List<List<UdafType>> aggrTypes = new ArrayList<List<UdafType>>();
     for (GroupByOperator gby : sortedContinuous) {
       numKeysContinuous.add(gby.getConf().getKeys().size());
+      List<UdafType> types = new ArrayList<UdafType>();
+      for (AggregateInfo ai : aggregates.get(gby)) {
+        types.add(ai.getUdafType());
+      }
+      aggrTypes.add(types);
     }
 
     // Discrete output: aggregates, condition, gby-id
-    ArrayList<Integer> numKeysDiscrete = new ArrayList<Integer>();
+    List<Integer> numKeysDiscrete = new ArrayList<Integer>();
     for (GroupByOperator gby : sortedDiscrete) {
       numKeysDiscrete.add(gby.getConf().getKeys().size());
     }
 
-    select.getConf().setMCSim(numKeysContinuous, numKeysDiscrete);
+    select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete);
 
     // TODO: GBYs' dependency structure
     // TODO: Detailed structure (of each predicate) of every condition column

@@ -21,6 +21,8 @@ package org.apache.hadoop.hive.ql.plan;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
+
 
 /**
  *
@@ -45,7 +47,7 @@ public class SelectDesc extends AbstractOperatorDesc {
   // ABM
   private boolean simulated = false;
   private List<Integer> numKeysContinuous = null;
-
+  private List<List<UdafType>> aggrTypesContinuous = null;
   private List<Integer> numKeysDiscrete = null;
 
   public SelectDesc() {
@@ -203,10 +205,19 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.numKeysDiscrete = numKeysDiscrete;
   }
 
-  public void setMCSim(List<Integer> numKeysContinuous, List<Integer> numKeysDiscrete) {
+  public List<List<UdafType>> getAggrTypesContinuous() {
+    return aggrTypesContinuous;
+  }
+
+  public void setAggrTypesContinuous(List<List<UdafType>> aggrTypesContinuous) {
+    this.aggrTypesContinuous = aggrTypesContinuous;
+  }
+
+  public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous, List<Integer> numKeysDiscrete) {
     simulated = true;
 
     this.numKeysContinuous = numKeysContinuous;
+    this.aggrTypesContinuous = aggrTypesContinuous;
     this.numKeysDiscrete = numKeysDiscrete;
   }
 
