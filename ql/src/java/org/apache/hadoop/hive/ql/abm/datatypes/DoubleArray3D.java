@@ -27,19 +27,15 @@ public class DoubleArray3D implements Serializable {
     }
   }
 
-  public double get(int i) {
-    return buf[i];
-  }
-
   public void merge(DoubleArray3D input) {
     for (int i = 0; i < buf.length; ++i) {
-      buf[i] += input.get(i);
+      buf[i] += input.buf[i];
     }
   }
 
   public void updateByRow(int row1, int row2) {
     for (int i = 0; i < dim2; ++i) {
-      buf[row1 + i] += get(row2 + i);
+      buf[row1 + i] += buf[row2 + i];
     }
   }
 
@@ -79,26 +75,36 @@ public class DoubleArray3D implements Serializable {
     }
   }
 
-  public int getOffset(int row1, int row2) {
-    return row1 * dim1 + row2 * dim2;
-  }
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
 
-  public void print() {
-
+    builder.append('{');
     int numRow1 = buf.length / dim1;
     int numRow2 = dim1 / dim2;
-
     for(int i = 0; i < numRow1; i ++) {
+      builder.append('[');
+      boolean firstRow = true;
       for(int j = 0; j < numRow2; j ++) {
-        int offset = getOffset(i, j);
-        System.out.println("Row " + i + "-" + j);
-        for(int c = 0; c < dim2; c ++) {
-          System.out.print(get(offset + c) + "\t");;
+        if (!firstRow) {
+          builder.append("; ");
         }
-        System.out.println();
+        firstRow = false;
+        int offset = i * dim1 + j * dim2;
+        boolean first = true;
+        for(int c = 0; c < dim2; c ++) {
+          if (!first) {
+            builder.append(", ");
+          }
+          first = false;
+          builder.append(buf[offset + c]);
+        }
       }
+      builder.append(']');
     }
+    builder.append('}');
 
+    return builder.toString();
   }
 
 }

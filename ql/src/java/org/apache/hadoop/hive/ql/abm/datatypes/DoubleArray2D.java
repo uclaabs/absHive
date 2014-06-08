@@ -24,13 +24,9 @@ public class DoubleArray2D implements Serializable {
     }
   }
 
-  public double get(int i) {
-    return buf[i];
-  }
-
   public void merge(DoubleArray2D input) {
     for (int i = 0; i < buf.length; i++) {
-      buf[i] += input.get(i);
+      buf[i] += input.buf[i];
     }
   }
 
@@ -41,24 +37,37 @@ public class DoubleArray2D implements Serializable {
     int rowOffset = 0;
     for (int i = 0; i < rowNum; i++) {
       for (int j = 0; j < cols; j++) {
-        buf[rowOffset + j] += get(baseOffset + j);
+        buf[rowOffset + j] += buf[baseOffset + j];
       }
       rowOffset += cols;
     }
   }
 
-  //
-  public void print() {
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append('[');
     int rowNum = buf.length / cols;
-
-    for(int i = 0; i < rowNum; i ++) {
-       int rowOffset = cols * i;
-      for(int j = 0; j < cols; j ++) {
-        System.out.print(get(rowOffset + j) + "\t");;
+    boolean firstRow = true;
+    for (int i = 0; i < rowNum; ++i) {
+      if (!firstRow) {
+        builder.append("; ");
       }
-      System.out.println();
+      firstRow = false;
+      int rowOffset = cols * i;
+      boolean first = true;
+      for (int j = 0; j < cols; ++j) {
+        if (!first) {
+          builder.append(", ");
+        }
+        first = false;
+        builder.append(buf[rowOffset + j]);
+      }
     }
-  }
+    builder.append(']');
 
+    return builder.toString();
+  }
 
 }

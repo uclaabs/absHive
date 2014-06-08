@@ -220,38 +220,45 @@ public class PartialCovMap implements Serializable {
     }
   }
 
-  public void print() {
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
 
-    System.out.println("-----------------------------------PartialCovMap Print--------------------------------------------------");
-
+    boolean first = true;
     for(int i = 0; i < innerGbyCovs.length; i ++) {
-      InnerCovMap currentMap = innerGbyCovs[i];
-      System.out.println("Inner Map: " + i);
+      if (!first) {
+        builder.append('\n');
+      }
+      first = false;
 
+      InnerCovMap currentMap = innerGbyCovs[i];
+      builder.append("<" + i + ">: ");
       for(Map.Entry<Integer, DoubleArray2D> entry: currentMap.entrySet()) {
         DoubleArray2D currentArray = entry.getValue();
-        System.out.println("Inner Key:" + entry.getKey());
-        currentArray.print();
+        builder.append("(" + entry.getKey() + ") = " + currentArray.toString());
       }
     }
 
-    //
+    first = true;
     for(int i = 0; i < interGbyCovs.length; i ++) {
+      if (!first) {
+        builder.append('\n');
+      }
+      first = false;
+
       InterCovMap[] interGbyCovList = interGbyCovs[i];
       for(int j = i + 1; j < interGbyCovList.length; j ++) {
         InterCovMap currentMap = interGbyCovs[i][j];
 
-        System.out.println("Inter Map: " + i + " " + j);
-
+        builder.append("<" + i + ", " + j + ">: ");
         for(Map.Entry<Long, DoubleArray3D> entry: currentMap.entrySet()) {
           DoubleArray3D currentArray = entry.getValue();
-
-          System.out.println("Inner Key:" + entry.getKey());
-          currentArray.print();
+          builder.append("(" + entry.getKey() + ") = " + currentArray.toString());
         }
        }
     }
-    System.out.println("-----------------------------------PartialCovMap Print--------------------------------------------------");
+
+    return builder.toString();
   }
 }
 
