@@ -1,8 +1,10 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import java.io.Serializable;
 
+public class DoubleArray3D implements Serializable {
 
-public class DoubleArray3D {
+  private static final long serialVersionUID = 1L;
 
   private final double[] buf;
   private final int dim1;
@@ -76,16 +78,16 @@ public class DoubleArray3D {
       rowOffset += dim2;
     }
   }
-  
+
   public int getOffset(int row1, int row2) {
     return row1 * dim1 + row2 * dim2;
   }
-  
+
   public void print() {
-    
+
     int numRow1 = buf.length / dim1;
     int numRow2 = dim1 / dim2;
-    
+
     for(int i = 0; i < numRow1; i ++) {
       for(int j = 0; j < numRow2; j ++) {
         int offset = getOffset(i, j);
@@ -96,7 +98,7 @@ public class DoubleArray3D {
         System.out.println();
       }
     }
-    
+
   }
 
 }

@@ -1,8 +1,10 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import java.io.Serializable;
 
+public class DoubleArray2D implements Serializable {
 
-public class DoubleArray2D {
+  private static final long serialVersionUID = 1L;
 
   private final double[] buf;
   private final int cols;
@@ -44,11 +46,11 @@ public class DoubleArray2D {
       rowOffset += cols;
     }
   }
-  
-  // 
+
+  //
   public void print() {
     int rowNum = buf.length / cols;
-    
+
     for(int i = 0; i < rowNum; i ++) {
        int rowOffset = cols * i;
       for(int j = 0; j < cols; j ++) {

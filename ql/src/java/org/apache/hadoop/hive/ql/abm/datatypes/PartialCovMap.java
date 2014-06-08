@@ -6,12 +6,15 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Map;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
-public class PartialCovMap {
+public class PartialCovMap implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   private final InnerCovMap[] innerGbyCovs;
   private final InterCovMap[][] interGbyCovs;
