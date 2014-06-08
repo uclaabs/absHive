@@ -241,15 +241,14 @@ public class PartialCovMap implements Serializable {
 
     first = true;
     for(int i = 0; i < interGbyCovs.length; i ++) {
-      if (!first) {
-        builder.append('\n');
-      }
-      first = false;
-
       InterCovMap[] interGbyCovList = interGbyCovs[i];
       for(int j = i + 1; j < interGbyCovList.length; j ++) {
-        InterCovMap currentMap = interGbyCovs[i][j];
+        if (!first) {
+          builder.append('\n');
+        }
+        first = false;
 
+        InterCovMap currentMap = interGbyCovs[i][j];
         builder.append("<" + i + ", " + j + ">: ");
         for(Map.Entry<Long, DoubleArray3D> entry: currentMap.entrySet()) {
           DoubleArray3D currentArray = entry.getValue();
