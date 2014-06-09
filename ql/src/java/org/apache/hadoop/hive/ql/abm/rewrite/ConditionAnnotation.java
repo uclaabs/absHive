@@ -29,6 +29,9 @@ public class ConditionAnnotation {
   private final HashMap<GroupByOperator, SelectOperator> outputs =
       new HashMap<GroupByOperator, SelectOperator>();
 
+  private final List<String> cachedOutputs = new ArrayList<String>();
+  private final List<String> cachedInputs = new ArrayList<String>();
+
   private List<List<GroupByOperator>> sorted = null;
   private List<GroupByOperator> sortedContinuous = null;
   private List<GroupByOperator> sortedDiscrete = null;
@@ -75,15 +78,19 @@ public class ConditionAnnotation {
   // <-- Used by RewriteProcCtx
 
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
-    input.getConf().cache(AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString(),
+    String tableName = AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString();
+    input.getConf().cache(tableName,
         AbmUtilities.fixSerDe(input.getSchema().getSignature()));
     inputs.put(gby, input);
+    cachedInputs.add(tableName);
   }
 
   public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
-    output.getConf().cache(AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString(),
+    String tableName = AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString();
+    output.getConf().cache(tableName,
         AbmUtilities.fixSerDe(output.getSchema().getSignature()));
     outputs.put(gby, output);
+    cachedOutputs.add(tableName);
   }
 
   public int[] getAggregateId(AggregateInfo ai) {
@@ -166,7 +173,7 @@ public class ConditionAnnotation {
       numKeysDiscrete.add(gby.getConf().getKeys().size());
     }
 
-    select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete);
+    select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete, cachedOutputs, cachedInputs);
 
     // TODO: GBYs' dependency structure
     // TODO: Detailed structure (of each predicate) of every condition column

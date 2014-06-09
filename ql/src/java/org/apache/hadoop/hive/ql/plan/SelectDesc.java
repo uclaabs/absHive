@@ -49,6 +49,8 @@ public class SelectDesc extends AbstractOperatorDesc {
   private List<Integer> numKeysContinuous = null;
   private List<List<UdafType>> aggrTypesContinuous = null;
   private List<Integer> numKeysDiscrete = null;
+  private List<String> cachedOutputs = null;
+  private List<String> cachedInputs = null;
 
   public SelectDesc() {
   }
@@ -213,12 +215,32 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.aggrTypesContinuous = aggrTypesContinuous;
   }
 
-  public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous, List<Integer> numKeysDiscrete) {
+  public List<String> getCachedOutputs() {
+    return cachedOutputs;
+  }
+
+  public void setCachedOutputs(List<String> cachedOutputs) {
+    this.cachedOutputs = cachedOutputs;
+  }
+
+  public List<String> getCachedInputs() {
+    return cachedInputs;
+  }
+
+  public void setCachedInputs(List<String> cachedInputs) {
+    this.cachedInputs = cachedInputs;
+  }
+
+  public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
+      List<Integer> numKeysDiscrete, List<String> cachedOutputs, List<String> cachedInputs) {
     simulated = true;
 
     this.numKeysContinuous = numKeysContinuous;
     this.aggrTypesContinuous = aggrTypesContinuous;
     this.numKeysDiscrete = numKeysDiscrete;
+
+    this.cachedOutputs = cachedOutputs;
+    this.cachedInputs = cachedInputs;
   }
 
 }
