@@ -155,7 +155,7 @@ public class ConditionAnnotation {
     }
 
     // Continuous input (no input cached for discrete GBYs): keys, vals, tid
-    // Continuous output: keys, aggregates, lineage, condition, gby-id
+    // Continuous output: keys, aggregates, lineage, condition, group-id
     List<Integer> numKeysContinuous = new ArrayList<Integer>();
     List<List<UdafType>> aggrTypes = new ArrayList<List<UdafType>>();
     for (GroupByOperator gby : sortedContinuous) {
@@ -167,7 +167,7 @@ public class ConditionAnnotation {
       aggrTypes.add(types);
     }
 
-    // Discrete output: aggregates, condition, gby-id
+    // Discrete output: aggregates, condition, group-id
     List<Integer> numKeysDiscrete = new ArrayList<Integer>();
     for (GroupByOperator gby : sortedDiscrete) {
       numKeysDiscrete.add(gby.getConf().getKeys().size());
