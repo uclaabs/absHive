@@ -18,7 +18,6 @@ public class PartialCovMap implements Serializable {
 
   private final InnerCovMap[] innerGbyCovs;
   private final InterCovMap[][] interGbyCovs;
-  private final int[] sizes;
 
   public static class InnerCovMap extends Int2ReferenceOpenHashMap<DoubleArray2D> {
 
@@ -127,9 +126,7 @@ public class PartialCovMap implements Serializable {
     }
   }
 
-  public PartialCovMap(int[] szs) {
-    sizes = szs;
-
+  public PartialCovMap(int[] sizes) {
     innerGbyCovs = new InnerCovMap[sizes.length];
     for (int i = 0; i < sizes.length; ++i) {
       innerGbyCovs[i] = new InnerCovMap(sizes[i]);
