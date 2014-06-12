@@ -15,6 +15,14 @@ public class Conditions implements Serializable {
     this.ranges = ranges;
   }
 
+  public KeyWrapper getKeys() {
+    return keys;
+  }
+
+  public List<RangeList> getRanges() {
+    return ranges;
+  }
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
