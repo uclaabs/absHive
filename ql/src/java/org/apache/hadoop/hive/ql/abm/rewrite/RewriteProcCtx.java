@@ -30,19 +30,20 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   private final HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>> gbyIdIndex =
   new HashMap<Operator<? extends OperatorDesc>, HashMap<GroupByOperator, Integer>>();
 
-  private final HashMap<GroupByOperator, HashMap<Integer, GenericUDAFEvaluator>> evaluators =
-      new HashMap<GroupByOperator, HashMap<Integer, GenericUDAFEvaluator>>();
+  private final HashMap<GroupByOperator, HashMap<Integer, UdafPair>> evaluators =
+      new HashMap<GroupByOperator, HashMap<Integer, UdafPair>>();
 
   private final HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>> transform =
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
 
-  private final ConditionAnnotation condAnno;
-
   private final TraceProcCtx tctx;
+  private final ConditionAnnotation condAnno;
+  private final boolean simpleQuery;
 
   public RewriteProcCtx(TraceProcCtx ctx) {
     tctx = ctx;
     condAnno = tctx.getCondition(tctx.getSinkOp());
+    simpleQuery = condAnno.isSimpleQuery();
   }
 
   public AggregateInfo getLineage(Operator<? extends OperatorDesc> op, String internalName) {
@@ -55,7 +56,7 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public boolean withTid(Operator<? extends OperatorDesc> op) {
-    return isAnnotatedWithSrv(op);
+    return isAnnotatedWithSrv(op) && !simpleQuery;
   }
 
   public Integer getTidColumnIndex(Operator<? extends OperatorDesc> op) {
@@ -148,6 +149,10 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return ret;
   }
 
+  public void setAsContinuous(GroupByOperator gby) {
+    condAnno.setAsContinuous(gby);
+  }
+
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
     condAnno.putGroupByInput(gby, input);
   }
@@ -209,21 +214,33 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return tctx.getOpParseContext(op);
   }
 
-  public void putEvaluator(GroupByOperator gby, int index, GenericUDAFEvaluator udafEvaluator) {
-    HashMap<Integer, GenericUDAFEvaluator> map = evaluators.get(gby);
+  public void putEvaluator(GroupByOperator gby, int index, GenericUDAFEvaluator udafEvaluator, String udafName) {
+    HashMap<Integer, UdafPair> map = evaluators.get(gby);
     if (map == null) {
-      map = new HashMap<Integer, GenericUDAFEvaluator>();
+      map = new HashMap<Integer, UdafPair>();
       evaluators.put(gby, map);
     }
-    map.put(index, udafEvaluator);
+    map.put(index, new UdafPair(udafEvaluator, udafName));
   }
 
-  public GenericUDAFEvaluator getEvaluator(GroupByOperator gby, int index) {
-    HashMap<Integer, GenericUDAFEvaluator> map = evaluators.get(gby);
+  public UdafPair getEvaluator(GroupByOperator gby, int index) {
+    HashMap<Integer, UdafPair> map = evaluators.get(gby);
     if (map == null) {
       return null;
     }
     return map.get(index);
+  }
+
+}
+
+class UdafPair {
+
+  public final GenericUDAFEvaluator udafEvaluator;
+  public String udafName;
+
+  public UdafPair(GenericUDAFEvaluator udafEvaluator, String udafName) {
+    this.udafEvaluator = udafEvaluator;
+    this.udafName = udafName;
   }
 
 }

@@ -24,6 +24,7 @@ public class ConditionAnnotation {
       new HashMap<GroupByOperator, ComparisonTransform[]>();
   private final ArrayList<ComparisonTransform> transforms = new ArrayList<ComparisonTransform>();
 
+  private final HashSet<GroupByOperator> continuous = new HashSet<GroupByOperator>();
   private final HashMap<GroupByOperator, SelectOperator> inputs =
       new HashMap<GroupByOperator, SelectOperator>();
   private final HashMap<GroupByOperator, SelectOperator> outputs =
@@ -77,6 +78,32 @@ public class ConditionAnnotation {
 
   // <-- Used by RewriteProcCtx
 
+  // A query is either a simple query, in which case we do not need to cache any input;
+  // or is a complex query, in which case we have to cache the inputs of all continuous gbys.
+  // This is because the dependency graph is a connected tree for complex queries, and thus
+  // every continuous gby is connected with another.
+  public boolean isSimpleQuery() {
+    for (ComparisonTransform[] val : dependencies.values()) {
+      if (val.length != 0) {
+        return false;
+      }
+    }
+
+    HashSet<AggregateInfo> hash = new HashSet<AggregateInfo>();
+    for (ComparisonTransform ct : transforms) {
+      hash.addAll(ct.getAggregatesInvolved());
+    }
+    if (hash.size() > 1) {
+      return false;
+    }
+
+    return true;
+  }
+
+  public void setAsContinuous(GroupByOperator gby) {
+    continuous.add(gby);
+  }
+
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
     String tableName = AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString();
     input.getConf().cache(tableName,
@@ -107,7 +134,6 @@ public class ConditionAnnotation {
     Map<GroupByOperator, Set<GroupByOperator>> map = getDependencyGraph();
     sorted = TopologicalSort.getOrderByLevel(map);
 
-    Set<GroupByOperator> continuous = getAllContinousGbys();
     sortedContinuous = new ArrayList<GroupByOperator>();
     sortedDiscrete = new ArrayList<GroupByOperator>();
     for (List<GroupByOperator> level : sorted) {
@@ -130,9 +156,14 @@ public class ConditionAnnotation {
   public void setupMCSim(SelectOperator select) {
     // Rearrange the connections
     List<Operator<? extends OperatorDesc>> inputOps = new ArrayList<Operator<? extends OperatorDesc>>();
+    boolean simpleQuery = inputs.isEmpty();
+    if (!simpleQuery) {
+      for (GroupByOperator gby : sortedContinuous) {
+        inputOps.add(inputs.get(gby));
+      }
+    }
     List<Operator<? extends OperatorDesc>> outputContinuousOps = new ArrayList<Operator<? extends OperatorDesc>>();
     for (GroupByOperator gby : sortedContinuous) {
-      inputOps.add(inputs.get(gby));
       outputContinuousOps.add(outputs.get(gby));
     }
     List<Operator<? extends OperatorDesc>> outputDiscreteOps = new ArrayList<Operator<? extends OperatorDesc>>();
@@ -155,7 +186,9 @@ public class ConditionAnnotation {
     }
 
     // Continuous input (no input cached for discrete GBYs): keys, vals, tid
-    // Continuous output: keys, aggregates, lineage, condition, group-id
+    // Continuous output:
+    // 1. in simple queries: aggregates(w/o count), condition, group-id
+    // 2. in complex queries: keys, aggregates(w/ count), lineage, condition, group-id
     List<Integer> numKeysContinuous = new ArrayList<Integer>();
     List<List<UdafType>> aggrTypes = new ArrayList<List<UdafType>>();
     for (GroupByOperator gby : sortedContinuous) {
@@ -173,7 +206,8 @@ public class ConditionAnnotation {
       numKeysDiscrete.add(gby.getConf().getKeys().size());
     }
 
-    select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete, cachedOutputs, cachedInputs);
+    select.getConf().setMCSim(simpleQuery, numKeysContinuous, aggrTypes, numKeysDiscrete,
+        cachedOutputs, cachedInputs);
 
     // TODO: GBYs' dependency structure
     // TODO: Detailed structure (of each predicate) of every condition column
@@ -192,10 +226,6 @@ public class ConditionAnnotation {
       map.put(entry.getKey(), parents);
     }
     return map;
-  }
-
-  private Set<GroupByOperator> getAllContinousGbys() {
-    return inputs.keySet();
   }
 
   public List<Boolean> getCondFlags(GroupByOperator gby) {
