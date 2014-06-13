@@ -66,14 +66,18 @@ public class PartialCovMap implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final int numCovs;
-    private final int lSize;
-    private final int rSize;
+    private final int rows1;
+    private final int rows2;
 
-    public InterCovMap(int lSz, int rSz) {
+    public InterCovMap(int size1, int size2) {
       super();
-      numCovs = lSz * rSz;
-      lSize = lSz;
-      rSize = rSz;
+      numCovs = size1 * size2;
+      rows1 = size1;
+      rows2 = size2;
+    }
+
+    public DoubleArray3D get(int groupId1, int groupId2) {
+      return super.get(((long) groupId1 << 32) + groupId2);
     }
 
     public void update(int tid, int groupId1, int groupId2, EWAHCompressedBitmap[] lineage1,
@@ -85,7 +89,7 @@ public class PartialCovMap implements Serializable {
       int numRow2 = lineage2.length;
 
       if (buf == null) {
-        buf = new DoubleArray3D(numRow1, numRow2, numCovs, lSize, rSize);
+        buf = new DoubleArray3D(numRow1, numRow2, numCovs, rows1, rows2);
         put(id, buf);
       }
 
