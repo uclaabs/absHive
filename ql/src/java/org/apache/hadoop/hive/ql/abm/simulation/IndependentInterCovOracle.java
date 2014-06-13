@@ -27,7 +27,7 @@ public class IndependentInterCovOracle implements InterCovOracle {
   }
 
   @Override
-  public void fillCovMatrix(int leftId, int rightId, double[][] dest, int row, int col) {
+  public void fillCovMatrix(int groupId1, int groupId2, int condId1, int condId2, double[][] dest, int row, int col) {
     // Do nothing, as dest should be initialized with all zeros
   }
 

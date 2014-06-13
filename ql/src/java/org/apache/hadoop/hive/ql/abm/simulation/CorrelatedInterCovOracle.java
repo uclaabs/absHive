@@ -11,9 +11,9 @@ public class CorrelatedInterCovOracle implements InterCovOracle {
   private final int numRows;
   private final int numCols;
 
-  public CorrelatedInterCovOracle(List<UdafType> lhsTypes, List<UdafType> rhsTypes) {
-    numRows = lhsTypes.size();
-    numCols = rhsTypes.size();
+  public CorrelatedInterCovOracle(List<UdafType> udafTypes1, List<UdafType> udafTypes2) {
+    numRows = udafTypes1.size();
+    numCols = udafTypes2.size();
     // TODO Auto-generated constructor stub
   }
 
@@ -28,7 +28,7 @@ public class CorrelatedInterCovOracle implements InterCovOracle {
   }
 
   @Override
-  public void fillCovMatrix(int leftId, int rightId, double[][] dest, int row, int col) {
+  public void fillCovMatrix(int groupId1, int groupId2, int condId1, int condId2, double[][] dest, int row, int col) {
     // TODO Auto-generated method stub
 
   }

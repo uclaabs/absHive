@@ -18,6 +18,6 @@ interface InnerCovOracle extends CovOracle {
 
 interface InterCovOracle extends CovOracle {
 
-  public void fillCovMatrix(int leftId, int rightId, double[][] dest, int row, int col);
+  public void fillCovMatrix(int groupId1, int groupId2, int condId1, int condId2, double[][] dest, int row, int col);
 
 }
