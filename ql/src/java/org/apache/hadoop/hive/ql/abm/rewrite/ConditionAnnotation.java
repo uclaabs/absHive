@@ -192,8 +192,8 @@ public class ConditionAnnotation {
 
     // Continuous input (no input cached for discrete GBYs): keys, vals, tid
     // Continuous output:
-    // 1. in simple queries: aggregates(w/o count), condition, group-id
-    // 2. in complex queries: keys, aggregates(w/ count), lineage, condition, group-id
+    // 1. in simple queries: aggregates, condition, group-id
+    // 2. in complex queries: keys, aggregates, lineage, condition, group-id
     List<Integer> numKeysContinuous = new ArrayList<Integer>();
     List<List<UdafType>> aggrTypes = new ArrayList<List<UdafType>>();
     for (GroupByOperator gby : sortedContinuous) {
