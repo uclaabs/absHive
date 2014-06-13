@@ -2,12 +2,22 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 
-public class ContinuousSrv extends DoubleArrayList {
+public class ContinuousSrv extends DoubleArrayList implements Srv {
 
   private static final long serialVersionUID = 1L;
 
   public ContinuousSrv(int capacity) {
     super(capacity);
+  }
+
+  @Override
+  public double getMean(int index) {
+    return get(index << 1);
+  }
+
+  @Override
+  public double getVar(int index) {
+    return get((index << 1) + 1);
   }
 
   @Override
@@ -24,4 +34,5 @@ public class ContinuousSrv extends DoubleArrayList {
     sb.append(")");
     return sb.toString();
   }
+
 }
