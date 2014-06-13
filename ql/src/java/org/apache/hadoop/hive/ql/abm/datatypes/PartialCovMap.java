@@ -232,7 +232,7 @@ public class PartialCovMap implements Serializable {
     StringBuilder builder = new StringBuilder();
 
     boolean first = true;
-    for (int i = 0; i < innerGbyCovs.length; i++) {
+    for (int i = 0; i < innerGbyCovs.length; ++i) {
       if (!first) {
         builder.append('\n');
       }
@@ -247,9 +247,9 @@ public class PartialCovMap implements Serializable {
     }
 
     first = true;
-    for (int i = 0; i < interGbyCovs.length; i++) {
+    for (int i = 0; i < interGbyCovs.length; ++i) {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
-      for (int j = i + 1; j < interGbyCovList.length; j++) {
+      for (int j = i + 1; j < interGbyCovList.length; ++j) {
         if (!first) {
           builder.append('\n');
         }
