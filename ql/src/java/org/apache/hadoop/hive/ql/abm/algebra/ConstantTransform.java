@@ -9,4 +9,8 @@ public class ConstantTransform extends Transform {
     val = v;
   }
 
+  public Object getVal() {
+    return val;
+  }
+
 }
