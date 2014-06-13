@@ -45,12 +45,6 @@ public class DoubleArray3D implements Serializable {
     }
   }
 
-  private void updateByRow(int row1, int row2) {
-    for (int i = 0; i < len; ++i) {
-      buf[row1 + i] += buf[row2 + i];
-    }
-  }
-
   public void updateByBase() {
     int numRows1 = buf.length / area - 1;
     int numRows2 = area / len - 1;
