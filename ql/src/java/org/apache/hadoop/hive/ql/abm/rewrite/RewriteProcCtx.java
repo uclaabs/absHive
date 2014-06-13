@@ -37,12 +37,15 @@ public class RewriteProcCtx implements NodeProcessorCtx {
       new HashMap<Operator<? extends OperatorDesc>, ArrayList<ExprNodeDesc>>();
 
   private final TraceProcCtx tctx;
-  private final ConditionAnnotation condAnno;
+  private ConditionAnnotation condAnno;
   private final boolean simpleQuery;
 
   public RewriteProcCtx(TraceProcCtx ctx) {
     tctx = ctx;
     condAnno = tctx.getCondition(tctx.getSinkOp());
+    if (condAnno == null) {
+      condAnno = new ConditionAnnotation();
+    }
     simpleQuery = condAnno.isSimpleQuery();
   }
 
