@@ -785,6 +785,8 @@ public class HiveConf extends Configuration {
 
     HIVE_ABM_MEASURE("hive.abm.measure", 2),
     HIVE_ABM_SIMULATION_SIZE("hive.abm.simulation.size", 100),
+
+    HIVE_ABM_COVARIANCE_NEGLIGIBLE("hive.abm.convariance.negligible", true)
     ;
 
     public final String varname;

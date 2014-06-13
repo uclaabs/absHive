@@ -771,12 +771,12 @@ public class RewriteProcFactory {
       }
 
       if (firstGby) {
+        // Add the COUNT(*) column to compute covariance
+        ctx.putCountColumnIndex(
+            gby,
+            addAggregator(convertUdafName("count", continuous),
+                new ArrayList<Integer>()));
         if (needLineage) {
-          // Add the COUNT(*) column to compute covariance
-          ctx.putCountColumnIndex(
-              gby,
-              addAggregator(convertUdafName("count", continuous),
-                  new ArrayList<Integer>()));
           // Add the column to compute lineage
           ctx.putLineageColumnIndex(gby,
               addAggregator(LIN_SUM, Arrays.asList(ctx.getTidColumnIndex(parent))));
@@ -786,10 +786,10 @@ public class RewriteProcFactory {
         assert (condIndexes == null || condIndexes.size() < 2);
         ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, condIndexes));
       } else {
+        // Add the COUNT(*) column to compute covariance
+        ctx.putCountColumnIndex(gby, forwardAggregator(aggregators.size(),
+            Arrays.asList(ctx.getCountColumnIndex(parent))));
         if (needLineage) {
-          // Add the COUNT(*) column to compute covariance
-          ctx.putCountColumnIndex(gby, forwardAggregator(aggregators.size(),
-              Arrays.asList(ctx.getCountColumnIndex(parent))));
           // Add the column to compute lineage
           ctx.putLineageColumnIndex(
               gby,
@@ -814,14 +814,13 @@ public class RewriteProcFactory {
         if (ctx.lastUsedBy(gby, gby)) {
           ctx.usedAt(gby, sel);
         }
-        appendSelect(sel, ctx, false, false
-        // , ExprNodeGenericFuncDesc.newInstance(getUdf("srv_greater_than"),
-        // new ArrayList<ExprNodeDesc>(Arrays.asList(
-        // Utils.generateColumnDescs(sel, ctx.getCountColumnIndex(sel)).get(0),
-        // new ExprNodeConstantDesc(new Double(0)),
-        // Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0)))
-        // )
-        );
+        appendSelect(sel, ctx, false, false,
+            ExprNodeGenericFuncDesc.newInstance(getUdf("srv_greater_than"),
+                new ArrayList<ExprNodeDesc>(Arrays.asList(
+                    Utils.generateColumnDescs(sel, ctx.getCountColumnIndex(sel)).get(0),
+                    new ExprNodeConstantDesc(new Double(0)),
+                    Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0)))
+                ));
       }
 
       return null;

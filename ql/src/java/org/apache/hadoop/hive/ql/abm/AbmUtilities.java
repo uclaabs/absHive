@@ -47,6 +47,8 @@ public final class AbmUtilities {
   private static int numSimulationSamples;
   private static final ArrayList<String> fieldNames = new ArrayList<String>();
 
+  private static boolean covarianceNegligible;
+
   private static String label;
 
   public static void setAbmMode(HiveConf conf) throws SemanticException {
@@ -99,6 +101,9 @@ public final class AbmUtilities {
 
       // Label -- only for debugging purpose
       label = conf.getVar(HiveConf.ConfVars.HIVE_ABM_LABEL);
+
+      // Covariance negligible
+      covarianceNegligible = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_ABM_COVARIANCE_NEGLIGIBLE);
     } else {
       inAbmMode = false;
       for (Map.Entry<HiveConf.ConfVars, Boolean> entry : prevSetting.entrySet()) {
@@ -241,6 +246,10 @@ public final class AbmUtilities {
 
   public static int getTotalTupleNumber() {
     return numTuples;
+  }
+
+  public static boolean isCovarianceNegligible() {
+    return covarianceNegligible;
   }
 
 }
