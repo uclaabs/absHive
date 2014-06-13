@@ -32,10 +32,6 @@ public class KeyReader implements Serializable {
 
   public KeyReader(ComparisonTransform[] predicates) {
     // TODO: initialize uniqGbys & gbys & cols & preds
-  }
-
-  public void init(Conditions condition, IntArrayList[] groups, int[] numAggrs) {
-    ranges = condition.getRanges();
     
     // get unique groupByOps
     IntOpenHashSet hSet = new IntOpenHashSet();
@@ -45,6 +41,11 @@ public class KeyReader implements Serializable {
     uniqueGbys = new IntArrayList(hSet);
     Collections.sort(uniqueGbys);
     
+  }
+
+  public void init(Conditions condition, IntArrayList[] groups, int[] numAggrs) {
+    ranges = condition.getRanges();
+        
     // create a temporal Int2IntLinkedOpenHashMap for every group
     Int2ObjectOpenHashMap<Int2IntLinkedOpenHashMap> groupMaps = new Int2ObjectOpenHashMap<Int2IntLinkedOpenHashMap>();
     for(int gby: uniqueGbys) {
@@ -98,66 +99,199 @@ public class KeyReader implements Serializable {
  
   }
 
+
   public int parse(double[] samples) {
     int left = 0;
     int right = ranges.get(0).size();
 
-    int cur = 0;  // range
-    int pos = 0;  // key
+    int[] tmpBound = {left, right};
+    int cur = 0;  
+    int pos = 0;  
+  
+    double valx, valy, value;
     
     while (true) {
-      switch (preds[cur]) {
+      valx = samples[idx.getInt(pos)];
+      RangeList currentRange = ranges.get(cur);
+      
+      switch (preds[cur%preds.length]) {
       case SINGLE_LESS_THAN:
-        // double val = samples[idx.getInt(pos)]
-        // left = findLargestValueSmallerThan(val, left, right)
-        // right findSmallestValueLargerThanOrEqualTo(val, left, right)
+        conditionLessThan(tmpBound, left, right, currentRange, valx);
         ++pos;
         break;
 
       case SINGLE_LESS_THAN_OR_EQUAL_TO:
+        conditionLessEqualThan(tmpBound, left, right, currentRange, valx);
         ++pos;
         break;
 
       case SINGLE_GREATER_THAN:
+        conditionGreaterThan(tmpBound, left, right, currentRange, valx);
         ++pos;
         break;
 
       case SINGLE_GREATER_THAN_OR_EQUAL_TO:
+        conditionGreaterEqualThan(tmpBound, left, right, currentRange, valx);
         ++pos;
         break;
 
       case DOUBLE_LESS_THAN:
+        valy = samples[idx.getInt(pos + 1)];
+        value = valx - valy;
+        conditionLessThan(tmpBound, left, right, currentRange, value);
         pos += 2;
         break;
 
       case DOUBLE_LESS_THAN_OR_EQUAL_TO:
+        valy = samples[idx.getInt(pos + 1)];
+        value = valx - valy;
+        conditionLessThan(tmpBound, left, right, currentRange, value);
         pos += 2;
         break;
 
       case DOUBLE_GREATER_THAN:
+        valy = samples[idx.getInt(pos + 1)];
+        value = valx - valy;
+        conditionGreaterThan(tmpBound, left, right, currentRange, value);
         pos += 2;
         break;
 
-      default: // case DOUBLE_GREATER_THAN_OR_EQUAL_TO:
-        // TODO
+      default: 
+        valy = samples[idx.getInt(pos + 1)];
+        value = valx - valy;
+        conditionGreaterEqualThan(tmpBound, left, right, currentRange, value);
         pos += 2;
       }
+      
+      left = tmpBound[0];
+      right = tmpBound[1];
 
       if (left == right) {
-        // TODO
         return left;
-      } else if (left > right) {
-        // TODO
-        return -1;
-      }
+      } 
 
       ++cur;
-      if (cur == preds.length) {
-        cur = 0;
+    }
+  }
+  
+  
+  private int lessThan(int left, int right, RangeList range, double value) {
+    while(right > left) {
+      int midPos = (left + right) / 2; 
+      if(range.getDouble(midPos) < value) {
+        right = midPos;
+      } else {
+        left = midPos + 1;
+      }
+    }
+    return left;
+  }
+  
+  private int lessEqualThan(int left, int right, RangeList range, double value) {
+    while(right > left) {
+      int midPos = (left + right) / 2; 
+      if(range.getDouble(midPos) <= value) {
+        right = midPos;
+      } else {
+        left = midPos + 1;
+      }
+    }
+    return left;
+  }
+  
+  
+  private int greaterEqualThan(int left, int right, RangeList range, double value) {
+    while(right > left) {
+      int midPos = (left + right) / 2; 
+      if(range.getDouble(midPos) >= value) {
+        right = midPos;
+      } else {
+        left = midPos + 1;
+      }
+    }
+    return left;
+  }
+  
+  private int greaterThan(int left, int right, RangeList range, double value) {
+    while(right > left) {
+      int midPos = (left + right) / 2; 
+      if(range.getDouble(midPos) > value) {
+        right = midPos;
+      } else {
+        left = midPos + 1;
+      }
+    }
+    return left;
+  }
+  
+  private void conditionGreaterEqualThan(int[] bound, int left, int right, RangeList range, double value) {  
+
+    int index = greaterThan(left,right,range,value);
+    if(range.getDouble(index) <= value) {
+      bound[1] = index;
+      bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+    } else {
+      if(index == left) {
+        bound[0] = range.size(); 
+        bound[1] = range.size();
+      } else {
+        bound[1] = index - 1;
+        bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
       }
     }
   }
-
+  
+  private void conditionGreaterThan(int[] bound, int left, int right, RangeList range, double value) {
+  
+    int index = greaterEqualThan(left,right,range,value);
+    if(range.getDouble(index) < value) {
+      bound[1] = index;
+      bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+    } else {
+      if(index == left) {
+        bound[0] = range.size(); 
+        bound[1] = range.size();
+      } else {
+        bound[1] = index - 1;
+        bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+      }
+    }
+  }
+  
+  private void conditionLessEqualThan(int[] bound, int left, int right, RangeList range, double value) {
+    
+    int index = lessThan(left,right,range,value);
+    if(range.getDouble(index) >= value) {
+      bound[1] = index;
+      bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+    } else {
+      if(index == left) {
+        bound[0] = range.size(); 
+        bound[1] = range.size();
+      } else {
+        bound[1] = index - 1;
+        bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+      }
+    }
+  }
+  
+  private void conditionLessThan(int[] bound, int left, int right, RangeList range, double value) {
+    
+    int index = lessEqualThan(left,right,range,value);
+    if(range.getDouble(index) > value) {
+      bound[1] = index;
+      bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+    } else {
+      if(index == left) {
+        bound[0] = range.size(); 
+        bound[1] = range.size();
+      } else {
+        bound[1] = index - 1;
+        bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+      }
+    }
+  }
+  
 }
 
 enum PredicateType {
