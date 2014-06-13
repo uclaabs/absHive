@@ -163,6 +163,10 @@ public class ConditionAnnotation {
   }
 
   public void setupMCSim(SelectOperator select) {
+    if (sorted == null) {
+      setupIds();
+    }
+
     // Rearrange the connections
     List<Operator<? extends OperatorDesc>> inputOps = new ArrayList<Operator<? extends OperatorDesc>>();
     boolean simpleQuery = inputs.isEmpty();
