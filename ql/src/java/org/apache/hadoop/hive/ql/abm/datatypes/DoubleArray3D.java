@@ -7,22 +7,34 @@ public class DoubleArray3D implements Serializable {
   private static final long serialVersionUID = 1L;
 
   private final double[] buf;
+  private final int area;
+  private final int len;
   private final int dim1;
   private final int dim2;
 
-  public DoubleArray3D(int num0, int num1, int num2) {
-    buf = new double[num0 * num1 * num2];
-    dim1 = num1 * num2;
-    dim2 = num2;
+  public DoubleArray3D(int numRows1, int numRows2, int unfoldLen, int dim1, int dim2) {
+    area = numRows2 * unfoldLen;
+    len = unfoldLen;
+    buf = new double[numRows1 * area];
+    this.dim1 = dim1;
+    this.dim2 = dim2;
   }
 
-  public void updateRow(int rowIndex1, int rowIndex2, int numCol1, int numCol2, double[] vals1,
-      double[] vals2) {
-    int offset = rowIndex1 * dim1 + rowIndex2 * dim2;
-    for (int i = 0; i < numCol1; ++i) {
-      for (int j = 0; j < numCol2; ++j) {
-        buf[offset] += vals1[i] * vals2[j];
-        offset += 1;
+  public void fill(int idx1, int idx2, double[][] dest, int row, int col) {
+    int pos = idx1 * area + idx2 * len;
+    for (int i = row, iend = row + dim1; i < iend; ++i) {
+      double[] cur = dest[i];
+      for (int j = col, jend = col + dim2; j < jend; ++j) {
+        cur[j] = buf[pos++];
+      }
+    }
+  }
+
+  public void updateRow(int idx1, int idx2, double[] vals1, double[] vals2) {
+    int pos = idx1 * area + idx2 * len;
+    for (int i = 0; i < vals1.length; ++i) {
+      for (int j = 0; j < vals2.length; ++j) {
+        buf[pos++] += vals1[i] * vals2[j];
       }
     }
   }
@@ -33,45 +45,40 @@ public class DoubleArray3D implements Serializable {
     }
   }
 
-  public void updateByRow(int row1, int row2) {
-    for (int i = 0; i < dim2; ++i) {
+  private void updateByRow(int row1, int row2) {
+    for (int i = 0; i < len; ++i) {
       buf[row1 + i] += buf[row2 + i];
     }
   }
 
   public void updateByBase() {
-    // first get numRow1 and numRow2, which is num0 and num1 in constructor
-    int numRow1 = buf.length / dim1 - 1;
-    int numRow2 = dim1 / dim2 - 1;
+    int numRows1 = buf.length / area - 1;
+    int numRows2 = area / len - 1;
+    int baseOffset = numRows1 * area;
 
-    // both are base
-    int baseOffset = numRow1 * dim1 + numRow2 * dim2;
-
-    int rowOffset = 0;
-    int baseOffset1 = numRow2 * dim2;
-    for (int i = 0; i < numRow1; i++) {
-      int baseOffset2 = numRow1 * dim1;
-      for (int j = 0; j < numRow2; j++) {
-        updateByRow(rowOffset, baseOffset);
-        updateByRow(rowOffset, baseOffset1);
-        updateByRow(rowOffset, baseOffset2);
-        baseOffset2 += dim2;
-        rowOffset += dim2;
+    // add the x base surface to the above
+    int pos = 0;
+    for (int i = 0; i < numRows1; ++i) {
+      for (int j = baseOffset; j < buf.length; ++j) {
+        buf[pos++] = buf[j];
       }
-      rowOffset += dim2;
-      baseOffset1 += dim1;
     }
 
-    rowOffset = numRow2 * dim2;
-    for (int i = 0; i < numRow1; i++) {
-      updateByRow(rowOffset, baseOffset);
-      rowOffset += dim1;
-    }
-
-    rowOffset = numRow1 * dim1;
-    for (int i = 0; i < numRow2; i++) {
-      updateByRow(rowOffset, baseOffset);
-      rowOffset += dim2;
+    // add the y base to the left
+    ++numRows1;
+    int from, to = 0;
+    pos = 0;
+    for (int i = 0; i < numRows1; ++i) {
+      // move to the base in this row
+      to += area;
+      from = to - len;
+      for (int j = 0; j < numRows2; ++j) {
+        for (int k = from; k < to; ++k) {
+          buf[pos++] = buf[k];
+        }
+      }
+      // skip the base in this row
+      pos += len;
     }
   }
 
@@ -80,24 +87,25 @@ public class DoubleArray3D implements Serializable {
     StringBuilder builder = new StringBuilder();
 
     builder.append('{');
-    int numRow1 = buf.length / dim1;
-    int numRow2 = dim1 / dim2;
-    for(int i = 0; i < numRow1; i ++) {
+    int numRow1 = buf.length / area;
+    int numRow2 = area / len;
+    int pos = 0;
+    for (int i = 0; i < numRow1; ++i) {
       builder.append('[');
       boolean firstRow = true;
-      for(int j = 0; j < numRow2; j ++) {
+      for (int j = 0; j < numRow2; ++j) {
         if (!firstRow) {
           builder.append("; ");
         }
         firstRow = false;
-        int offset = i * dim1 + j * dim2;
-        boolean first = true;
-        for(int c = 0; c < dim2; c ++) {
-          if (!first) {
+
+        boolean firstCol = true;
+        for (int k = 0; k < len; k++) {
+          if (!firstCol) {
             builder.append(", ");
           }
-          first = false;
-          builder.append(buf[offset + c]);
+          firstCol = false;
+          builder.append(buf[pos++]);
         }
       }
       builder.append(']');

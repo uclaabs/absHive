@@ -7,27 +7,27 @@ public class DoubleArray2D implements Serializable {
   private static final long serialVersionUID = 1L;
 
   private final double[] buf;
-  private final int rowLen;
   private final int len;
+  private final int dim;
 
-  public DoubleArray2D(int numRows, int unfoldLen, int len) {
+  public DoubleArray2D(int numRows, int unfoldLen, int dim) {
     buf = new double[numRows * unfoldLen];
-    rowLen = unfoldLen;
-    this.len = len;
+    len = unfoldLen;
+    this.dim = dim;
   }
 
-  public void fill(int rowIndex, double[][] dest, int row, int col) {
-    int offset = rowIndex * rowLen;
-    for (int i = 0; i < len; ++i) {
+  public void fill(int idx, double[][] dest, int row, int col) {
+    int pos = idx * len;
+    for (int i = 0; i < dim; ++i) {
       double[] cur = dest[i + row];
-      for (int j = i + 1 + col, end = len + col; j < end; ++j) {
-        cur[j] = buf[offset++];
+      for (int j = i + 1 + col, end = dim + col; j < end; ++j) {
+        cur[j] = buf[pos++];
       }
     }
   }
 
-  public void updateRow(int rowIndex, double[] vals) {
-    int offset = rowIndex * rowLen;
+  public void updateRow(int idx, double[] vals) {
+    int offset = idx * len;
     for (int i = 0; i < vals.length; ++i) {
       for (int j = i + 1; j < vals.length; ++j) {
         buf[offset++] += vals[i] * vals[j];
@@ -42,8 +42,8 @@ public class DoubleArray2D implements Serializable {
   }
 
   public void updateByBase() {
-    int rows2Update = buf.length / rowLen - 1;
-    int baseOffset = rows2Update * rowLen;
+    int rows2Update = buf.length / len - 1;
+    int baseOffset = rows2Update * len;
 
     int pos = 0;
     for (int i = 0; i < rows2Update; ++i) {
@@ -58,7 +58,7 @@ public class DoubleArray2D implements Serializable {
     StringBuilder builder = new StringBuilder();
 
     builder.append('[');
-    int numRows = buf.length / rowLen;
+    int numRows = buf.length / len;
     int pos = 0;
     boolean firstRow = true;
     for (int i = 0; i < numRows; ++i) {
@@ -67,12 +67,12 @@ public class DoubleArray2D implements Serializable {
       }
       firstRow = false;
 
-      boolean first = true;
-      for (int j = 0; j < rowLen; ++j) {
-        if (!first) {
+      boolean firstCol = true;
+      for (int j = 0; j < len; ++j) {
+        if (!firstCol) {
           builder.append(", ");
         }
-        first = false;
+        firstCol = false;
         builder.append(buf[pos++]);
       }
     }

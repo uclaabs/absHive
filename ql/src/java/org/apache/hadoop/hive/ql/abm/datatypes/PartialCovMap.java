@@ -66,10 +66,14 @@ public class PartialCovMap implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final int numCovs;
+    private final int lSize;
+    private final int rSize;
 
     public InterCovMap(int lSz, int rSz) {
       super();
       numCovs = lSz * rSz;
+      lSize = lSz;
+      rSize = rSz;
     }
 
     public void update(int tid, int groupId1, int groupId2, EWAHCompressedBitmap[] lineage1,
@@ -79,11 +83,9 @@ public class PartialCovMap implements Serializable {
 
       int numRow1 = lineage1.length;
       int numRow2 = lineage2.length;
-      int numCol1 = vals1.length;
-      int numCol2 = vals2.length;
 
       if (buf == null) {
-        buf = new DoubleArray3D(numRow1, numRow2, numCovs);
+        buf = new DoubleArray3D(numRow1, numRow2, numCovs, lSize, rSize);
         put(id, buf);
       }
 
@@ -102,7 +104,7 @@ public class PartialCovMap implements Serializable {
           if (!lineage1[i].get(tid)) {
             for (int j = 0; j < numRow2; ++j) {
               if (!lineage2[j].get(tid)) {
-                buf.updateRow(i, j, numCol1, numCol2, vals1, vals2);
+                buf.updateRow(i, j, vals1, vals2);
               }
             }
           }
@@ -111,18 +113,18 @@ public class PartialCovMap implements Serializable {
       } else if (flag1 && !flag2) {
         for (int i = 0; i < numRow1; ++i) {
           if (!lineage1[i].get(tid)) {
-            buf.updateRow(i, numRow2, numCol1, numCol2, vals1, vals2);
+            buf.updateRow(i, numRow2, vals1, vals2);
           }
         }
       } else if (!flag1 && flag2) {
         for (int i = 0; i < numRow2; ++i) {
           if (!lineage2[i].get(tid)) {
-            buf.updateRow(numRow1, i, numCol1, numCol2, vals1, vals2);
+            buf.updateRow(numRow1, i, vals1, vals2);
           }
         }
       } else {
         // both of them are base
-        buf.updateRow(numRow1, numRow2, numCol1, numCol2, vals1, vals2);
+        buf.updateRow(numRow1, numRow2, vals1, vals2);
       }
     }
   }
