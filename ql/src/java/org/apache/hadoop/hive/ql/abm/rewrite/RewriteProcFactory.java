@@ -244,12 +244,12 @@ public class RewriteProcFactory {
     }
 
     // Add the condition column
+    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>();
     if (forwardCondition) {
-      List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>();
       conds.addAll(Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
-      conds.addAll(Arrays.asList(additionalConds));
-      selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
     }
+    conds.addAll(Arrays.asList(additionalConds));
+    selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
 
     // Add the group-by-id column for this group-by
     if (afterGby) {
