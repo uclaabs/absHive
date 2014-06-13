@@ -28,16 +28,15 @@ public class DoubleArray2D implements Serializable {
 
   public void updateRow(int rowIndex, double[] vals) {
     int offset = rowIndex * rowLen;
-    for (int i = 0; i < vals.length; i++) {
-      for (int j = i + 1; j < vals.length; j++) {
-        buf[offset] += vals[i] * vals[j];
-        offset += 1;
+    for (int i = 0; i < vals.length; ++i) {
+      for (int j = i + 1; j < vals.length; ++j) {
+        buf[offset++] += vals[i] * vals[j];
       }
     }
   }
 
   public void merge(DoubleArray2D input) {
-    for (int i = 0; i < buf.length; i++) {
+    for (int i = 0; i < buf.length; ++i) {
       buf[i] += input.buf[i];
     }
   }
@@ -46,12 +45,11 @@ public class DoubleArray2D implements Serializable {
     int rows2Update = buf.length / rowLen - 1;
     int baseOffset = rows2Update * rowLen;
 
-    int rowOffset = 0;
-    for (int i = 0; i < rows2Update; i++) {
-      for (int j = 0; j < rowLen; j++) {
-        buf[rowOffset + j] += buf[baseOffset + j];
+    int pos = 0;
+    for (int i = 0; i < rows2Update; ++i) {
+      for (int j = baseOffset; j < buf.length; ++j) {
+        buf[pos++] += buf[j];
       }
-      rowOffset += rowLen;
     }
   }
 
@@ -61,20 +59,21 @@ public class DoubleArray2D implements Serializable {
 
     builder.append('[');
     int numRows = buf.length / rowLen;
+    int pos = 0;
     boolean firstRow = true;
     for (int i = 0; i < numRows; ++i) {
       if (!firstRow) {
         builder.append("; ");
       }
       firstRow = false;
-      int rowOffset = rowLen * i;
+
       boolean first = true;
       for (int j = 0; j < rowLen; ++j) {
         if (!first) {
           builder.append(", ");
         }
         first = false;
-        builder.append(buf[rowOffset + j]);
+        builder.append(buf[pos++]);
       }
     }
     builder.append(']');
