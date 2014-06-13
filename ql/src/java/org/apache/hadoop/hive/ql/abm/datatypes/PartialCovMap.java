@@ -23,10 +23,12 @@ public class PartialCovMap implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private final int numCols;
     private final int numCovs;
 
     public InnerCovMap(int colSize) {
       super();
+      numCols = colSize;
       numCovs = colSize * (colSize - 1) / 2;
     }
 
@@ -34,28 +36,27 @@ public class PartialCovMap implements Serializable {
       DoubleArray2D buf = get(groupId);
 
       int numRows = lineage.length; // number of conditions
-      int numCols = vals.length; // number of columns
 
-      if(buf == null) {
-        buf = new DoubleArray2D(numRows, numCovs);
+      if (buf == null) {
+        buf = new DoubleArray2D(numRows, numCovs, numCols);
         put(groupId, buf);
       }
 
       --numRows;
 
       EWAHCompressedBitmap baseLineage = lineage[numRows];
-      if(baseLineage.get(tid)) {
+      if (baseLineage.get(tid)) {
         // check L(1) .. L(n-1)
-        for(int i = 0; i < numRows; ++i) {
-          if(!lineage[i].get(tid)) {
+        for (int i = 0; i < numRows; ++i) {
+          if (!lineage[i].get(tid)) {
             // update Sum(XY) in this condition
-            buf.updateRow(i, numCols, vals);
+            buf.updateRow(i, vals);
           }
         }
       } else {
         // it is for base
         // add it to the last
-        buf.updateRow(numRows, numCols, vals);
+        buf.updateRow(numRows, vals);
       }
     }
   }
@@ -95,31 +96,31 @@ public class PartialCovMap implements Serializable {
       boolean flag1 = baseLineage1.get(tid);
       boolean flag2 = baseLineage2.get(tid);
 
-      if(flag1 & flag2) {
+      if (flag1 & flag2) {
         // both of them contain this tuple
-        for(int i = 0; i < numRow1; ++i) {
-          if(!lineage1[i].get(tid)) {
-            for(int j = 0; j < numRow2; ++j) {
-              if(!lineage2[j].get(tid)) {
+        for (int i = 0; i < numRow1; ++i) {
+          if (!lineage1[i].get(tid)) {
+            for (int j = 0; j < numRow2; ++j) {
+              if (!lineage2[j].get(tid)) {
                 buf.updateRow(i, j, numCol1, numCol2, vals1, vals2);
               }
             }
           }
         }
         // end of if
-      } else if(flag1 && !flag2) {
-        for(int i = 0; i < numRow1; ++i) {
-          if(!lineage1[i].get(tid)) {
+      } else if (flag1 && !flag2) {
+        for (int i = 0; i < numRow1; ++i) {
+          if (!lineage1[i].get(tid)) {
             buf.updateRow(i, numRow2, numCol1, numCol2, vals1, vals2);
           }
         }
-      } else if(!flag1 && flag2) {
-        for(int i = 0; i < numRow2; ++i) {
-          if(!lineage2[i].get(tid)) {
+      } else if (!flag1 && flag2) {
+        for (int i = 0; i < numRow2; ++i) {
+          if (!lineage2[i].get(tid)) {
             buf.updateRow(numRow1, i, numCol1, numCol2, vals1, vals2);
           }
         }
-      } else  {
+      } else {
         // both of them are base
         buf.updateRow(numRow1, numRow2, numCol1, numCol2, vals1, vals2);
       }
@@ -145,30 +146,32 @@ public class PartialCovMap implements Serializable {
       ArrayList<EWAHCompressedBitmap[]> lineages, ArrayList<double[]> values) {
     int length = gbys.size();
     // then update every InnerCovMap
-    for(int i = 0; i < length; ++i) {
+    for (int i = 0; i < length; ++i) {
 
       int groupOpId1 = gbys.getInt(i);
       InnerCovMap innerCovMap = innerGbyCovs[groupOpId1];
       innerCovMap.update(tid, groupIds.getInt(i), lineages.get(i), values.get(i));
 
-      for(int j = i + 1; j < length; ++j) {
+      for (int j = i + 1; j < length; ++j) {
         int groupOpId2 = gbys.getInt(j);
         InterCovMap interCovMap = interGbyCovs[groupOpId1][groupOpId2];
-        interCovMap.update(tid, groupIds.getInt(i), groupIds.getInt(j), lineages.get(i), lineages.get(j), values.get(i), values.get(j));
+        interCovMap.update(tid, groupIds.getInt(i), groupIds.getInt(j), lineages.get(i),
+            lineages.get(j), values.get(i), values.get(j));
       }
     }
   }
 
   public void merge(PartialCovMap partialMap) {
     // update innerGbyCovs
-    for(int i = 0; i < innerGbyCovs.length; ++i) {
+    for (int i = 0; i < innerGbyCovs.length; ++i) {
       InnerCovMap currentMap = innerGbyCovs[i];
-      for(Int2ReferenceMap.Entry<DoubleArray2D> entry: partialMap.innerGbyCovs[i].int2ReferenceEntrySet()) {
+      for (Int2ReferenceMap.Entry<DoubleArray2D> entry : partialMap.innerGbyCovs[i]
+          .int2ReferenceEntrySet()) {
         int groupOpId = entry.getIntKey();
         DoubleArray2D inputArray = entry.getValue();
         DoubleArray2D currentArray = currentMap.get(groupOpId);
 
-        if(currentArray == null) {
+        if (currentArray == null) {
           currentMap.put(groupOpId, inputArray);
         } else {
           currentArray.merge(inputArray);
@@ -177,17 +180,18 @@ public class PartialCovMap implements Serializable {
     }
 
     // update interGbyCovs
-    for(int i = 0; i < interGbyCovs.length; ++i) {
+    for (int i = 0; i < interGbyCovs.length; ++i) {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
-      for(int j = i + 1; j < interGbyCovList.length; ++j) {
+      for (int j = i + 1; j < interGbyCovList.length; ++j) {
         InterCovMap currentMap = interGbyCovs[i][j];
 
-        for(Long2ReferenceMap.Entry<DoubleArray3D> entry: partialMap.interGbyCovs[i][j].long2ReferenceEntrySet()) {
+        for (Long2ReferenceMap.Entry<DoubleArray3D> entry : partialMap.interGbyCovs[i][j]
+            .long2ReferenceEntrySet()) {
           long id = entry.getLongKey();
           DoubleArray3D inputArray = entry.getValue();
           DoubleArray3D currentArray = currentMap.get(id);
 
-          if(currentArray == null) {
+          if (currentArray == null) {
             currentMap.put(id, inputArray);
           } else {
             currentArray.merge(inputArray);
@@ -198,22 +202,22 @@ public class PartialCovMap implements Serializable {
   }
 
   public void terminate() {
-    for(int i = 0; i < innerGbyCovs.length; ++i) {
+    for (int i = 0; i < innerGbyCovs.length; ++i) {
       InnerCovMap currentMap = innerGbyCovs[i];
-      for(DoubleArray2D currentArray: currentMap.values()) {
+      for (DoubleArray2D currentArray : currentMap.values()) {
         currentArray.updateByBase();
       }
     }
 
-    for(int i = 0; i < interGbyCovs.length; ++i) {
+    for (int i = 0; i < interGbyCovs.length; ++i) {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
 
-      for(int j = i + 1; j < interGbyCovList.length; ++j) {
+      for (int j = i + 1; j < interGbyCovList.length; ++j) {
         InterCovMap currentMap = interGbyCovs[i][j];
-        for(DoubleArray3D inputArray: currentMap.values()) {
+        for (DoubleArray3D inputArray : currentMap.values()) {
           inputArray.updateByBase();
         }
-       }
+      }
     }
   }
 
@@ -222,7 +226,7 @@ public class PartialCovMap implements Serializable {
     StringBuilder builder = new StringBuilder();
 
     boolean first = true;
-    for(int i = 0; i < innerGbyCovs.length; i ++) {
+    for (int i = 0; i < innerGbyCovs.length; i++) {
       if (!first) {
         builder.append('\n');
       }
@@ -230,16 +234,16 @@ public class PartialCovMap implements Serializable {
 
       InnerCovMap currentMap = innerGbyCovs[i];
       builder.append("<" + i + ">: ");
-      for(Map.Entry<Integer, DoubleArray2D> entry: currentMap.entrySet()) {
+      for (Map.Entry<Integer, DoubleArray2D> entry : currentMap.entrySet()) {
         DoubleArray2D currentArray = entry.getValue();
         builder.append("(" + entry.getKey() + ") = " + currentArray.toString());
       }
     }
 
     first = true;
-    for(int i = 0; i < interGbyCovs.length; i ++) {
+    for (int i = 0; i < interGbyCovs.length; i++) {
       InterCovMap[] interGbyCovList = interGbyCovs[i];
-      for(int j = i + 1; j < interGbyCovList.length; j ++) {
+      for (int j = i + 1; j < interGbyCovList.length; j++) {
         if (!first) {
           builder.append('\n');
         }
@@ -247,14 +251,13 @@ public class PartialCovMap implements Serializable {
 
         InterCovMap currentMap = interGbyCovs[i][j];
         builder.append("<" + i + ", " + j + ">: ");
-        for(Map.Entry<Long, DoubleArray3D> entry: currentMap.entrySet()) {
+        for (Map.Entry<Long, DoubleArray3D> entry : currentMap.entrySet()) {
           DoubleArray3D currentArray = entry.getValue();
           builder.append("(" + entry.getKey() + ") = " + currentArray.toString());
         }
-       }
+      }
     }
 
     return builder.toString();
   }
 }
-
