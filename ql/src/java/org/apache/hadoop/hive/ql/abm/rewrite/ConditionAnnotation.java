@@ -87,24 +87,24 @@ public class ConditionAnnotation {
   // This is because the dependency graph is a connected tree for complex queries, and thus
   // every continuous gby is connected with another.
   public boolean isSimpleQuery() {
-//    if (!AbmUtilities.isCovarianceNegligible()) {
-//      return false;
-//    }
-//
-//    for (ComparisonTransform[] val : dependencies.values()) {
-//      if (val.length != 0) {
-//        return false;
-//      }
-//    }
-//
-//    HashSet<AggregateInfo> hash = new HashSet<AggregateInfo>();
-//    for (ComparisonTransform ct : transforms) {
-//      hash.addAll(ct.getAggregatesInvolved());
-//    }
-//    if (hash.size() <= 2) {
-//      // It must contain COUNT(*) > 0
-//      return true;
-//    }
+    if (!AbmUtilities.isCovarianceNegligible()) {
+      return false;
+    }
+
+    for (ComparisonTransform[] val : dependencies.values()) {
+      if (val.length != 0) {
+        return false;
+      }
+    }
+
+    HashSet<AggregateInfo> hash = new HashSet<AggregateInfo>();
+    for (ComparisonTransform ct : transforms) {
+      hash.addAll(ct.getAggregatesInvolved());
+    }
+    if (hash.size() <= 2) {
+      // It must contain COUNT(*) > 0
+      return true;
+    }
 
     return false;
   }
