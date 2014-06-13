@@ -2,26 +2,22 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 
 import java.io.Serializable;
 
-public abstract class CovOracle implements Serializable {
+public interface CovOracle extends Serializable {
 
-  private static final long serialVersionUID = 1L;
+  public int getRowSize();
 
-  protected int rowSize;
-  protected int colSize;
+  public int getColSize();
 
-  public CovOracle(int rows, int cols) {
-    rowSize = rows;
-    colSize = cols;
-  }
+}
 
-  public abstract void fillCovMatrix(double[][] dest, int row, int col);
+interface InnerCovOracle extends CovOracle {
 
-  public int getRowSize() {
-    return rowSize;
-  }
+  public boolean fillCovMatrix(int groupId, int condId, double[][] dest, int row, int col);
 
-  public int getColSize() {
-    return colSize;
-  }
+}
+
+interface InterCovOracle extends CovOracle {
+
+  public void fillCovMatrix(int leftId, int rightId, double[][] dest, int row, int col);
 
 }
