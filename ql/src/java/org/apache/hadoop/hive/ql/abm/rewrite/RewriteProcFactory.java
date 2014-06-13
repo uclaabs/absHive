@@ -776,8 +776,8 @@ public class RewriteProcFactory {
             gby,
             addAggregator(convertUdafName("count", continuous),
                 new ArrayList<Integer>()));
+        // Add the column to compute lineage
         if (needLineage) {
-          // Add the column to compute lineage
           ctx.putLineageColumnIndex(gby,
               addAggregator(LIN_SUM, Arrays.asList(ctx.getTidColumnIndex(parent))));
         }
@@ -789,8 +789,8 @@ public class RewriteProcFactory {
         // Add the COUNT(*) column to compute covariance
         ctx.putCountColumnIndex(gby, forwardAggregator(aggregators.size(),
             Arrays.asList(ctx.getCountColumnIndex(parent))));
+        // Add the column to compute lineage
         if (needLineage) {
-          // Add the column to compute lineage
           ctx.putLineageColumnIndex(
               gby,
               forwardAggregator(aggregators.size(),
