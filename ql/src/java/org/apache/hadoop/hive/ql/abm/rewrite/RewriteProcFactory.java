@@ -925,7 +925,7 @@ public class RewriteProcFactory {
     private void modifyAggregator(int index) throws SemanticException {
       // (1)
       AggregationDesc aggregator = aggregators.get(index);
-      ArrayList<ExprNodeDesc> parameters = updateParameters(aggregator.getParameters());
+      ArrayList<ExprNodeDesc> parameters = aggregator.getParameters();
       boolean distinct = aggregator.getDistinct();
       String udafName = null;
       GenericUDAFEvaluator udafEvaluator = null;
@@ -935,6 +935,7 @@ public class RewriteProcFactory {
             parameters, null, distinct, false);
         ctx.putEvaluator(anchor, index, udafEvaluator, udafName);
       } else {
+        updateParameters(parameters);
         UdafPair udafPair = ctx.getEvaluator(anchor, index);
         udafName = udafPair.udafName;
         udafEvaluator = udafPair.udafEvaluator;
@@ -951,8 +952,9 @@ public class RewriteProcFactory {
       signature.get(numKeys + index).setType(udaf.returnType);
     }
 
-    private ArrayList<ExprNodeDesc> updateParameters(ArrayList<ExprNodeDesc> parameters) {
+    private void updateParameters(ArrayList<ExprNodeDesc> parameters) {
       for (ExprNodeDesc param : parameters) {
+        // It must be ExprNodedColumnDesc
         ExprNodeColumnDesc par = (ExprNodeColumnDesc) param;
         for (ColumnInfo ci : parent.getSchema().getSignature()) {
           if (ci.getInternalName().equals(par.getColumn())) {
@@ -960,7 +962,6 @@ public class RewriteProcFactory {
           }
         }
       }
-      return parameters;
     }
 
     private String convertUdafName(String udaf, boolean continuous) {
@@ -981,7 +982,7 @@ public class RewriteProcFactory {
 
       GenericUDAFEvaluator udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
           parameters, null, false, false);
-      ctx.putEvaluator(anchor, signature.size(), udafEvaluator, udafName);
+      ctx.putEvaluator(anchor, aggregators.size(), udafEvaluator, udafName);
 
       assert (udafEvaluator != null);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
