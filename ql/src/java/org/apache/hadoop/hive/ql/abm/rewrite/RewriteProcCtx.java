@@ -56,7 +56,7 @@ public class RewriteProcCtx implements NodeProcessorCtx {
   }
 
   public boolean withTid(Operator<? extends OperatorDesc> op) {
-    return isAnnotatedWithSrv(op) && !simpleQuery;
+    return tctx.isAnnotatedWithSrv(op) && !simpleQuery;
   }
 
   public Integer getTidColumnIndex(Operator<? extends OperatorDesc> op) {
@@ -149,8 +149,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return ret;
   }
 
-  public void setAsContinuous(GroupByOperator gby) {
-    condAnno.setAsContinuous(gby);
+  public boolean isContinuous(GroupByOperator gby) {
+    return condAnno.isContinuous(gby);
   }
 
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
@@ -200,10 +200,6 @@ public class RewriteProcCtx implements NodeProcessorCtx {
 
   public boolean isUncertain(Operator<? extends OperatorDesc> op) {
     return tctx.isUncertain(op);
-  }
-
-  public boolean isAnnotatedWithSrv(Operator<? extends OperatorDesc> op) {
-    return tctx.isAnnotatedWithSrv(op);
   }
 
   public ParseContext getParseContext() {

@@ -40,9 +40,12 @@ public class ConditionAnnotation {
 
   // <-- Used by TraceProcCtx
 
-  public void groupByAt(GroupByOperator gby) {
+  public void groupByAt(GroupByOperator gby, boolean isContinuous) {
     dependencies.put(gby, transforms.toArray(new ComparisonTransform[transforms.size()]));
     transforms.clear();
+    if (isContinuous) {
+      continuous.add(gby);
+    }
   }
 
   public void conditionOn(ComparisonTransform trans) {
@@ -72,6 +75,7 @@ public class ConditionAnnotation {
     aggregates.putAll(other.aggregates);
     transforms.addAll(other.transforms);
     dependencies.putAll(other.dependencies);
+    continuous.addAll(other.continuous);
   }
 
   // -->
@@ -83,30 +87,30 @@ public class ConditionAnnotation {
   // This is because the dependency graph is a connected tree for complex queries, and thus
   // every continuous gby is connected with another.
   public boolean isSimpleQuery() {
-    if (!AbmUtilities.isCovarianceNegligible()) {
-      return false;
-    }
-
-    for (ComparisonTransform[] val : dependencies.values()) {
-      if (val.length != 0) {
-        return false;
-      }
-    }
-
-    HashSet<AggregateInfo> hash = new HashSet<AggregateInfo>();
-    for (ComparisonTransform ct : transforms) {
-      hash.addAll(ct.getAggregatesInvolved());
-    }
-    if (hash.size() <= 2) {
-      // It must contain COUNT(*) > 0
-      return true;
-    }
+//    if (!AbmUtilities.isCovarianceNegligible()) {
+//      return false;
+//    }
+//
+//    for (ComparisonTransform[] val : dependencies.values()) {
+//      if (val.length != 0) {
+//        return false;
+//      }
+//    }
+//
+//    HashSet<AggregateInfo> hash = new HashSet<AggregateInfo>();
+//    for (ComparisonTransform ct : transforms) {
+//      hash.addAll(ct.getAggregatesInvolved());
+//    }
+//    if (hash.size() <= 2) {
+//      // It must contain COUNT(*) > 0
+//      return true;
+//    }
 
     return false;
   }
 
-  public void setAsContinuous(GroupByOperator gby) {
-    continuous.add(gby);
+  public boolean isContinuous(GroupByOperator gby) {
+    return continuous.contains(gby);
   }
 
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {

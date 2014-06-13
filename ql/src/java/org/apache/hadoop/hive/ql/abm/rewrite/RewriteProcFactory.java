@@ -845,14 +845,11 @@ public class RewriteProcFactory {
       evaluatorMode = SemanticAnalyzer.groupByDescModeToUDAFMode(desc.getMode(), false);
 
       if (firstGby) {
-        continuous = ctx.isAnnotatedWithSrv(parent);
         anchor = (GroupByOperator) gby.getChildOperators().get(0).getChildOperators().get(0);
-        if (continuous) {
-          ctx.setAsContinuous(anchor);
-        }
       } else {
         anchor = gby;
       }
+      continuous = ctx.isContinuous(anchor);
     }
 
     // Insert Select as input and cache it

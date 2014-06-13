@@ -283,6 +283,11 @@ public class TraceProcFactory {
       boolean firstGby = !(parent instanceof ReduceSinkOperator);
 
       if (firstGby) {
+        if (ctx.isAnnotatedWithSrv(parent)) {
+          GroupByOperator anchor = (GroupByOperator) gby.getChildOperators().get(0)
+              .getChildOperators().get(0);
+          ctx.setContinuous(anchor);
+        }
         return null;
       }
 

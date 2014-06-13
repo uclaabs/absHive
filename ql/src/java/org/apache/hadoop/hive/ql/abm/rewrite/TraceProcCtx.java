@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
@@ -25,6 +26,8 @@ public class TraceProcCtx implements NodeProcessorCtx {
 
   private final HashMap<GroupByOperator, Operator<? extends OperatorDesc>> lastUsedBy =
       new HashMap<GroupByOperator, Operator<? extends OperatorDesc>>();
+
+  private final HashSet<GroupByOperator> continuous = new HashSet<GroupByOperator>();
 
   private final LineageCtx lctx;
 
@@ -73,9 +76,13 @@ public class TraceProcCtx implements NodeProcessorCtx {
     usedAt(ai.getGroupByOperator(), op);
   }
 
+  public void setContinuous(GroupByOperator gby) {
+    continuous.add(gby);
+  }
+
   public void groupByAt(GroupByOperator gby) {
     ConditionAnnotation anno = getOrCreateCondAnno(gby);
-    anno.groupByAt(gby);
+    anno.groupByAt(gby, continuous.contains(gby));
   }
 
   private ConditionAnnotation getOrCreateCondAnno(Operator<? extends OperatorDesc> op) {
