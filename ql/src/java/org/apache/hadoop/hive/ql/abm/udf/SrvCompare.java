@@ -18,7 +18,7 @@ public abstract class SrvCompare extends CompareUDF {
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
     if (arguments.length != 3) {
       throw new UDFArgumentException(
-          "This function takes three arguments: Srv_ID, Srv, Constant Value");
+          "This function takes three arguments: Srv, Constant Value, Srv_ID");
     }
 
     super.initialize(arguments);

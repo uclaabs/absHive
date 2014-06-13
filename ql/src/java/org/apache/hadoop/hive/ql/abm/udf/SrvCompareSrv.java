@@ -14,7 +14,7 @@ public abstract class SrvCompareSrv extends CompareUDF {
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
     if (arguments.length != 4) {
-      throw new UDFArgumentException("This function takes four arguments: Srv[], Srv_ID[]");
+      throw new UDFArgumentException("This function takes four arguments: Srv, Srv, Srv_ID, Srv_ID");
     }
 
     super.initialize(arguments);
