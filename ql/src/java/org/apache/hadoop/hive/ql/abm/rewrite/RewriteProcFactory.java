@@ -244,12 +244,12 @@ public class RewriteProcFactory {
     }
 
     // Add the condition column
-    List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>();
     if (forwardCondition) {
+      List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>();
       conds.addAll(Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
+      conds.addAll(Arrays.asList(additionalConds));
+      selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
     }
-    conds.addAll(Arrays.asList(additionalConds));
-    selFactory.addCondIndex(selFactory.addColumn(joinConditions(conds)));
 
     // Add the group-by-id column for this group-by
     if (afterGby) {
@@ -280,10 +280,6 @@ public class RewriteProcFactory {
       parents.set(parents.indexOf(op), sel);
     }
     op.setChildOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
-
-    if (afterGby) {
-      ctx.putGroupByOutput((GroupByOperator) op, sel);
-    }
 
     return sel;
   }
@@ -748,6 +744,7 @@ public class RewriteProcFactory {
     private boolean firstGby = false;
     private GenericUDAFEvaluator.Mode evaluatorMode = null;
 
+    private boolean continuous = false;
     private GroupByOperator anchor = null;
 
     @Override
@@ -759,44 +756,51 @@ public class RewriteProcFactory {
         return null;
       }
 
-      boolean continuous = firstGby ? ctx.withTid(parent)
+      boolean needLineage = firstGby ? ctx.withTid(parent)
           : (ctx.getLineageColumnIndex(parent) != null);
 
       // Insert Select as input and cache it
-      if (firstGby && continuous) {
+      if (firstGby && needLineage) {
         insertSelect();
         initialize(nd, procCtx);
       }
 
       // Rewrite AggregationDesc
       for (int i = 0; i < aggregators.size(); ++i) {
-        modifyAggregator(i, continuous);
+        modifyAggregator(i);
       }
 
       if (firstGby) {
-        // Add the COUNT(*) column
-        ctx.putCountColumnIndex(gby,
-            addAggregator(convertUdafName("count", continuous), new ArrayList<Integer>()));
-        // Add the column to compute lineage
-        if (continuous) {
+        if (needLineage) {
+          // Add the COUNT(*) column to compute covariance
+          ctx.putCountColumnIndex(
+              gby,
+              addAggregator(convertUdafName("count", continuous),
+                  new ArrayList<Integer>()));
+          // Add the column to compute lineage
           ctx.putLineageColumnIndex(gby,
               addAggregator(LIN_SUM, Arrays.asList(ctx.getTidColumnIndex(parent))));
         }
+        // Add the column to compute condition
+        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+        assert (condIndexes == null || condIndexes.size() < 2);
+        ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, condIndexes));
       } else {
-        // Add the COUNT(*) column
-        ctx.putCountColumnIndex(gby, addAggregator(convertUdafName("count", continuous),
-            Arrays.asList(ctx.getCountColumnIndex(parent))));
-        // Add the column to compute lineage
-        if (continuous) {
-          ctx.putLineageColumnIndex(gby,
-              addAggregator(LIN_SUM, Arrays.asList(ctx.getLineageColumnIndex(parent))));
+        if (needLineage) {
+          // Add the COUNT(*) column to compute covariance
+          ctx.putCountColumnIndex(gby, forwardAggregator(aggregators.size(),
+              Arrays.asList(ctx.getCountColumnIndex(parent))));
+          // Add the column to compute lineage
+          ctx.putLineageColumnIndex(
+              gby,
+              forwardAggregator(aggregators.size(),
+                  Arrays.asList(ctx.getLineageColumnIndex(parent))));
         }
+        // Add the column to compute condition
+        List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
+        assert (condIndexes == null || condIndexes.size() < 2);
+        ctx.addCondColumnIndex(gby, forwardAggregator(aggregators.size(), condIndexes));
       }
-
-      // Add the column to compute condition
-      List<Integer> condIndexes = ctx.getCondColumnIndexes(parent);
-      assert (condIndexes == null || condIndexes.size() < 2);
-      ctx.addCondColumnIndex(gby, addAggregator(COND_MERGE, condIndexes));
 
       desc.setUncertain(true);
       if (!firstGby) {
@@ -806,16 +810,18 @@ public class RewriteProcFactory {
       // Add select to generate group id
       if (!firstGby) {
         SelectOperator sel = appendSelect(gby, ctx, true, true);
+        ctx.putGroupByOutput(gby, sel);
         if (ctx.lastUsedBy(gby, gby)) {
           ctx.usedAt(gby, sel);
         }
-        appendSelect(sel, ctx, false, false, ExprNodeGenericFuncDesc.newInstance(
-            getUdf("srv_greater_than"),
-            new ArrayList<ExprNodeDesc>(Arrays.asList(
-                Utils.generateColumnDescs(sel, ctx.getCountColumnIndex(sel)).get(0),
-                new ExprNodeConstantDesc(new Double(0)),
-                Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0)))
-            ));
+        appendSelect(sel, ctx, false, false
+        // , ExprNodeGenericFuncDesc.newInstance(getUdf("srv_greater_than"),
+        // new ArrayList<ExprNodeDesc>(Arrays.asList(
+        // Utils.generateColumnDescs(sel, ctx.getCountColumnIndex(sel)).get(0),
+        // new ExprNodeConstantDesc(new Double(0)),
+        // Utils.generateColumnDescs(sel, ctx.getGbyIdColumnIndex(sel, gby)).get(0)))
+        // )
+        );
       }
 
       return null;
@@ -840,7 +846,11 @@ public class RewriteProcFactory {
       evaluatorMode = SemanticAnalyzer.groupByDescModeToUDAFMode(desc.getMode(), false);
 
       if (firstGby) {
+        continuous = ctx.isAnnotatedWithSrv(parent);
         anchor = (GroupByOperator) gby.getChildOperators().get(0).getChildOperators().get(0);
+        if (continuous) {
+          ctx.setAsContinuous(anchor);
+        }
       } else {
         anchor = gby;
       }
@@ -912,20 +922,22 @@ public class RewriteProcFactory {
     // Rewrite AggregationDesc to:
     // (1) Use the ABM version of SUM/COUNT/AVERAGE
     // (2) Return the correct type
-    private void modifyAggregator(int index, boolean continuous) throws SemanticException {
+    private void modifyAggregator(int index) throws SemanticException {
       // (1)
       AggregationDesc aggregator = aggregators.get(index);
-      String oldUdafName = aggregator.getGenericUDAFName();
-      String udafName = convertUdafName(oldUdafName, continuous);
       ArrayList<ExprNodeDesc> parameters = updateParameters(aggregator.getParameters());
       boolean distinct = aggregator.getDistinct();
+      String udafName = null;
       GenericUDAFEvaluator udafEvaluator = null;
       if (firstGby) {
+        udafName = convertUdafName(aggregator.getGenericUDAFName(), continuous);
         udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
             parameters, null, distinct, false);
-        ctx.putEvaluator(anchor, index, udafEvaluator);
+        ctx.putEvaluator(anchor, index, udafEvaluator, udafName);
       } else {
-        udafEvaluator = ctx.getEvaluator(anchor, index);
+        UdafPair udafPair = ctx.getEvaluator(anchor, index);
+        udafName = udafPair.udafName;
+        udafEvaluator = udafPair.udafEvaluator;
       }
       assert (udafEvaluator != null);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
@@ -966,14 +978,36 @@ public class RewriteProcFactory {
         throws SemanticException {
       ArrayList<ExprNodeDesc> parameters = new ArrayList<ExprNodeDesc>(
           Utils.generateColumnDescs(parent, parameterIndexes));
-      GenericUDAFEvaluator udafEvaluator = null;
-      if (firstGby) {
-        udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
-            parameters, null, false, false);
-        ctx.putEvaluator(anchor, signature.size(), udafEvaluator);
-      } else {
-        udafEvaluator = ctx.getEvaluator(anchor, signature.size());
-      }
+
+      GenericUDAFEvaluator udafEvaluator = SemanticAnalyzer.getGenericUDAFEvaluator(udafName,
+          parameters, null, false, false);
+      ctx.putEvaluator(anchor, signature.size(), udafEvaluator, udafName);
+
+      assert (udafEvaluator != null);
+      GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
+          udafEvaluator, evaluatorMode, parameters);
+      AggregationDesc aggregationDesc = new AggregationDesc(udafName,
+          udaf.genericUDAFEvaluator, udaf.convertedParameters, false, evaluatorMode);
+
+      // colExprMap only has keys in it, so don't add this aggregation
+      String columnInternalName = Utils.getColumnInternalName(numKeys + aggregators.size());
+      aggregators.add(aggregationDesc);
+      rowResovler.put("", columnInternalName, new ColumnInfo(columnInternalName, udaf.returnType,
+          "", false));
+      outputColumnNames.add(columnInternalName);
+
+      return signature.size() - 1;
+    }
+
+    private int forwardAggregator(int index, List<Integer> parameterIndexes)
+        throws SemanticException {
+      ArrayList<ExprNodeDesc> parameters = new ArrayList<ExprNodeDesc>(
+          Utils.generateColumnDescs(parent, parameterIndexes));
+
+      UdafPair udafPair = ctx.getEvaluator(anchor, index);
+      String udafName = udafPair.udafName;
+      GenericUDAFEvaluator udafEvaluator = udafPair.udafEvaluator;
+
       assert (udafEvaluator != null);
       GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo(
           udafEvaluator, evaluatorMode, parameters);

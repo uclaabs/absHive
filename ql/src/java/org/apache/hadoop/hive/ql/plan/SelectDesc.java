@@ -46,6 +46,7 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   // ABM
   private boolean simulated = false;
+  private boolean simpleQuery = false;
   private List<Integer> numKeysContinuous = null;
   private List<List<UdafType>> aggrTypesContinuous = null;
   private List<Integer> numKeysDiscrete = null;
@@ -191,6 +192,14 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.simulated = simulated;
   }
 
+  public boolean isSimpleQuery() {
+    return simpleQuery;
+  }
+
+  public void setSimpleQuery(boolean simpleQuery) {
+    this.simpleQuery = simpleQuery;
+  }
+
   public List<Integer> getNumKeysContinuous() {
     return numKeysContinuous;
   }
@@ -231,9 +240,10 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.cachedInputs = cachedInputs;
   }
 
-  public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
+  public void setMCSim(boolean simpleQuery, List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
       List<Integer> numKeysDiscrete, List<String> cachedOutputs, List<String> cachedInputs) {
     simulated = true;
+    this.simpleQuery = simpleQuery;
 
     this.numKeysContinuous = numKeysContinuous;
     this.aggrTypesContinuous = aggrTypesContinuous;

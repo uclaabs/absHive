@@ -288,9 +288,9 @@ public class TraceProcFactory {
 
       // info (3)
       ctx.groupByAt(gby);
-      ctx.addCondition(gby, new ComparisonTransform(
-          new IdentityTransform(new AggregateInfo(gby, -1, "count")),
-          new ConstantTransform(0), Comparator.GREATER_THAN));
+//      ctx.addCondition(gby, new ComparisonTransform(
+//          new IdentityTransform(new AggregateInfo(gby, -1, "count")),
+//          new ConstantTransform(0), Comparator.GREATER_THAN));
 
       return null;
     }
