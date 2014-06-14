@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
+import org.apache.hadoop.hive.ql.abm.datatypes.SrvIO;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -33,12 +34,12 @@ public abstract class SrvCompare extends CompareUDF {
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
     // read the first two values which are the range of Srv
-    double lower = elemOI.get(srvOI.getListElement(arg[0].get(), 0));
-    double upper = elemOI.get(srvOI.getListElement(arg[0].get(), 1));
+    byte[] bytes = srvOI.getPrimitiveJavaObject(arg[0]);
+    double[] bound = SrvIO.getBound(bytes);
     double value = PrimitiveObjectInspectorUtils.getDouble(arg[1].get(), valOI);
     int id = idOI.get(arg[2].get());
 
-    updateRet(id, value, lower, upper);
+    updateRet(id, value, bound[0], bound[1]);
     return ret.toArray();
   }
 
