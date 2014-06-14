@@ -75,9 +75,11 @@ public class SrvSumComputation extends UDAFComputation {
       unfoldSrvList(0, this.baseSum, this.baseSsum);
     }
 
+    result.add(0);
+    result.add(0);
     addDistribution(this.baseSum, this.baseSsum);
-    this.result.add(0, this.confidenceLower);
-    this.result.add(1, this.confidenceUpper);
+    result.set(0, this.confidenceLower);
+    result.set(1, this.confidenceUpper);
     // update the first two values of array
   }
 
@@ -85,26 +87,26 @@ public class SrvSumComputation extends UDAFComputation {
     double variance = ssum - sum * sum / N;
     double std = Math.sqrt(variance);
 
-    this.result.add(sum);
-    this.result.add(variance);
+    result.add(sum);
+    result.add(variance);
 
     double lower = sum - 3 * std;
     double upper = sum + 3 * std;
 
-    if (lower < this.confidenceLower) {
-      this.confidenceLower = lower;
+    if (lower < confidenceLower) {
+      confidenceLower = lower;
     }
-    if (upper > this.confidenceUpper) {
-      this.confidenceUpper = upper;
+    if (upper > confidenceUpper) {
+      confidenceUpper = upper;
     }
   }
 
   protected void unfoldSrvList(int level, double sum, double ssum) {
-    boolean leaf = (level == this.groupCnt);
-    for (int i = 0; i < this.doubleMatrix.get(level).size() / 2; i++) {
-
-      double tmpSum = sum + this.doubleMatrix.get(level).getDouble(i * 2);
-      double tmpSsum = ssum + this.doubleMatrix.get(level).getDouble(i * 2 + 1);
+    boolean leaf = (level == groupCnt);
+    DoubleArrayList lev = doubleMatrix.get(level);
+    for (int i = 0; i < lev.size(); i += 2) {
+      double tmpSum = sum + lev.getDouble(i);
+      double tmpSsum = ssum + lev.getDouble(i + 1);
 
       if (leaf) {
         addDistribution(tmpSum, tmpSsum);
@@ -113,7 +115,7 @@ public class SrvSumComputation extends UDAFComputation {
       }
     }
   }
-  
+
   protected void print() {
     System.out.print("SrvSumComputation: [");
     for(double r:result) {

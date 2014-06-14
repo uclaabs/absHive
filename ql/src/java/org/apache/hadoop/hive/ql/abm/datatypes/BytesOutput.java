@@ -76,7 +76,7 @@ public class BytesOutput implements ObjectOutput {
 
   @Override
   public void writeDouble(double arg0) throws IOException {
-    long value = Double.doubleToLongBits(arg0);
+    long value = Double.doubleToRawLongBits(arg0);
     buffer[cursor++] = (byte) (value >> 56);
     buffer[cursor++] = (byte) (value >> 48);
     buffer[cursor++] = (byte) (value >> 40);
