@@ -1235,10 +1235,16 @@ public class RewriteProcFactory {
 
     private JoinOperator join = null;
     private JoinDesc desc = null;
+    private Byte[] tagOrder = null;
     private List<String> outputColumnNames = null;
     private Map<String, Byte> reversedExprs = null;
     private Map<Byte, List<ExprNodeDesc>> exprMap = null;
     private Map<String, ExprNodeDesc> columnExprMap = null;
+
+    private Map<Byte, List<String>> iOutputColumnNames = null;
+    private String tidColumnName = null;
+    private final HashSet<String> condColumnNames = new HashSet<String>();
+    private final HashMap<GroupByOperator, String> gbyIdColumnNames = new HashMap<GroupByOperator, String>();
 
     private ReduceSinkOperator parentRS = null;
     private RowResolver parentRR = null;
@@ -1261,7 +1267,7 @@ public class RewriteProcFactory {
           Integer index = ctx.getTidColumnIndex(parentRS);
           if (index != null) {
             ++countofTidCols;
-            ctx.putTidColumnIndex(join, forwardColumn(index));
+            tidColumnName = forwardColumn(index);
             // This is the table we must not shuffle during mapjoin
             desc.setToPin(join.getParentOperators().indexOf(parent));
           }
@@ -1274,7 +1280,7 @@ public class RewriteProcFactory {
         if (condIndexes != null) {
           for (int index : condIndexes) {
             // Maintain the condition column index
-            ctx.addCondColumnIndex(op, forwardColumn(index));
+            condColumnNames.add(forwardColumn(index));
             ++countOfCondCols;
           }
         }
@@ -1286,11 +1292,13 @@ public class RewriteProcFactory {
             GroupByOperator gby = entry.getKey();
             if (!ctx.lastUsedBy(gby, parent)) {
               int index = entry.getValue();
-              ctx.addGbyIdColumnIndex(join, gby, forwardColumn(index));
+              gbyIdColumnNames.put(gby, forwardColumn(index));
             }
           }
         }
       }
+
+      fixColumnOrdersAndSetIndexes();
 
       assert countofTidCols <= 1;
       if (countOfCondCols > 1) {
@@ -1305,28 +1313,22 @@ public class RewriteProcFactory {
       super.initialize(nd, procCtx);
       join = (JoinOperator) nd;
       desc = join.getConf();
+      tagOrder = desc.getTagOrder();
       outputColumnNames = desc.getOutputColumnNames();
       reversedExprs = desc.getReversedExprs();
       exprMap = desc.getExprs();
       columnExprMap = join.getColumnExprMap();
-    }
 
-    protected int forwardColumn(int index) throws SemanticException {
-      ExprNodeColumnDesc column = Utils.generateColumnDescs(parentRS, index).get(0);
-      String columnInternalName = Utils.getColumnInternalName(outputColumnNames.size());
-      outputColumnNames.add(columnInternalName);
-      reversedExprs.put(columnInternalName, tag);
-      List<ExprNodeDesc> exprList = exprMap.get(tag);
-      exprList.add(column);
-      columnExprMap.put(columnInternalName, column);
-
-      String[] names = parentRR.reverseLookup(column.getColumn());
-      ColumnInfo ci = parentRR.get(names[0], names[1]);
-      rowResolver.put(names[0], names[1],
-          new ColumnInfo(columnInternalName, ci.getType(), names[0],
-              ci.getIsVirtualCol(), ci.isHiddenVirtualCol()));
-
-      return signature.size() - 1;
+      iOutputColumnNames = new HashMap<Byte, List<String>>();
+      for (String name : outputColumnNames) {
+        Byte tag = reversedExprs.get(name);
+        List<String> names = iOutputColumnNames.get(tag);
+        if (names == null) {
+          names = new ArrayList<String>();
+          iOutputColumnNames.put(tag, names);
+        }
+        names.add(name);
+      }
     }
 
     @Override
@@ -1346,6 +1348,72 @@ public class RewriteProcFactory {
           }
         }
       }
+    }
+
+    private String forwardColumn(int index) throws SemanticException {
+      ExprNodeColumnDesc column = Utils.generateColumnDescs(parentRS, index).get(0);
+      String columnInternalName = Utils.getColumnInternalName(outputColumnNames.size());
+      List<String> columnNames = iOutputColumnNames.get(tag);
+      if (columnNames == null) {
+        columnNames = new ArrayList<String>();
+        iOutputColumnNames.put(tag, columnNames);
+      }
+      columnNames.add(columnInternalName);
+      outputColumnNames.add(columnInternalName);
+      reversedExprs.put(columnInternalName, tag);
+      List<ExprNodeDesc> exprList = exprMap.get(tag);
+      exprList.add(column);
+      columnExprMap.put(columnInternalName, column);
+
+      String[] names = parentRR.reverseLookup(column.getColumn());
+      ColumnInfo ci = parentRR.get(names[0], names[1]);
+      rowResolver.put(names[0], names[1],
+          new ColumnInfo(columnInternalName, ci.getType(), names[0],
+              ci.getIsVirtualCol(), ci.isHiddenVirtualCol()));
+
+      return columnInternalName;
+    }
+
+    private void fixColumnOrdersAndSetIndexes() {
+      outputColumnNames.clear();
+      for (Byte tag : tagOrder) {
+        List<String> columnNames = iOutputColumnNames.get(tag);
+        if (columnNames != null) {
+          outputColumnNames.addAll(columnNames);
+        }
+      }
+
+      RowResolver rr = new RowResolver();
+      for (String internalName : outputColumnNames) {
+        String[] names = rowResolver.reverseLookup(internalName);
+        rr.put(names[0], names[1], findColumnInfo(internalName));
+      }
+      join.setSchema(rr.getRowSchema());
+      ctx.getOpParseContext(join).setRowResolver(rr);
+
+      // tid column
+      if (tidColumnName != null) {
+        ctx.putTidColumnIndex(join, outputColumnNames.indexOf(tidColumnName));
+      }
+
+      // condition columns
+      for (String name : condColumnNames) {
+        ctx.addCondColumnIndex(join, outputColumnNames.indexOf(name));
+      }
+
+      // gby Id columns
+      for (Map.Entry<GroupByOperator, String> entry : gbyIdColumnNames.entrySet()) {
+        ctx.addGbyIdColumnIndex(join, entry.getKey(), outputColumnNames.indexOf(entry.getValue()));
+      }
+    }
+
+    private ColumnInfo findColumnInfo(String internalName) {
+      for (ColumnInfo ci : rowResolver.getColumnInfos()) {
+        if (ci.getInternalName().equals(internalName)) {
+          return ci;
+        }
+      }
+      return null;
     }
 
   }
