@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.io.ObjectOutput;
 
 public class BytesOutput implements ObjectOutput {
-  byte[] buffer = null;
-  int cursor = 0;
+
+  private byte[] buffer = null;
+  private int cursor = 0;
 
   public BytesOutput(int size) {
     buffer = new byte[size];

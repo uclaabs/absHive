@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.io.ObjectInput;
 
 public class BytesInput implements ObjectInput {
-  byte[] buffer = null;
-  int cursor = 0;
+
+  private byte[] buffer = null;
+  private int cursor = 0;
 
   public BytesInput(byte[] bytes) {
     buffer = bytes;
