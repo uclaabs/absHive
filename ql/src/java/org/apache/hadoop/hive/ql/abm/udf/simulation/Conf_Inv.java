@@ -43,6 +43,13 @@ public class Conf_Inv extends GenericUDFWithSimulation {
 
 	@Override
   public String getDisplayString(String[] children) {
-	  return "Conf_Inv_5_95";
+	  String ret = "Conf_Inv_5_95 (";
+	  if (children != null) {
+	    for (String child: children) {
+	      ret += child + " ";
+	    }
+	  }
+	  ret += ")";
+	  return ret;
   }
 }
