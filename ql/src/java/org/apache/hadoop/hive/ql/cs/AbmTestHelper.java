@@ -110,6 +110,12 @@ public class AbmTestHelper {
     if (lst != null) {
       for (Operator<? extends OperatorDesc> l: lst) {
         printTree(l, level + 1);
+        /**
+         * for selectOp, we only print its first parent currently
+         */
+        if (op instanceof SelectOperator) {
+          break;
+        }
       }
     }
   }
