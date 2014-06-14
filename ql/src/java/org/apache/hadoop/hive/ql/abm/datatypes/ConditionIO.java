@@ -31,7 +31,8 @@ public class ConditionIO {
     return out.getBuffer();
   }
 
-  public static Conditions deserialize(BytesInput in) {
+  public static Conditions deserialize(byte[] buf) {
+    in.setBuffer(buf);
     try {
       KeyWrapper key = new KeyWrapper();
       IOUtils.deserializeIntArrayListInto(in, key);
