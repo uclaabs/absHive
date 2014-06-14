@@ -8,6 +8,9 @@ public class BytesInput implements ObjectInput {
   private byte[] buffer = null;
   private int cursor = 0;
 
+  public BytesInput() {
+  }
+
   public BytesInput(byte[] bytes) {
     buffer = bytes;
     cursor = 0;

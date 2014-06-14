@@ -6,6 +6,10 @@ import java.io.IOException;
 
 public class SrvIO {
 
+  private static final BytesInput in = new BytesInput();
+  private static final BytesOutput out = new BytesOutput();
+  private static final double[] bounds = new double[2];
+
   public static byte[] serialize(DoubleArrayList o) {
     try {
       BytesOutput out = new BytesOutput(IOUtils.estimateDoubleArrayList(o));
@@ -14,6 +18,13 @@ public class SrvIO {
     } catch (IOException e) {
       return null;
     }
+  }
+
+  public static double[] getBound(byte[] buf) {
+    out.setBuffer(buf);
+    bounds[0] = in.readDouble();
+    bounds[1] = in.readDouble();
+    return bounds;
   }
 
 }

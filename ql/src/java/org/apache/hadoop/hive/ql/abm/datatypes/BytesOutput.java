@@ -8,6 +8,9 @@ public class BytesOutput implements ObjectOutput {
   private byte[] buffer = null;
   private int cursor = 0;
 
+  public BytesOutput() {
+  }
+
   public BytesOutput(int size) {
     buffer = new byte[size];
     cursor = 0;
@@ -15,6 +18,11 @@ public class BytesOutput implements ObjectOutput {
 
   public byte[] getBuffer() {
     return buffer;
+  }
+
+  public void setBuffer(byte[] buf) {
+    buffer = buf;
+    cursor = 0;
   }
 
   @Override
