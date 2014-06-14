@@ -3,11 +3,11 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 import java.io.IOException;
 import java.io.ObjectOutput;
 
-public class BitmapObjectOutputStream implements ObjectOutput {
+public class BytesOutput implements ObjectOutput {
   byte[] buffer = null;
   int cursor = 0;
 
-  public BitmapObjectOutputStream(int size) {
+  public BytesOutput(int size) {
     buffer = new byte[size];
     cursor = 0;
   }
@@ -72,7 +72,15 @@ public class BitmapObjectOutputStream implements ObjectOutput {
 
   @Override
   public void writeDouble(double arg0) throws IOException {
-    throw new UnsupportedOperationException();
+    long value = Double.doubleToLongBits(arg0);
+    buffer[cursor++] = (byte) (value >> 56);
+    buffer[cursor++] = (byte) (value >> 48);
+    buffer[cursor++] = (byte) (value >> 40);
+    buffer[cursor++] = (byte) (value >> 32);
+    buffer[cursor++] = (byte) (value >> 24);
+    buffer[cursor++] = (byte) (value >> 16);
+    buffer[cursor++] = (byte) (value >> 8);
+    buffer[cursor++] = (byte) (value);
   }
 
   @Override

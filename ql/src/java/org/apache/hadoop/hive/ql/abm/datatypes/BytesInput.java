@@ -3,11 +3,11 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 import java.io.IOException;
 import java.io.ObjectInput;
 
-public class BitmapObjectInputStream implements ObjectInput {
+public class BytesInput implements ObjectInput {
   byte[] buffer = null;
   int cursor = 0;
 
-  public BitmapObjectInputStream(byte[] bytes) {
+  public BytesInput(byte[] bytes) {
     buffer = bytes;
     cursor = 0;
   }
@@ -61,7 +61,22 @@ public class BitmapObjectInputStream implements ObjectInput {
 
   @Override
   public double readDouble() throws IOException {
-    throw new UnsupportedOperationException();
+    long value = buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    value <<= 8;
+    value ^= buffer[cursor++];
+    return Double.longBitsToDouble(value);
   }
 
   @Override

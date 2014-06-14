@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.BitmapObjectOutputStream;
+import org.apache.hadoop.hive.ql.abm.datatypes.BytesOutput;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
@@ -110,10 +110,10 @@ public class LineageComputation extends UDAFComputation {
   @Override
   public Object serializeResult() {
 //    printRes();
-    BitmapObjectOutputStream oo;
+    BytesOutput oo;
     try {
       for (int i = 0; i < result.size(); ++i) {
-        oo = new BitmapObjectOutputStream(result.get(i).sizeInBytes() + 12);
+        oo = new BytesOutput(result.get(i).sizeInBytes() + 12);
         result.get(i).writeExternal(oo);
         ret.add(oo.getBuffer());
       }
