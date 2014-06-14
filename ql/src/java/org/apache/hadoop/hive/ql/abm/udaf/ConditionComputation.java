@@ -4,8 +4,10 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondGroup;
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
+import org.apache.hadoop.hive.ql.abm.datatypes.ConditionIO;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
+import org.apache.hadoop.io.BytesWritable;
 
 public class ConditionComputation extends UDAFComputation {
 
@@ -91,7 +93,8 @@ public class ConditionComputation extends UDAFComputation {
 
   @Override
   public Object serializeResult() {
-    return condList.toArray();
+    // return condList.toArray();
+    return new BytesWritable(ConditionIO.serialize(condList.getKeyList(), condList.getRangeMatrix()));
   }
 
   @Override

@@ -33,6 +33,14 @@ public class CondList {
     keyList.set(0, id);
     rangeMatrix.get(0).set(0, value);
   }
+  
+  public KeyWrapper getKeyList() {
+    return this.keyList;
+  }
+  
+  public List<RangeList> getRangeMatrix() {
+    return this.rangeMatrix;
+  }
 
   public void update(int id1, int id2, double value) {
     keyList.set(0, id1);
