@@ -32,6 +32,11 @@ public class IOUtils {
     return INT_SIZE * (o.length + 1);
   }
 
+  public static void skipIntArray(BytesInput in) throws IOException {
+    int len = in.readInt();
+    in.skipBytes(len * INT_SIZE);
+  }
+
   public static void deserializeIntArrayListInto(BytesInput in, IntArrayList out) throws IOException {
     int len = in.readInt();
     out.ensureCapacity(len);
@@ -70,6 +75,17 @@ public class IOUtils {
 
   public static int estimateDoubleArray(double[] o) {
     return DOUBLE_SIZE * o.length + INT_SIZE;
+  }
+
+  public static boolean checkDoubleArray(BytesInput in) throws IOException {
+    int len = in.readInt();
+    for (int i = 0; i < len; ++i) {
+      double val = in.readDouble();
+      if (val != Double.NEGATIVE_INFINITY && val != Double.POSITIVE_INFINITY) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static void deserializeDoubleArrayListInto(BytesInput in, DoubleArrayList out) throws IOException {

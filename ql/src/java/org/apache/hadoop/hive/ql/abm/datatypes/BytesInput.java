@@ -16,6 +16,11 @@ public class BytesInput implements ObjectInput {
     cursor = 0;
   }
 
+  public void setBuffer(byte[] buf) {
+    buffer = buf;
+    cursor = 0;
+  }
+
   @Override
   public int readInt() throws IOException {
     int value = buffer[cursor++];
@@ -126,7 +131,8 @@ public class BytesInput implements ObjectInput {
 
   @Override
   public int skipBytes(int arg0) throws IOException {
-    throw new UnsupportedOperationException();
+    cursor += arg0;
+    return arg0;
   }
 
   @Override

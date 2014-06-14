@@ -1,11 +1,15 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ConditionIO {
 
+  private static final BytesInput in = new BytesInput();
   private static final BytesOutput out = new BytesOutput();
 
   public static byte[] serialize(KeyWrapper key, List<RangeList> range) {
@@ -42,6 +46,39 @@ public class ConditionIO {
       return new Conditions(key, range);
     } catch (IOException e) {
       return null;
+    }
+  }
+
+  public static boolean checkBase(byte[] buf) {
+    in.setBuffer(buf);
+    try {
+      IOUtils.skipIntArray(in);
+      int len = in.readInt();
+      for (int i = 0; i < len; ++i) {
+        if (!IOUtils.checkDoubleArray(in)) {
+          return false;
+        }
+      }
+      return true;
+    } catch (IOException e) {
+      return false;
+    }
+  }
+
+  public static void parseKeyInto(byte[] buf, IntArrayList out) {
+    in.setBuffer(buf);
+    try {
+      IOUtils.deserializeIntArrayListInto(in, out);
+    } catch (IOException e) {
+    }
+  }
+
+  public static void parseRangeInto(byte[] buf, DoubleArrayList out) {
+    in.setBuffer(buf);
+    try {
+      IOUtils.skipIntArray(in);
+      IOUtils.deserializeDoubleArrayListInto(in, out);
+    } catch (IOException e) {
     }
   }
 
