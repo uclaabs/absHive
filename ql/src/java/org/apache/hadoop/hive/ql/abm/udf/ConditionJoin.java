@@ -1,8 +1,9 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.ql.abm.datatypes.BytesInput;
+import org.apache.hadoop.hive.ql.abm.datatypes.ConditionIO;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
@@ -11,13 +12,15 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.io.BytesWritable;
 
 public class ConditionJoin extends GenericUDF {
 
   private BinaryObjectInspector inputOI;
   private KeyWrapper keys;
   private List<RangeList> ranges;
-  
+  private boolean first;
+
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
     if (arguments.length < 2) {
@@ -25,8 +28,7 @@ public class ConditionJoin extends GenericUDF {
     }
 
     inputOI = (BinaryObjectInspector) arguments[0];
-    keys = new KeyWrapper();
-    ranges = new ArrayList<RangeList>();
+    first = true;
     return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
   }
 
@@ -51,19 +53,21 @@ public class ConditionJoin extends GenericUDF {
     if (first) {
       for (DeferredObject o : arg) {
         Object condGroupObj = o.get();
-        keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
-        rangeParser.append(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges);
+        BytesInput in = ConditionIO.startParsing(inputOI.getPrimitiveWritableObject(condGroupObj).getBytes());
+        keys = new KeyWrapper();
+        ConditionIO.parseKeyInto(in, keys);
+        ranges = ConditionIO.parseRange(in);
       }
       first = false;
+      return new BytesWritable(ConditionIO.serialize(keys, ranges));
     }
 
-    inputKeys.clear();
-
-    int cursor = 0;
+    keys.clear();
     for (DeferredObject o : arg) {
       Object condGroupObj = o.get();
-      keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
-      cursor += rangeParser.overwrite(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges, cursor);
+      BytesInput in = ConditionIO.startParsing(inputOI.getPrimitiveWritableObject(condGroupObj).getBytes());
+      ConditionIO.parseKeyInto(in, keys);
+      ConditionIO.parseRangeInto(in, ranges);
     }
 
     return ret;
