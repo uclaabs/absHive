@@ -1,6 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.IOException;
@@ -49,35 +48,56 @@ public class ConditionIO {
     }
   }
 
-  public static boolean checkBase(byte[] buf) {
+  public static BytesInput startParsing(byte[] buf) {
     in.setBuffer(buf);
+    return in;
+  }
+
+  public static boolean checkBase(BytesInput in) {
     try {
       IOUtils.skipIntArray(in);
       int len = in.readInt();
       for (int i = 0; i < len; ++i) {
         if (!IOUtils.checkDoubleArray(in)) {
+          in.rewind();
           return false;
         }
       }
+      in.rewind();
       return true;
     } catch (IOException e) {
       return false;
     }
   }
 
-  public static void parseKeyInto(byte[] buf, IntArrayList out) {
-    in.setBuffer(buf);
+  public static void parseKeyInto(BytesInput in, IntArrayList out) {
     try {
       IOUtils.deserializeIntArrayListInto(in, out);
     } catch (IOException e) {
     }
   }
 
-  public static void parseRangeInto(byte[] buf, DoubleArrayList out) {
-    in.setBuffer(buf);
+  public static List<RangeList> parseRange(BytesInput in) {
     try {
-      IOUtils.skipIntArray(in);
-      IOUtils.deserializeDoubleArrayListInto(in, out);
+      int len = in.readInt();
+      List<RangeList> ret = new ArrayList<RangeList>();
+      for (int i = 0; i < len; ++i) {
+        RangeList out = new RangeList();
+        IOUtils.deserializeDoubleArrayListInto(in, out);
+        ret.add(out);
+      }
+      return ret;
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  public static void parseRangeInto(BytesInput in, List<RangeList> out) {
+    try {
+      int len = in.readInt();
+      for (int i = 0; i < len; ++i) {
+        IOUtils.deserializeDoubleArrayListInto(in, out.get(i));
+      }
     } catch (IOException e) {
     }
   }

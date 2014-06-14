@@ -171,4 +171,8 @@ public class BytesInput implements ObjectInput {
     throw new UnsupportedOperationException();
   }
 
+  public void rewind() {
+    cursor = 0;
+  }
+
 }
