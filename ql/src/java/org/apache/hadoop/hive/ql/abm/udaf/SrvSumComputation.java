@@ -113,6 +113,14 @@ public class SrvSumComputation extends UDAFComputation {
       }
     }
   }
+  
+  protected void print() {
+    System.out.print("SrvSumComputation: [");
+    for(double r:result) {
+      System.out.print(r + "\t");
+    }
+    System.out.println();
+  }
 
   @Override
   public Object serializeResult() {

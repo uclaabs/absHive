@@ -90,6 +90,23 @@ public class ConditionComputation extends UDAFComputation {
       }
     }
   }
+  
+  protected void print() {
+    System.out.print("ConditionComputation");
+    System.out.print("Keys [");
+    for(int k:condList.getKeyList()) {
+      System.out.print(k + ",");
+    } 
+    System.out.print("]\n; Ranges");
+    for(RangeList range:condList.getRangeMatrix()) {
+      System.out.print("[");
+      for(double r:range) {
+        System.out.print(r + "\t");
+      }
+      System.out.print("];");
+    }
+    
+  }
 
   @Override
   public Object serializeResult() {

@@ -102,6 +102,14 @@ public class SrvCountComputation extends UDAFComputation {
       }
     }
   }
+  
+  protected void print() {
+    System.out.print("SrvCountComputation: [");
+    for(double r:result) {
+      System.out.print(r + "\t");
+    }
+    System.out.println();
+  }
 
   @Override
   public Object serializeResult() {

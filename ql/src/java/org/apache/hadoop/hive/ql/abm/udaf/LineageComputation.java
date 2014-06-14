@@ -109,6 +109,7 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public Object serializeResult() {
+    printRes();
     return new BytesWritable(LineageIO.serialize(result));
   }
 

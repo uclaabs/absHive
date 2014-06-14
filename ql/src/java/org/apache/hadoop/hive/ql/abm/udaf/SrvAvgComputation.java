@@ -125,6 +125,14 @@ public class SrvAvgComputation extends UDAFComputation {
       }
     }
   }
+  
+  protected void print() {
+    System.out.print("SrvAvgComputation: [");
+    for(double r:result) {
+      System.out.print(r + "\t");
+    }
+    System.out.println();
+  }
 
   @Override
   public Object serializeResult() {
