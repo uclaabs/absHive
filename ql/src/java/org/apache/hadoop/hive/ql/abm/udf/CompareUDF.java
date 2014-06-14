@@ -17,17 +17,24 @@ public abstract class CompareUDF extends GenericUDF {
     elemOI = (DoubleObjectInspector) srvOI.getListElementObjectInspector();
     return null;
   }
-  
+
   protected abstract String udfFuncName();
-  
+
   @Override
   public String getDisplayString(String[] arg0) {
-    String disStr = this.udfFuncName() + "(";
-    for(String arg:arg0) {
-      disStr += "," + arg;
+    StringBuilder builder = new StringBuilder();
+    builder.append(udfFuncName());
+    builder.append("(");
+    boolean first = true;
+    for (String arg : arg0) {
+      if (!first) {
+        builder.append(", ");
+      }
+      first = false;
+      builder.append(arg);
     }
-    disStr += ")";
-    return disStr;
+    builder.append(")");
+    return builder.toString();
   }
 
 

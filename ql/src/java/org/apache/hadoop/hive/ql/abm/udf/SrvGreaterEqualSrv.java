@@ -1,7 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
 public class SrvGreaterEqualSrv extends SrvCompareSrv {
-  
+
   @Override
   protected void updateRet(int id1, int id2, double lower1, double lower2, double upper1,
       double upper2) {

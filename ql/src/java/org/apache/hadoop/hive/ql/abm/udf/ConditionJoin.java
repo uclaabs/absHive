@@ -47,12 +47,18 @@ public class ConditionJoin extends GenericUDF {
 
   @Override
   public String getDisplayString(String[] arg0) {
-    String disStr = "Cond Join (";
-    for(String arg: arg0) {
-      disStr += "," + arg;
+    StringBuilder builder = new StringBuilder();
+    builder.append("Cond_Join(");
+    boolean first = true;
+    for (String arg : arg0) {
+      if (!first) {
+        builder.append(", ");
+      }
+      first = false;
+      builder.append(arg);
     }
-    disStr += ")";
-    return disStr;
+    builder.append(")");
+    return builder.toString();
   }
 
   @Override
