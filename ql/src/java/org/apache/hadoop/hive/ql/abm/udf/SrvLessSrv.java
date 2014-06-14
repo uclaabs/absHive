@@ -13,4 +13,9 @@ public class SrvLessSrv extends SrvCompareSrv {
     }
   }
 
+  @Override
+  protected String udfFuncName() {
+    return "Srv_Less_Srv";
+  }
+
 }

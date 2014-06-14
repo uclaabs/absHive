@@ -1,7 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
 public class SrvLessEqualSrv extends SrvCompareSrv {
-
+  
   @Override
   protected void updateRet(int id1, int id2, double lower1, double lower2, double upper1,
       double upper2) {
@@ -10,6 +10,11 @@ public class SrvLessEqualSrv extends SrvCompareSrv {
     } else {
       ret.update(id1, id2, 0);
     }
+  }
+
+  @Override
+  protected String udfFuncName() {
+    return "Srv_Less_Equal_Srv";
   }
 
 }

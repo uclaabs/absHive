@@ -17,10 +17,18 @@ public abstract class CompareUDF extends GenericUDF {
     elemOI = (DoubleObjectInspector) srvOI.getListElementObjectInspector();
     return null;
   }
-
+  
+  protected abstract String udfFuncName();
+  
   @Override
   public String getDisplayString(String[] arg0) {
-    return "Function for Srv Comparison";
+    String disStr = this.udfFuncName() + "(";
+    for(String arg:arg0) {
+      disStr += "," + arg;
+    }
+    disStr += ")";
+    return disStr;
   }
+
 
 }

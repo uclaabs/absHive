@@ -11,4 +11,9 @@ public class SrvGreater extends SrvCompare {
       ret.update(id, value);
     }
   }
+
+  @Override
+  protected String udfFuncName() {
+    return "Srv_Greater";
+  }
 }

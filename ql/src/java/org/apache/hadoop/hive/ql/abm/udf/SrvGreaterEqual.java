@@ -11,4 +11,9 @@ public class SrvGreaterEqual extends SrvCompare {
     }
   }
 
+  @Override
+  protected String udfFuncName() {
+    return "Srv_Greater_Equal";
+  }
+
 }

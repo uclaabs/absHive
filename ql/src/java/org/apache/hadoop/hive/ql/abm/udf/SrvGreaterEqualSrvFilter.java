@@ -7,4 +7,9 @@ public class SrvGreaterEqualSrvFilter extends SrvCompareSrvFilter {
     ret.set(upper1 >= lower2);
   }
 
+  @Override
+  protected String udfFuncName() {
+    return "Srv_Greater_Equal_Srv_Filter";
+  }
+
 }
