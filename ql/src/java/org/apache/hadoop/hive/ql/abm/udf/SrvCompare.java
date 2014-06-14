@@ -1,13 +1,16 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
+import org.apache.hadoop.hive.ql.abm.datatypes.ConditionIO;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvIO;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
+import org.apache.hadoop.io.BytesWritable;
 
 public abstract class SrvCompare extends CompareUDF {
 
@@ -28,7 +31,7 @@ public abstract class SrvCompare extends CompareUDF {
     idOI = (IntObjectInspector) arguments[2];
 
     ret = initRet();
-    return CondList.condListOI;
+    return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
   }
 
   @Override
@@ -40,7 +43,7 @@ public abstract class SrvCompare extends CompareUDF {
     int id = idOI.get(arg[2].get());
 
     updateRet(id, value, bound[0], bound[1]);
-    return ret.toArray();
+    return new BytesWritable(ConditionIO.serialize(ret.getKeyList(), ret.getRangeMatrix()));
   }
 
   protected CondList initRet() {
