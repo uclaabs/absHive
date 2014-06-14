@@ -11,19 +11,23 @@ public class SrvIO {
   private static final double[] bounds = new double[2];
 
   public static byte[] serialize(DoubleArrayList o) {
+    out.setBuffer(new byte[IOUtils.estimateDoubleArrayList(o)]);
     try {
-      BytesOutput out = new BytesOutput(IOUtils.estimateDoubleArrayList(o));
       IOUtils.serializeDoubleArrayList(o, out);
-      return out.getBuffer();
     } catch (IOException e) {
       return null;
     }
+    return out.getBuffer();
   }
 
   public static double[] getBound(byte[] buf) {
     out.setBuffer(buf);
-    bounds[0] = in.readDouble();
-    bounds[1] = in.readDouble();
+    try {
+      bounds[0] = in.readDouble();
+      bounds[1] = in.readDouble();
+    } catch (IOException e) {
+      return null;
+    }
     return bounds;
   }
 

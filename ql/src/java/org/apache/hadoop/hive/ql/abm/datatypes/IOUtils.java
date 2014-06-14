@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.IOException;
 
@@ -29,6 +30,18 @@ public class IOUtils {
 
   public static int estimateIntArray(int[] o) {
     return INT_SIZE * (o.length + 1);
+  }
+
+  public static void serializeIntArrayList(IntArrayList o, BytesOutput out) throws IOException {
+    int len = o.size();
+    out.writeInt(len);
+    for (int i = 0; i < len; ++i) {
+      out.writeInt(o.getInt(i));
+    }
+  }
+
+  public static int estimateIntArrayList(IntArrayList o) {
+    return INT_SIZE * (o.size() + 1);
   }
 
   public static double[] deserializeDoubleArray(BytesInput in) throws IOException {
