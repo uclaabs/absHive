@@ -70,7 +70,7 @@ public class ConditionJoin extends GenericUDF {
       ConditionIO.parseRangeInto(in, ranges);
     }
 
-    return ret;
+    return new BytesWritable(ConditionIO.serialize(keys, ranges));
   }
 
 }
