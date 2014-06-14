@@ -32,4 +32,15 @@ public class SrvIO {
     return bounds;
   }
 
+  public static DoubleArrayList deserialize(byte[] buf) {
+    in.setBuffer(buf);
+    try {
+      DoubleArrayList out =  new DoubleArrayList();
+      IOUtils.deserializeDoubleArrayListInto(in, out);
+      return out;
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
 }
