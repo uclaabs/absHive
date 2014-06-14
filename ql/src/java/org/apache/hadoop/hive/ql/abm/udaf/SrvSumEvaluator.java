@@ -43,7 +43,8 @@ public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
       return partialOI;
     } else {
       compute = new SrvSumComputation();
-      return doubleListOI;
+      //return doubleListOI;
+      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
     }
   }
 

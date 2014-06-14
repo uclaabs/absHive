@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
+import org.apache.hadoop.hive.ql.abm.datatypes.SrvIO;
+import org.apache.hadoop.io.BytesWritable;
 
 public class SrvSumComputation extends UDAFComputation {
 
@@ -21,6 +23,8 @@ public class SrvSumComputation extends UDAFComputation {
   protected double currentSsum = 0;
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
+  
+  
 
 
   public void setBase(double sum, double ssum) {
@@ -115,7 +119,8 @@ public class SrvSumComputation extends UDAFComputation {
 
   @Override
   public Object serializeResult() {
-    return result;
+    // return result;
+    return new BytesWritable(SrvIO.serialize(result));
   }
 
 }

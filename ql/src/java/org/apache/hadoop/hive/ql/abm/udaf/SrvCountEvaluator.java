@@ -32,7 +32,8 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
       return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
     } else {
       compute = new SrvCountComputation();
-      return doubleListOI;
+      // return doubleListOI;
+      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
     }
   }
 

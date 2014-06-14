@@ -23,7 +23,8 @@ public class CaseCountEvaluator extends SrvCountEvaluator {
       return PrimitiveObjectInspectorFactory.writableLongObjectInspector;
     } else {
       compute = new CaseCountComputation();
-      return doubleListOI;
+      // return doubleListOI;
+      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
     }
   }
 

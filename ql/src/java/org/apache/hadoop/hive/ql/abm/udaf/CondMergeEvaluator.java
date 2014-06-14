@@ -18,6 +18,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
@@ -74,7 +75,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       // partialTerminate() will be called
       return partialOI;
     } else {
-      return CondList.condListOI;
+      // return CondList.condListOI;
+      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
     }
 
   }

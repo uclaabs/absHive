@@ -51,7 +51,8 @@ public class CaseAvgEvaluator  extends SrvEvaluatorWithInstruction {
       return partialOI;
     } else {
       compute = new CaseAvgComputation();
-      return doubleListOI;
+      // return doubleListOI;
+      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
     }
   }
 

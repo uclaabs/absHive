@@ -1,8 +1,8 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class DummyCondMergeEvaluator extends CondMergeEvaluator {
 
@@ -13,7 +13,8 @@ public class DummyCondMergeEvaluator extends CondMergeEvaluator {
       // partialTerminate() will be called
       return partialOI;
     } else {
-      return CondList.condListOI;
+      // return CondList.condListOI;
+      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
     }
 
   }

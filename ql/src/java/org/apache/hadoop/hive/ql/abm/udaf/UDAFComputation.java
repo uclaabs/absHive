@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
+
 public abstract class UDAFComputation {
 
   public abstract void iterate(int index);

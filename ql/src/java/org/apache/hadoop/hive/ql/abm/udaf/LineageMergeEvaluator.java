@@ -42,7 +42,8 @@ public class LineageMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       return partialOI;
     } else {
       compute = new LineageComputation();
-      return binaryListOI;
+      // return binaryListOI;
+      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
     }
   }
 
