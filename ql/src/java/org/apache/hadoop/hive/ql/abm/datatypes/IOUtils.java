@@ -27,7 +27,7 @@ public class IOUtils {
     }
   }
 
-  public int estimateIntArray(int[] o) {
+  public static int estimateIntArray(int[] o) {
     return INT_SIZE * (o.length + 1);
   }
 
@@ -47,7 +47,7 @@ public class IOUtils {
     }
   }
 
-  public int estimateDoubleArray(double[] o) {
+  public static int estimateDoubleArray(double[] o) {
     return DOUBLE_SIZE * o.length + INT_SIZE;
   }
 
@@ -59,7 +59,7 @@ public class IOUtils {
     }
   }
 
-  public int estimateDoubleArrayList(DoubleArrayList o) {
+  public static int estimateDoubleArrayList(DoubleArrayList o) {
     return DOUBLE_SIZE * o.size() + INT_SIZE;
   }
 
@@ -73,7 +73,7 @@ public class IOUtils {
     o.writeExternal(out);
   }
 
-  public int estimateBitmap(EWAHCompressedBitmap o) {
+  public static int estimateBitmap(EWAHCompressedBitmap o) {
     return o.sizeInBytes() + INT_SIZE * 4;
   }
 
