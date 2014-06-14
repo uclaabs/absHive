@@ -3,46 +3,31 @@ package org.apache.hadoop.hive.ql.abm.udf;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
-import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapperParser;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
-import org.apache.hadoop.hive.ql.abm.datatypes.RangeMatrixParser;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class ConditionJoin extends GenericUDF {
 
-  private final KeyWrapper inputKeys = new KeyWrapper();
-  private final List<RangeList> inputRanges = new ArrayList<RangeList>();
-  private final Object[] ret = new Object[] {inputKeys, inputRanges};
-
-  private boolean first = true;
-
-  private KeyWrapperParser keyParser = null;
-  private RangeMatrixParser rangeParser = null;
-  private StructObjectInspector inputOI;
-  private StructField keyField;
-  private StructField rangeField;
-
+  private BinaryObjectInspector inputOI;
+  private KeyWrapper keys;
+  private List<RangeList> ranges;
+  
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
     if (arguments.length < 2) {
       throw new UDFArgumentException("This function takes at least two arguments of type CondGroup");
     }
 
-    inputOI = (StructObjectInspector) arguments[0];
-    List<? extends StructField> fields = inputOI.getAllStructFieldRefs();
-    keyField = fields.get(0);
-    rangeField = fields.get(1);
-    keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
-    rangeParser = new RangeMatrixParser(rangeField.getFieldObjectInspector());
-
-    return CondList.condListOI;
+    inputOI = (BinaryObjectInspector) arguments[0];
+    keys = new KeyWrapper();
+    ranges = new ArrayList<RangeList>();
+    return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
   }
 
   @Override
