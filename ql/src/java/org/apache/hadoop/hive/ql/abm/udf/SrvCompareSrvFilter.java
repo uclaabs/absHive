@@ -24,12 +24,12 @@ public abstract class SrvCompareSrvFilter extends CompareUDF {
 
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
-    // read the first two values which are the range of Srv    
-    byte[] bytes1 = srvOI.getPrimitiveJavaObject(arg[0]);
+    // read the first two values which are the range of Srv
+    byte[] bytes1 = srvOI.getPrimitiveWritableObject(arg[0]).getBytes();
     double[] bound1 = SrvIO.getBound(bytes1);
-    byte[] bytes2 = srvOI.getPrimitiveJavaObject(arg[1]);
+    byte[] bytes2 = srvOI.getPrimitiveWritableObject(arg[1]).getBytes();
     double[] bound2 = SrvIO.getBound(bytes2);
-    
+
     updateRet(bound1[0], bound1[1], bound2[0], bound2[1]);
     return ret;
   }

@@ -32,6 +32,14 @@ public class IOUtils {
     return INT_SIZE * (o.length + 1);
   }
 
+  public static void deserializeIntArrayListInto(BytesInput in, IntArrayList out) throws IOException {
+    int len = in.readInt();
+    out.ensureCapacity(len);
+    for (int i = 0; i < len; ++i) {
+      out.add(in.readInt());
+    }
+  }
+
   public static void serializeIntArrayList(IntArrayList o, BytesOutput out) throws IOException {
     int len = o.size();
     out.writeInt(len);
@@ -62,6 +70,14 @@ public class IOUtils {
 
   public static int estimateDoubleArray(double[] o) {
     return DOUBLE_SIZE * o.length + INT_SIZE;
+  }
+
+  public static void deserializeDoubleArrayListInto(BytesInput in, DoubleArrayList out) throws IOException {
+    int len = in.readInt();
+    out.ensureCapacity(len);
+    for (int i = 0; i < len; ++i) {
+      out.add(in.readDouble());
+    }
   }
 
   public static void serializeDoubleArrayList(DoubleArrayList o, BytesOutput out) throws IOException {

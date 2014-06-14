@@ -11,11 +11,6 @@ public class BytesOutput implements ObjectOutput {
   public BytesOutput() {
   }
 
-  public BytesOutput(int size) {
-    buffer = new byte[size];
-    cursor = 0;
-  }
-
   public byte[] getBuffer() {
     return buffer;
   }

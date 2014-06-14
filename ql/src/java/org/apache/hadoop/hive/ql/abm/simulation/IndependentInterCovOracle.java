@@ -11,9 +11,9 @@ public class IndependentInterCovOracle implements InterCovOracle {
   private final int numRows;
   private final int numCols;
 
-  public IndependentInterCovOracle(List<UdafType> lhsTypes, List<UdafType> rhsTypes) {
-    numRows = lhsTypes.size();
-    numCols = rhsTypes.size();
+  public IndependentInterCovOracle(List<UdafType> udafTypes1, List<UdafType> udafTypes2) {
+    numRows = udafTypes1.size();
+    numCols = udafTypes2.size();
   }
 
   @Override

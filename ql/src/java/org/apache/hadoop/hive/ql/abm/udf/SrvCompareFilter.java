@@ -29,7 +29,7 @@ public abstract class SrvCompareFilter extends CompareUDF {
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
     // read the first two values which are the range of Srv
-    byte[] bytes = srvOI.getPrimitiveJavaObject(arg[0]);
+    byte[] bytes = srvOI.getPrimitiveWritableObject(arg[0]).getBytes();
     double[] bound = SrvIO.getBound(bytes);
     double value = PrimitiveObjectInspectorUtils.getDouble(arg[1].get(), valOI);
     updateRet(value, bound[0], bound[1]);

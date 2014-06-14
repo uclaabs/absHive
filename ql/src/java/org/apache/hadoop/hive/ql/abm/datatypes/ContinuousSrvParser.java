@@ -1,27 +1,37 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
+import java.io.IOException;
+
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 
 public class ContinuousSrvParser extends Parser {
 
-  private final ListObjectInspector oi;
-  private final DoubleObjectInspector eoi;
+  private final BinaryObjectInspector oi;
 
   public ContinuousSrvParser(ObjectInspector oi) {
     super(oi);
-    this.oi = (ListObjectInspector) oi;
-    eoi = (DoubleObjectInspector) this.oi.getListElementObjectInspector();
+    this.oi = (BinaryObjectInspector) oi;
   }
 
   public ContinuousSrv parse(Object o) {
-    int length = oi.getListLength(o);
-    ContinuousSrv ret = new ContinuousSrv(length - 2);
-    for (int i = 2; i < length; ++i) {
-      ret.add(eoi.get(oi.getListElement(o, i)));
+
+    byte[] buf = oi.getPrimitiveWritableObject(o).getBytes();
+
+    try {
+      BytesInput in = new BytesInput(buf);
+      int len = in.readInt();
+      ContinuousSrv srv = new ContinuousSrv(len - 2);
+      in.readDouble();
+      in.readDouble();
+      for(int i = 2; i < len; i ++) {
+        srv.add(in.readDouble());
+      }
+      return srv;
+    } catch (IOException e) {
+
+      return null;
     }
-    return ret;
   }
 
 }

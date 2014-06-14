@@ -23,9 +23,6 @@ public class SrvSumComputation extends UDAFComputation {
   protected double currentSsum = 0;
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
-  
-  
-
 
   public void setBase(double sum, double ssum) {
     this.baseSum = sum;
@@ -74,7 +71,7 @@ public class SrvSumComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
-    if(groupCnt >= 0) {
+    if (groupCnt >= 0) {
       unfoldSrvList(0, this.baseSum, this.baseSsum);
     }
 

@@ -2,9 +2,7 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
-
 public class ContinuousSrvsParser extends SrvParser {
-
 
   public ContinuousSrvsParser(ObjectInspector oi, int from, int to) {
     super(oi, from, to);
@@ -15,7 +13,7 @@ public class ContinuousSrvsParser extends SrvParser {
     for(int i = 0; i < fieldLen; i ++) {
       objs[i] = oi.getStructFieldData(o, fields[i]);
     }
-    
+
     int srvLen = listOIs[0].getListLength(objs[0]) - 2;
     double[] srvs = new double[srvLen * fieldLen];
     // every time read two double values from each list and save it to srvs
