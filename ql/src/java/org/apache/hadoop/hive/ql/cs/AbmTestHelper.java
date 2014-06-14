@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -41,6 +42,7 @@ public class AbmTestHelper {
 
   private static final String planFileFolder = "plan";
   private static final String exceptionFile = planFileFolder + "/exceptions.txt";
+  private static final String jsonPlanFile = "json_plan.txt";
 
   static String planFile;
 
@@ -60,7 +62,6 @@ public class AbmTestHelper {
       f.delete();
       f.mkdir();
     }
-
 
     f = new File(exceptionFile);
     f.delete();
@@ -209,6 +210,27 @@ public class AbmTestHelper {
     //print Op info
     println(level, getOpBriefInfo(op));
 
+    //print op child/parent
+//    println(level, "Children");
+//    if (op.getChildOperators() != null) {
+//      for (Operator<? extends OperatorDesc> p: op.getChildOperators()) {
+//        println(level, p);
+//      }
+//    }
+//    else  {
+//      println(level, "null");
+//    }
+//
+//    println(level, "Parents");
+//    if (op.getParentOperators() != null) {
+//      for (Operator<? extends OperatorDesc> p: op.getParentOperators()) {
+//        println(level, p);
+//      }
+//    }
+//    else  {
+//      println(level, "null");
+//    }
+
     //print Schema
     PrintSchema.process(level, op);
 
@@ -258,8 +280,58 @@ public class AbmTestHelper {
     if (lst != null) {
       for (Operator<? extends OperatorDesc> l: lst) {
         visit(l, level + 1);
+        /**
+         * for selectOp, we only print its first parent currently
+         */
+        if (op instanceof SelectOperator) {
+          break;
+        }
       }
     }
+
+  }
+
+
+  private static void constructJsonMap(Operator<? extends OperatorDesc> op, Map<Operator<? extends OperatorDesc>, JsonNode> nodeMap) {
+    JsonNode node = new JsonNode(op);
+    nodeMap.put(op, node);
+
+    List<Operator<? extends OperatorDesc>> lst = op.getParentOperators();
+    if (lst != null) {
+      for (Operator<? extends OperatorDesc> l: lst) {
+        constructJsonMap(l, nodeMap);
+      }
+    }
+  }
+
+  private static String getJSONPlan(Operator<? extends OperatorDesc> op) {
+    Map<Operator<? extends OperatorDesc>, JsonNode> nodeMap = new HashMap<Operator<? extends OperatorDesc>, JsonNode>();
+    constructJsonMap(op, nodeMap);
+
+    for (Entry<Operator<? extends OperatorDesc>, JsonNode> entry : nodeMap.entrySet()) {
+      //append children
+      List<Operator<? extends OperatorDesc>> children = entry.getKey().getParentOperators();
+      if (children != null) {
+        for (Operator<? extends OperatorDesc> child: children) {
+          entry.getValue().addChild(nodeMap.get(child));
+        }
+      }
+    }
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    sb.append(nodeMap.get(op).getJSONObject().toString());
+    sb.append("]");
+
+    return sb.toString();
+    /*
+    StringBuilder sb = new StringBuilder();
+    sb.append(b);
+
+    for (T key : map.keySet()) {
+      nodeMap.put(key, new Node<T>(key));
+    }
+     */
   }
 
   public static void printBeforeRewritePlan(Operator<? extends OperatorDesc> op) {
@@ -267,6 +339,10 @@ public class AbmTestHelper {
       needLogToFile = false;
       println(0, "####### Before Rewrite #########");
       analyzeHelper(op, 0);
+      //System.out.println(getJSONPlan(op));
+      //json array cast error!
+
+      //logPlan(getJSONPlan(op));
     }
     catch (Exception e) {
       e.printStackTrace();
@@ -289,8 +365,8 @@ public class AbmTestHelper {
 
       needLogToFile = true;
       try {
-          println(0, "####### After Rewrite #########");
-          visit(op, 0);
+        println(0, "####### After Rewrite #########");
+        visit(op, 0);
       }
       catch (Exception e) {
         String s = e.getMessage() + " " + Arrays.asList(e.getStackTrace()).toString();
@@ -302,6 +378,8 @@ public class AbmTestHelper {
 
       println(0, "####### Tree #########");
       printTree(op, 0);
+
+      //println(0, "####### Op relations #########");
 
       /*
       println(0, "####### Start Test #########");
@@ -522,6 +600,24 @@ public class AbmTestHelper {
     System.out.print(content + " ");
     if (needLogToFile) {
       logToFile(content + " ");
+    }
+  }
+
+  private static void logPlan(String msg) {
+    File f = new File(jsonPlanFile);
+    f.delete();
+    try {
+      f.createNewFile();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    try {
+      PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(jsonPlanFile, true)));
+      out.print(msg);
+      out.close();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 
