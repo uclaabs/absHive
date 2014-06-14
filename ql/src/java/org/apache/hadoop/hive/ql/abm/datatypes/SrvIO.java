@@ -21,8 +21,9 @@ public class SrvIO {
   }
 
   public static double[] getBound(byte[] buf) {
-    out.setBuffer(buf);
+    in.setBuffer(buf);
     try {
+      in.readInt();
       bounds[0] = in.readDouble();
       bounds[1] = in.readDouble();
     } catch (IOException e) {
