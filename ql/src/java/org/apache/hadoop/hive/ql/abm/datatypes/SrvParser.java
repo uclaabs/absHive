@@ -9,26 +9,27 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 
 public class SrvParser extends Parser {
-  
+
   protected StructObjectInspector oi;
   protected StructField[] fields;
-  protected ListObjectInspector[] listOIs;
-  protected DoubleObjectInspector[] valueOIs;
-  protected Object[] objs;
+  protected ListObjectInspector[] lois;
+  protected DoubleObjectInspector[] eois;
+  protected Object[] os;
 
   public SrvParser(ObjectInspector oi, int from, int to) {
     super(oi);
     this.oi = (StructObjectInspector) oi;
     List<? extends StructField> allFields = this.oi.getAllStructFieldRefs();
-    fields = new StructField[to - from];
-    listOIs = new ListObjectInspector[to - from];
-    valueOIs = new DoubleObjectInspector[to - from];
-    objs = new Object[to - from];
-    
+    int len = to - from;
+    fields = new StructField[len];
+    lois = new ListObjectInspector[len];
+    eois = new DoubleObjectInspector[len];
+    os = new Object[len];
+
     for (int i = from, j = 0; i < to; ++i, ++j) {
       fields[j] = allFields.get(i);
-      listOIs[j] = (ListObjectInspector) fields[j].getFieldObjectInspector();
-      valueOIs[j] = (DoubleObjectInspector) listOIs[j].getListElementObjectInspector();
+      lois[j] = (ListObjectInspector) fields[j].getFieldObjectInspector();
+      eois[j] = (DoubleObjectInspector) lois[j].getListElementObjectInspector();
     }
   }
 

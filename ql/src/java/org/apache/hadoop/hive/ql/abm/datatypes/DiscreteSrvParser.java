@@ -1,27 +1,29 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 
-public class DiscreteSrvParser extends Parser {
+public class DiscreteSrvParser extends SrvParser {
 
-  private final ListObjectInspector oi;
-  private final DoubleObjectInspector eoi;
-
-  public DiscreteSrvParser(ObjectInspector oi) {
-    super(oi);
-    this.oi = (ListObjectInspector) oi;
-    eoi = (DoubleObjectInspector) this.oi.getListElementObjectInspector();
+  public DiscreteSrvParser(ObjectInspector oi, int from, int to) {
+    super(oi, from, to);
   }
 
-  public DiscreteSrv parse(Object o) {
-    int length = oi.getListLength(o);
-    DiscreteSrv ret = new DiscreteSrv(length - 2);
-    for (int i = 2; i < length; ++i) {
-      ret.add(eoi.get(oi.getListElement(o, i)));
+  public double[] parse(Object o) {
+    for(int i = 0; i < fields.length; ++i) {
+      os[i] = oi.getStructFieldData(o, fields[i]);
     }
-    return ret;
+
+    int len = lois[0].getListLength(os[0]) - 2;
+    double[] srvs = new double[len * fields.length];
+
+    // read one double value from each list at a time
+    for(int i = 2; i < len; ++i) {
+     for(int j = 0; j < fields.length; ++j) {
+       srvs[i - 2] = eois[j].get(lois[j].getListElement(os[j], i));
+     }
+    }
+
+    return srvs;
   }
 
 }
