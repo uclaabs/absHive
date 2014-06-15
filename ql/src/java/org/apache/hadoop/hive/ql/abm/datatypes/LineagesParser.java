@@ -5,13 +5,12 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
-public class LineagesParser extends Parser {
+public class LineagesParser {
 
   private final ListObjectInspector oi;
   private final EWAHCompressedBitmapParser parser;
 
   public LineagesParser(ObjectInspector oi) {
-    super(oi);
     this.oi = (ListObjectInspector) oi;
     parser = new EWAHCompressedBitmapParser(this.oi.getListElementObjectInspector());
   }

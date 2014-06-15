@@ -6,7 +6,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
-public class ConditionsParser extends Parser {
+public class ConditionsParser {
 
   private final StructObjectInspector oi;
   private final StructField key;
@@ -15,7 +15,6 @@ public class ConditionsParser extends Parser {
   private final RangeMatrixParser rangesParser;
 
   public ConditionsParser(ObjectInspector oi) {
-    super(oi);
     this.oi = (StructObjectInspector) oi;
     List<? extends StructField> fields = this.oi.getAllStructFieldRefs();
     key = fields.get(0);

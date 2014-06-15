@@ -7,13 +7,12 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
-public class RangeMatrixParser extends Parser {
+public class RangeMatrixParser {
 
   private ListObjectInspector oi = null;
   private RangeListParser parser = null;
 
   public RangeMatrixParser(ObjectInspector oi) {
-    super(oi);
     this.oi = (ListObjectInspector) oi;
     parser = new RangeListParser(this.oi.getListElementObjectInspector());
   }

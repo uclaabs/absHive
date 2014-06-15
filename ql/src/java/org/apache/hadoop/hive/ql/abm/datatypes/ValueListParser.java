@@ -6,13 +6,12 @@ import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 
-public class ValueListParser extends Parser {
-  
+public class ValueListParser {
+
   private ListObjectInspector oi = null;
   private DoubleObjectInspector eoi = null;
 
   public ValueListParser(ObjectInspector oi) {
-    super(oi);
     this.oi = (ListObjectInspector) oi;
     eoi = (DoubleObjectInspector) this.oi.getListElementObjectInspector();
   }

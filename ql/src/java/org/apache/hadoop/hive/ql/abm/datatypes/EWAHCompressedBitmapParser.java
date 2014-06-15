@@ -7,12 +7,11 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspe
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
-public class EWAHCompressedBitmapParser extends Parser {
+public class EWAHCompressedBitmapParser {
 
   private final BinaryObjectInspector oi;
 
   public EWAHCompressedBitmapParser(ObjectInspector oi) {
-    super(oi);
     this.oi = (BinaryObjectInspector) oi;
   }
 

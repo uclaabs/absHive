@@ -8,7 +8,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 
-public class SrvParser extends Parser {
+public class SrvParser {
 
   protected StructObjectInspector oi;
   protected StructField[] fields;
@@ -17,7 +17,6 @@ public class SrvParser extends Parser {
   protected Object[] os;
 
   public SrvParser(ObjectInspector oi, int from, int to) {
-    super(oi);
     this.oi = (StructObjectInspector) oi;
     List<? extends StructField> allFields = this.oi.getAllStructFieldRefs();
     int len = to - from;

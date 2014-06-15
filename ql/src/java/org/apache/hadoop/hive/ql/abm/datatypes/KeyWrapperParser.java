@@ -6,13 +6,12 @@ import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
 
-public class KeyWrapperParser extends Parser {
+public class KeyWrapperParser {
 
   private ListObjectInspector oi = null;
   private IntObjectInspector eoi = null;
 
   public KeyWrapperParser(ObjectInspector oi) {
-    super(oi);
     this.oi = (ListObjectInspector) oi;
     eoi = (IntObjectInspector) this.oi.getListElementObjectInspector();
   }
