@@ -18,10 +18,9 @@ public class ContinuousSrvParser extends SrvParser {
 
     // read two double values from each list at a time
     int pos = 0;
-    for(int i = 2; i < len; i += 2) {
+    for(int i = 2; i < len; ++i) {
      for(int j = 0; j < fields.length; ++j) {
        srvs[pos++] = eois[j].get(lois[j].getListElement(os[j], i));
-       srvs[pos++] = eois[j].get(lois[j].getListElement(os[j], i + 1));
      }
     }
 
