@@ -12,9 +12,7 @@ public interface CovOracle extends Serializable {
 
 interface InnerCovOracle extends CovOracle {
 
-  public boolean fillCovMatrix(int groupId, int condId, double[][] dest, int pos);
-
-  public void fillCovMatrix(int groupId, int condId1, int condId2, double[][] dest, int row, int col);
+  public boolean fillCovMatrix(int groupId, int condId, double[][] dest, int row, int col);
 
 }
 

@@ -53,8 +53,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
       return partialOI;
     } else {
       compute = new SrvAvgComputation();
-      // return doubleListOI;
-      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
+      return doubleListOI;
     }
   }
 

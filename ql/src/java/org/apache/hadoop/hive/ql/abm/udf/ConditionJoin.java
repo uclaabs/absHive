@@ -1,25 +1,33 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.BytesInput;
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionIO;
+import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
+import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapperParser;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
+import org.apache.hadoop.hive.ql.abm.datatypes.RangeMatrixParser;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 public class ConditionJoin extends GenericUDF {
 
-  private BinaryObjectInspector inputOI;
-  private KeyWrapper keys;
-  private List<RangeList> ranges;
-  private boolean first;
+  private final KeyWrapper inputKeys = new KeyWrapper();
+  private final List<RangeList> inputRanges = new ArrayList<RangeList>();
+  private final Object[] ret = new Object[] {inputKeys, inputRanges};
+
+  private boolean first = true;
+
+  private KeyWrapperParser keyParser = null;
+  private RangeMatrixParser rangeParser = null;
+  private StructObjectInspector inputOI;
+  private StructField keyField;
+  private StructField rangeField;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -27,9 +35,14 @@ public class ConditionJoin extends GenericUDF {
       throw new UDFArgumentException("This function takes at least two arguments of type CondGroup");
     }
 
-    inputOI = (BinaryObjectInspector) arguments[0];
-    first = true;
-    return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
+    inputOI = (StructObjectInspector) arguments[0];
+    List<? extends StructField> fields = inputOI.getAllStructFieldRefs();
+    keyField = fields.get(0);
+    rangeField = fields.get(1);
+    keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
+    rangeParser = new RangeMatrixParser(rangeField.getFieldObjectInspector());
+
+    return CondList.condListOI;
   }
 
   @Override
@@ -53,24 +66,22 @@ public class ConditionJoin extends GenericUDF {
     if (first) {
       for (DeferredObject o : arg) {
         Object condGroupObj = o.get();
-        BytesInput in = ConditionIO.startParsing(inputOI.getPrimitiveWritableObject(condGroupObj).getBytes());
-        keys = new KeyWrapper();
-        ConditionIO.parseKeyInto(in, keys);
-        ranges = ConditionIO.parseRange(in);
+        keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
+        rangeParser.append(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges);
       }
       first = false;
-      return new BytesWritable(ConditionIO.serialize(keys, ranges));
     }
 
-    keys.clear();
+    inputKeys.clear();
+
+    int cursor = 0;
     for (DeferredObject o : arg) {
       Object condGroupObj = o.get();
-      BytesInput in = ConditionIO.startParsing(inputOI.getPrimitiveWritableObject(condGroupObj).getBytes());
-      ConditionIO.parseKeyInto(in, keys);
-      ConditionIO.parseRangeInto(in, ranges);
+      keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
+      cursor += rangeParser.overwrite(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges, cursor);
     }
 
-    return new BytesWritable(ConditionIO.serialize(keys, ranges));
+    return ret;
   }
 
 }

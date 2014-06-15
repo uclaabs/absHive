@@ -3,53 +3,44 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 import java.io.IOException;
 import java.io.ObjectInput;
 
-public class BytesInput implements ObjectInput {
+public class BitmapObjectInputStream implements ObjectInput {
+  byte[] buffer = null;
+  int cursor = 0;
 
-  private byte[] buffer = null;
-  private int cursor = 0;
-
-  public BytesInput() {
-  }
-
-  public BytesInput(byte[] bytes) {
+  public BitmapObjectInputStream(byte[] bytes) {
     buffer = bytes;
-    cursor = 0;
-  }
-
-  public void setBuffer(byte[] buf) {
-    buffer = buf;
     cursor = 0;
   }
 
   @Override
   public int readInt() throws IOException {
-    int value = (buffer[cursor++] & 0xFF);
+    int value = buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     return value;
   }
 
   @Override
   public long readLong() throws IOException {
-    long value = (buffer[cursor++] & 0xFF);
+    long value = buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
+    value ^= buffer[cursor++];
     return value;
   }
 
@@ -70,22 +61,7 @@ public class BytesInput implements ObjectInput {
 
   @Override
   public double readDouble() throws IOException {
-    long value = (buffer[cursor++] & 0xFF);
-    value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
-    value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
-    value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
-    value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
-    value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
-    value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
-    value <<= 8;
-    value ^= (buffer[cursor++] & 0xFF);
-    return Double.longBitsToDouble(value);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -131,8 +107,7 @@ public class BytesInput implements ObjectInput {
 
   @Override
   public int skipBytes(int arg0) throws IOException {
-    cursor += arg0;
-    return arg0;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -169,10 +144,6 @@ public class BytesInput implements ObjectInput {
   @Override
   public long skip(long arg0) throws IOException {
     throw new UnsupportedOperationException();
-  }
-
-  public void rewind() {
-    cursor = 0;
   }
 
 }

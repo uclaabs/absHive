@@ -18,7 +18,7 @@ public class EWAHCompressedBitmapParser extends Parser {
 
   public EWAHCompressedBitmap parse(Object o) {
     EWAHCompressedBitmap bitmap = new EWAHCompressedBitmap();
-    BytesInput in = new BytesInput(oi.getPrimitiveWritableObject(o).getBytes());
+    BitmapObjectInputStream in = new BitmapObjectInputStream(oi.getPrimitiveWritableObject(o).getBytes());
     try {
       bitmap.readExternal(in);
     } catch (IOException e) {

@@ -48,7 +48,6 @@ import org.apache.hadoop.hive.ql.abm.udaf.SrvCount;
 import org.apache.hadoop.hive.ql.abm.udaf.SrvLin;
 import org.apache.hadoop.hive.ql.abm.udaf.SrvSum;
 import org.apache.hadoop.hive.ql.abm.udf.ConditionJoin;
-import org.apache.hadoop.hive.ql.abm.udf.ConditionPrint;
 import org.apache.hadoop.hive.ql.abm.udf.GenRowId;
 import org.apache.hadoop.hive.ql.abm.udf.SrvGreater;
 import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqual;
@@ -66,7 +65,6 @@ import org.apache.hadoop.hive.ql.abm.udf.SrvLessEqualSrvFilter;
 import org.apache.hadoop.hive.ql.abm.udf.SrvLessFilter;
 import org.apache.hadoop.hive.ql.abm.udf.SrvLessSrv;
 import org.apache.hadoop.hive.ql.abm.udf.SrvLessSrvFilter;
-import org.apache.hadoop.hive.ql.abm.udf.SrvPrint;
 import org.apache.hadoop.hive.ql.abm.udf.simulation.Conf_Inv;
 import org.apache.hadoop.hive.ql.abm.udf.simulation.Exist_prob;
 import org.apache.hadoop.hive.ql.abm.udf.simulation.Mean;
@@ -460,9 +458,6 @@ public final class FunctionRegistry {
     registerGenericUDF("srv_equal_or_less_than_srv_f", SrvLessEqualSrvFilter.class);
     registerGenericUDF("srv_greater_than_srv_f", SrvGreaterSrvFilter.class);
     registerGenericUDF("srv_less_than_srv_f", SrvLessSrvFilter.class);
-    
-    registerGenericUDF("cond_print", ConditionPrint.class);
-    registerGenericUDF("srv_print", SrvPrint.class);
 
     // Generic UDFs
     registerGenericUDF("reflect", GenericUDFReflect.class);

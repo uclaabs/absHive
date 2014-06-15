@@ -1,23 +1,28 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
 public class LineagesParser extends Parser {
 
-  private final BinaryObjectInspector oi;
+  private final ListObjectInspector oi;
+  private final EWAHCompressedBitmapParser parser;
 
   public LineagesParser(ObjectInspector oi) {
     super(oi);
-    this.oi = (BinaryObjectInspector) oi;
+    this.oi = (ListObjectInspector) oi;
+    parser = new EWAHCompressedBitmapParser(this.oi.getListElementObjectInspector());
   }
 
   public EWAHCompressedBitmap[] parse(Object o) {
-    byte[] buf = oi.getPrimitiveWritableObject(o).getBytes();
-    BytesInput in = new BytesInput(buf);
-    return LineageIO.deserialize(in);
+    int length = oi.getListLength(o);
+    EWAHCompressedBitmap[] bitmaps = new EWAHCompressedBitmap[length];
+    for (int i = 0; i < length; ++i) {
+      bitmaps[i] = parser.parse(oi.getListElement(o, i));
+    }
+    return bitmaps;
   }
 
 }

@@ -1,16 +1,12 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionIO;
-import org.apache.hadoop.hive.ql.abm.datatypes.SrvIO;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
-import org.apache.hadoop.io.BytesWritable;
 
 public abstract class SrvCompare extends CompareUDF {
 
@@ -31,19 +27,19 @@ public abstract class SrvCompare extends CompareUDF {
     idOI = (IntObjectInspector) arguments[2];
 
     ret = initRet();
-    return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
+    return CondList.condListOI;
   }
 
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
     // read the first two values which are the range of Srv
-    byte[] bytes = srvOI.getPrimitiveWritableObject(arg[0].get()).getBytes();
-    double[] bound = SrvIO.getBound(bytes);
+    double lower = elemOI.get(srvOI.getListElement(arg[0].get(), 0));
+    double upper = elemOI.get(srvOI.getListElement(arg[0].get(), 1));
     double value = PrimitiveObjectInspectorUtils.getDouble(arg[1].get(), valOI);
     int id = idOI.get(arg[2].get());
 
-    updateRet(id, value, bound[0], bound[1]);
-    return new BytesWritable(ConditionIO.serialize(ret.getKeyList(), ret.getRangeMatrix()));
+    updateRet(id, value, lower, upper);
+    return ret.toArray();
   }
 
   protected CondList initRet() {

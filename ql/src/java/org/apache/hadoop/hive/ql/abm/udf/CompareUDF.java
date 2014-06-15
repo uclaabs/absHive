@@ -2,16 +2,19 @@ package org.apache.hadoop.hive.ql.abm.udf;
 
 import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
+import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 
 public abstract class CompareUDF extends GenericUDF {
 
-  protected BinaryObjectInspector srvOI;
+  protected ListObjectInspector srvOI;
+  protected DoubleObjectInspector elemOI;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
-    srvOI = (BinaryObjectInspector) arguments[0];
+    srvOI = (ListObjectInspector) arguments[0];
+    elemOI = (DoubleObjectInspector) srvOI.getListElementObjectInspector();
     return null;
   }
 

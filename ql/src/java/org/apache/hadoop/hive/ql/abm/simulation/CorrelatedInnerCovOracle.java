@@ -34,30 +34,26 @@ public class CorrelatedInnerCovOracle implements InnerCovOracle {
   }
 
   @Override
-  public boolean fillCovMatrix(int groupId, int condId, double[][] dest, int pos) {
+  public boolean fillCovMatrix(int groupId, int condId, double[][] dest, int row, int col) {
+    // TODO Auto-generated method stub
     Srv[] allCols = srv.get(groupId);
     if (allCols[0].getVar(condId) == 0) {
-      for (int i = pos, end = pos + length; i < end; ++i) {
-        dest[i][i] = 1; // fill in a fake variance
+      for (int i = 0; i < length; ++i) {
+        dest[i + row][i + col] = 1; // fill in a fake variance
       }
       return false;
     }
 
     for (int i = 0; i < length; ++i) {
-      int idx = i + pos;
-      dest[idx][idx] = allCols[i].getVar(condId);
+      dest[i + row][i + col] = allCols[i].getVar(condId);
     }
 
     DoubleArray2D pcov = inner.get(groupId);
-    pcov.fill(condId, dest, pos, pos);
+    pcov.fill(condId, dest, row, col);
+
     // TODO
 
     return true;
-  }
-
-  @Override
-  public void fillCovMatrix(int groupId, int condId1, int condId2, double[][] dest, int row, int col) {
-    // TODO Auto-generated method stub
   }
 
 }

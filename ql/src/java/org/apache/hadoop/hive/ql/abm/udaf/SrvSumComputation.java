@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.abm.datatypes.SrvIO;
-import org.apache.hadoop.io.BytesWritable;
 
 public class SrvSumComputation extends UDAFComputation {
 
@@ -23,6 +21,7 @@ public class SrvSumComputation extends UDAFComputation {
   protected double currentSsum = 0;
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
+
 
   public void setBase(double sum, double ssum) {
     this.baseSum = sum;
@@ -71,15 +70,13 @@ public class SrvSumComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
-    if (groupCnt >= 0) {
+    if(groupCnt >= 0) {
       unfoldSrvList(0, this.baseSum, this.baseSsum);
     }
 
-    result.add(0);
-    result.add(0);
     addDistribution(this.baseSum, this.baseSsum);
-    result.set(0, this.confidenceLower);
-    result.set(1, this.confidenceUpper);
+    this.result.add(0, this.confidenceLower);
+    this.result.add(1, this.confidenceUpper);
     // update the first two values of array
   }
 
@@ -87,26 +84,26 @@ public class SrvSumComputation extends UDAFComputation {
     double variance = ssum - sum * sum / N;
     double std = Math.sqrt(variance);
 
-    result.add(sum);
-    result.add(variance);
+    this.result.add(sum);
+    this.result.add(variance);
 
     double lower = sum - 3 * std;
     double upper = sum + 3 * std;
 
-    if (lower < confidenceLower) {
-      confidenceLower = lower;
+    if (lower < this.confidenceLower) {
+      this.confidenceLower = lower;
     }
-    if (upper > confidenceUpper) {
-      confidenceUpper = upper;
+    if (upper > this.confidenceUpper) {
+      this.confidenceUpper = upper;
     }
   }
 
   protected void unfoldSrvList(int level, double sum, double ssum) {
-    boolean leaf = (level == groupCnt);
-    DoubleArrayList lev = doubleMatrix.get(level);
-    for (int i = 0; i < lev.size(); i += 2) {
-      double tmpSum = sum + lev.getDouble(i);
-      double tmpSsum = ssum + lev.getDouble(i + 1);
+    boolean leaf = (level == this.groupCnt);
+    for (int i = 0; i < this.doubleMatrix.get(level).size() / 2; i++) {
+
+      double tmpSum = sum + this.doubleMatrix.get(level).getDouble(i * 2);
+      double tmpSsum = ssum + this.doubleMatrix.get(level).getDouble(i * 2 + 1);
 
       if (leaf) {
         addDistribution(tmpSum, tmpSsum);
@@ -116,18 +113,9 @@ public class SrvSumComputation extends UDAFComputation {
     }
   }
 
-  protected void print() {
-    System.out.print("SrvSumComputation: [");
-    for(double r:result) {
-      System.out.print(r + "\t");
-    }
-    System.out.println();
-  }
-
   @Override
   public Object serializeResult() {
-    // return result;
-    return new BytesWritable(SrvIO.serialize(result));
+    return result;
   }
 
 }

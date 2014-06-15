@@ -43,8 +43,7 @@ public class CaseSumEvaluator extends SrvEvaluatorWithInstruction {
       return partialOI;
     } else {
       compute = new CaseSumComputation();
-      // return doubleListOI;
-      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
+      return doubleListOI;
     }
   }
 

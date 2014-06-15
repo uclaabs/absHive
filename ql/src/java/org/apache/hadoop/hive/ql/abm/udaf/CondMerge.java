@@ -15,9 +15,9 @@ public class CondMerge extends AbstractGenericUDAFResolver {
     if (parameters.length == 0) {
       return new DummyCondMergeEvaluator();
     } else if (parameters.length == 1) {
-      if (parameters[0].getCategory() != ObjectInspector.Category.PRIMITIVE) {
+      if (parameters[0].getCategory() != ObjectInspector.Category.STRUCT) {
         throw new UDFArgumentException(
-            "cond_merge takes binary condition as input, but "
+            "cond_merge takes struct condition as input, but "
                 + parameters[0].getCategory() + " is passed");
       }
       return new CondMergeEvaluator();

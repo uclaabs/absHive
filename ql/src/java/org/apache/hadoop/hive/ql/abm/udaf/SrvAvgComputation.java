@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-import org.apache.hadoop.hive.ql.abm.datatypes.SrvIO;
-import org.apache.hadoop.io.BytesWritable;
 
 public class SrvAvgComputation extends UDAFComputation {
 
@@ -125,19 +123,10 @@ public class SrvAvgComputation extends UDAFComputation {
       }
     }
   }
-  
-  protected void print() {
-    System.out.print("SrvAvgComputation: [");
-    for(double r:result) {
-      System.out.print(r + "\t");
-    }
-    System.out.println();
-  }
 
   @Override
   public Object serializeResult() {
-    // return result;
-    return new BytesWritable(SrvIO.serialize(result));
+    return result;
   }
 
 }

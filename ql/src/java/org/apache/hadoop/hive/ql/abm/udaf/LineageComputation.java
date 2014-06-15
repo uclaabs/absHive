@@ -5,12 +5,12 @@ import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntComparator;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.LineageIO;
-import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.hive.ql.abm.datatypes.BitmapObjectOutputStream;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 
@@ -109,8 +109,19 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public Object serializeResult() {
-    printRes();
-    return new BytesWritable(LineageIO.serialize(result));
+//    printRes();
+    BitmapObjectOutputStream oo;
+    try {
+      for (int i = 0; i < result.size(); ++i) {
+        oo = new BitmapObjectOutputStream(result.get(i).sizeInBytes() + 12);
+        result.get(i).writeExternal(oo);
+        ret.add(oo.getBuffer());
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    return ret;
   }
 
   @Override

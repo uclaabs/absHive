@@ -6,27 +6,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.BytesInput;
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
-import org.apache.hadoop.hive.ql.abm.datatypes.ConditionIO;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapperParser;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeMatrixParser;
+import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
-  protected BinaryObjectInspector inputOI;
-  protected StructObjectInspector mergeOI;
-  
+  protected StructObjectInspector inputOI;
   protected ListObjectInspector keyGroupOI, rangeGroupOI;
   protected StructField keyField;
   protected StructField rangeField;
@@ -56,13 +51,19 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       return null;
     }
 
+    if (parameters[0].getCategory() != ObjectInspector.Category.STRUCT) {
+      throw new UDFArgumentLengthException("CondMerge: Incorrect Input Type");
+    }
+    inputOI = (StructObjectInspector) parameters[0];
+
+    List<? extends StructField> fields = inputOI.getAllStructFieldRefs();
+    keyField = fields.get(0);
+    rangeField = fields.get(1);
+
     if (m == Mode.PARTIAL1 || m == Mode.COMPLETE) {
-      inputOI = (BinaryObjectInspector) parameters[0];
+      keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
+      rangeParser = new RangeMatrixParser(rangeField.getFieldObjectInspector());
     } else {
-      mergeOI = (StructObjectInspector) parameters[0];
-      List<? extends StructField> fields = mergeOI.getAllStructFieldRefs();
-      keyField = fields.get(0);
-      rangeField = fields.get(1);
       keyGroupOI = (ListObjectInspector) keyField.getFieldObjectInspector();
       rangeGroupOI = (ListObjectInspector) rangeField.getFieldObjectInspector();
       keyParser = new KeyWrapperParser(keyGroupOI.getListElementObjectInspector());
@@ -73,8 +74,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       // partialTerminate() will be called
       return partialOI;
     } else {
-      // return CondList.condListOI;
-      return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
+      return CondList.condListOI;
     }
 
   }
@@ -108,25 +108,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       keyIndexes.clear();
     }
 
-    public int addRangesFromBinary(KeyWrapper key, BytesInput in) {
-      List<RangeList> ranges = groups.get(key);
-      int index;
-
-      if (ranges != null) {
-        ConditionIO.parseRangeInto(in, ranges);
-        index = keyIndexes.get(key);
-      } else {
-        ranges = ConditionIO.parseRange(in);
-        KeyWrapper newKey = key.copyKey();
-        index = keyIndexes.size();
-        keyIndexes.put(newKey, index);
-        groups.put(newKey, ranges);
-      }
-
-      return index;
-    }
-    
-    public int addRangesFromObj(KeyWrapper key, Object o) {
+    public int addRanges(KeyWrapper key, Object o) {
       List<RangeList> ranges = groups.get(key);
       int index;
 
@@ -197,9 +179,9 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
     if (parameters[0] != null) {
       ins.resetGroupInstruction();
-      byte[] bytes = inputOI.getPrimitiveWritableObject(parameters[0]).getBytes();
-      BytesInput in = ConditionIO.startParsing(bytes);
-      boolean isBase = ConditionIO.checkBase(in);
+
+      Object rangeObj = inputOI.getStructFieldData(parameters[0], rangeField);
+      boolean isBase = rangeParser.isBase(rangeObj);
       if (isBase) {
         ins.addGroupInstruction(-1);
         // System.out.println("Iterate " + -1);
@@ -208,10 +190,10 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
       MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
       key.clear();
-      ConditionIO.parseKeyInto(in, key);
+      keyParser.parseInto(inputOI.getStructFieldData(parameters[0], keyField), key);
 
       // Put the tuples in input Condition List to different groups
-      int inst = myagg.addRangesFromBinary(key, in);
+      int inst = myagg.addRanges(key, rangeObj);
       // Set the instruction here
       ins.addGroupInstruction(inst);
 
@@ -241,8 +223,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     ins.resetMergeInstruction();
 
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
-    Object keyGroupObj = mergeOI.getStructFieldData(partialRes, this.keyField);
-    Object rangeGroupObj = mergeOI.getStructFieldData(partialRes, this.rangeField);
+    Object keyGroupObj = inputOI.getStructFieldData(partialRes, this.keyField);
+    Object rangeGroupObj = inputOI.getStructFieldData(partialRes, this.rangeField);
 
     for (int i = 0; i < this.keyGroupOI.getListLength(keyGroupObj); i++) {
       Object keyObj = this.keyGroupOI.getListElement(keyGroupObj, i);
@@ -251,7 +233,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       key.clear();
       keyParser.parseInto(keyObj, key);
 
-      int inst = myagg.addRangesFromObj(key, rangeObj);
+      int inst = myagg.addRanges(key, rangeObj);
       ins.addGroupInstruction(inst);
     }
   }
