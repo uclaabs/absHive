@@ -239,7 +239,7 @@
          <exclude name="meta-inf/manifest.mf"/>
        </patternset>
     </unzip>
-    <unzip src="${build.ivy.lib.dir}/default/giraph-core-${giraph-core.version}.jar" dest="${build.dir.hive}/giraph-core/classes">
+    <unzip src="${build.ivy.lib.dir}/default/cloud9-${cloud9.version}.jar" dest="${build.dir.hive}/cloud9/classes">
        <patternset>
          <exclude name="meta-inf"/>
          <exclude name="meta-inf/manifest.mf"/>

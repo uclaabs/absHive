@@ -80,7 +80,7 @@
   <classpathentry kind="lib" path="build/ivy/lib/default/JavaEWAH-@javaewah.version@.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/fastutil-@fastutil.version@.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/commons-math3-@commons-math3.version@.jar"/>  
-  <classpathentry kind="lib" path="build/ivy/lib/default/giraph-core-@giraph-core.version@.jar"/>  
+  <classpathentry kind="lib" path="build/ivy/lib/default/cloud9-@cloud9.version@.jar"/>  
   <classpathentry kind="lib" path="build/ivy/lib/default/javolution-@javolution.version@.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/jackson-core-asl-1.8.8.jar"/>
   <classpathentry kind="lib" path="build/ivy/lib/default/jackson-jaxrs-1.8.8.jar"/>
