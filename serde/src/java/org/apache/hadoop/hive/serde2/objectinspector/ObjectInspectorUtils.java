@@ -55,8 +55,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
 
-import edu.umd.cloud9.io.array.ArrayListWritable;
-
 /**
  * ObjectInspectorFactory is the primary way to create new ObjectInspector
  * instances.
@@ -239,6 +237,14 @@ public final class ObjectInspectorUtils {
     return copyToStandardObject(o, oi, ObjectInspectorCopyOption.DEFAULT);
   }
 
+  /**
+   * Returns a deep copy of the Object o that can be scanned by a
+   * StandardObjectInspector returned by getStandardObjectInspector(oi).
+   */
+  public static Object copyToStandardObjectForShark(Object o, ObjectInspector oi) {
+    return copyToStandardObjectForShark(o, oi, ObjectInspectorCopyOption.DEFAULT);
+  }
+
   public static Object copyToStandardJavaObject(Object o, ObjectInspector oi) {
     return copyToStandardObject(o, oi, ObjectInspectorCopyOption.JAVA);
   }
@@ -367,7 +373,7 @@ public final class ObjectInspectorUtils {
       case DEFAULT: {
         ArrayList<Object> list = new ArrayList<Object>(length);
         for (int i = 0; i < length; i++) {
-          list.add(copyToStandardObject(loi.getListElement(o, i), loi
+          list.add(copyToStandardObjectForShark(loi.getListElement(o, i), loi
               .getListElementObjectInspector(), objectInspectorOption));
         }
         boolean preferWritable = false;
@@ -392,7 +398,7 @@ public final class ObjectInspectorUtils {
       case JAVA: {
         ArrayList<Object> list = new ArrayList<Object>(length);
         for (int i = 0; i < length; i++) {
-          list.add(copyToStandardObject(loi.getListElement(o, i), loi
+          list.add(copyToStandardObjectForShark(loi.getListElement(o, i), loi
               .getListElementObjectInspector(), objectInspectorOption));
         }
         result = list;
@@ -402,7 +408,7 @@ public final class ObjectInspectorUtils {
       case WRITABLE: {
         ArrayListWritable<Writable> list = new ArrayListWritable<Writable>();
         for (int i = 0; i < length; i++) {
-          list.add((Writable) copyToStandardObject(loi.getListElement(o, i), loi
+          list.add((Writable) copyToStandardObjectForShark(loi.getListElement(o, i), loi
               .getListElementObjectInspector(), objectInspectorOption));
         }
         result = list;
@@ -430,9 +436,9 @@ public final class ObjectInspectorUtils {
           HashMap<Object, Object> map = new HashMap<Object, Object>();
           for (Map.Entry<? extends Object, ? extends Object> entry : omap
               .entrySet()) {
-            map.put(copyToStandardObject(entry.getKey(), moi
+            map.put(copyToStandardObjectForShark(entry.getKey(), moi
                 .getMapKeyObjectInspector(), objectInspectorOption),
-                copyToStandardObject(entry.getValue(), moi
+                copyToStandardObjectForShark(entry.getValue(), moi
                     .getMapValueObjectInspector(), objectInspectorOption));
           }
           result = map;
@@ -440,9 +446,9 @@ public final class ObjectInspectorUtils {
           MapWritable map = new MapWritable();
           for (Map.Entry<? extends Object, ? extends Object> entry : omap
               .entrySet()) {
-            map.put((Writable) copyToStandardObject(entry.getKey(), moi
+            map.put((Writable) copyToStandardObjectForShark(entry.getKey(), moi
                 .getMapKeyObjectInspector(), objectInspectorOption),
-                (Writable) copyToStandardObject(entry.getValue(), moi
+                (Writable) copyToStandardObjectForShark(entry.getValue(), moi
                     .getMapValueObjectInspector(), objectInspectorOption));
           }
           result = map;
@@ -454,9 +460,9 @@ public final class ObjectInspectorUtils {
         HashMap<Object, Object> map = new HashMap<Object, Object>();
         for (Map.Entry<? extends Object, ? extends Object> entry : omap
             .entrySet()) {
-          map.put(copyToStandardObject(entry.getKey(), moi
+          map.put(copyToStandardObjectForShark(entry.getKey(), moi
               .getMapKeyObjectInspector(), objectInspectorOption),
-              copyToStandardObject(entry.getValue(), moi
+              copyToStandardObjectForShark(entry.getValue(), moi
                   .getMapValueObjectInspector(), objectInspectorOption));
         }
         result = map;
@@ -467,9 +473,9 @@ public final class ObjectInspectorUtils {
         MapWritable map = new MapWritable();
         for (Map.Entry<? extends Object, ? extends Object> entry : omap
             .entrySet()) {
-          map.put((Writable) copyToStandardObject(entry.getKey(), moi
+          map.put((Writable) copyToStandardObjectForShark(entry.getKey(), moi
               .getMapKeyObjectInspector(), objectInspectorOption),
-              (Writable) copyToStandardObject(entry.getValue(), moi
+              (Writable) copyToStandardObjectForShark(entry.getValue(), moi
                   .getMapValueObjectInspector(), objectInspectorOption));
         }
         result = map;
@@ -487,7 +493,7 @@ public final class ObjectInspectorUtils {
       case DEFAULT: {
         ArrayList<Object> struct = new ArrayList<Object>(fields.size());
         for (StructField f : fields) {
-          struct.add(copyToStandardObject(soi.getStructFieldData(o, f), f
+          struct.add(copyToStandardObjectForShark(soi.getStructFieldData(o, f), f
               .getFieldObjectInspector(), objectInspectorOption));
         }
         boolean preferWritable = false;
@@ -512,7 +518,7 @@ public final class ObjectInspectorUtils {
       case JAVA: {
         ArrayList<Object> struct = new ArrayList<Object>(fields.size());
         for (StructField f : fields) {
-          struct.add(copyToStandardObject(soi.getStructFieldData(o, f), f
+          struct.add(copyToStandardObjectForShark(soi.getStructFieldData(o, f), f
               .getFieldObjectInspector(), objectInspectorOption));
         }
         result = struct;
@@ -522,7 +528,7 @@ public final class ObjectInspectorUtils {
       case WRITABLE: {
         ArrayListWritable<Writable> struct = new ArrayListWritable<Writable>();
         for (StructField f : fields) {
-          struct.add((Writable) copyToStandardObject(soi.getStructFieldData(o, f), f
+          struct.add((Writable) copyToStandardObjectForShark(soi.getStructFieldData(o, f), f
               .getFieldObjectInspector(), objectInspectorOption));
         }
         result = struct;
@@ -536,7 +542,7 @@ public final class ObjectInspectorUtils {
     case UNION: {
       UnionObjectInspector uoi = (UnionObjectInspector) oi;
       List<ObjectInspector> objectInspectors = uoi.getObjectInspectors();
-      Object object = copyToStandardObject(
+      Object object = copyToStandardObjectForShark(
           uoi.getField(o),
           objectInspectors.get(uoi.getTag(o)),
           objectInspectorOption);
