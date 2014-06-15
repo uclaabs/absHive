@@ -34,28 +34,7 @@ public class CorrelatedInnerCovOracle implements InnerCovOracle {
 
   @Override
   public boolean fillCovMatrix(int groupId, int condId, double[][] dest, double[] mean, int pos) {
-
     // TODO
-    /*
-     * Old Code
-    Srv[] allCols = srv.get(groupId);
-    if (allCols[0].getVar(condId) == 0) {
-      for (int i = 0; i < length; ++i) {
-        dest[i + row][i + col] = 1; // fill in a fake variance
-      }
-      return false;
-    }
-
-    for (int i = 0; i < length; ++i) {
-      dest[i + row][i + col] = allCols[i].getVar(condId);
-    }
-
-    DoubleArray2D pcov = inner.get(groupId);
-    pcov.fill(condId, dest, row, col);
-    */
-
-
-    // newly added
     double[] srv = srvs.get(groupId);
     reader.setCondition(condId);
 
