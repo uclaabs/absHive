@@ -14,33 +14,33 @@ public class BitmapObjectInputStream implements ObjectInput {
 
   @Override
   public int readInt() throws IOException {
-    int value = buffer[cursor++];
+    int value = (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     return value;
   }
 
   @Override
   public long readLong() throws IOException {
-    long value = buffer[cursor++];
+    long value = (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     value <<= 8;
-    value ^= buffer[cursor++];
+    value ^= (buffer[cursor++] & 0xFF);
     return value;
   }
 

@@ -113,7 +113,7 @@ public class LineageComputation extends UDAFComputation {
     BitmapObjectOutputStream oo;
     try {
       for (int i = 0; i < result.size(); ++i) {
-        oo = new BitmapObjectOutputStream(result.get(i).sizeInBytes() + 12);
+        oo = new BitmapObjectOutputStream(result.get(i).serializedSizeInBytes());
         result.get(i).writeExternal(oo);
         ret.add(oo.getBuffer());
       }
