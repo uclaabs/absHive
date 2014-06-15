@@ -35,12 +35,12 @@ import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory.ObjectInspectorOptions;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.AbstractPrimitiveWritableObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveDecimalObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BinaryObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.BooleanObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.ByteObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.DoubleObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.FloatObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.HiveDecimalObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.LongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
@@ -50,8 +50,12 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectIn
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
+
+import edu.umd.cloud9.io.array.ArrayListWritable;
 
 /**
  * ObjectInspectorFactory is the primary way to create new ObjectInspector
@@ -134,15 +138,15 @@ public final class ObjectInspectorUtils {
       ListObjectInspector loi = (ListObjectInspector) oi;
       result = ObjectInspectorFactory
           .getStandardListObjectInspector(getStandardObjectInspector(loi
-          .getListElementObjectInspector(), objectInspectorOption));
+              .getListElementObjectInspector(), objectInspectorOption));
       break;
     }
     case MAP: {
       MapObjectInspector moi = (MapObjectInspector) oi;
       result = ObjectInspectorFactory.getStandardMapObjectInspector(
           getStandardObjectInspector(moi.getMapKeyObjectInspector(),
-          objectInspectorOption), getStandardObjectInspector(moi
-          .getMapValueObjectInspector(), objectInspectorOption));
+              objectInspectorOption), getStandardObjectInspector(moi
+              .getMapValueObjectInspector(), objectInspectorOption));
       break;
     }
     case STRUCT: {
@@ -178,11 +182,17 @@ public final class ObjectInspectorUtils {
 
   /**
    * Copy specified fields in the input row to the output array of standard objects.
-   * @param result output list of standard objects.
-   * @param row input row.
-   * @param startCol starting column number from the input row.
-   * @param numCols number of columns to copy.
-   * @param soi Object inspector for the to-be-copied columns.
+   *
+   * @param result
+   *          output list of standard objects.
+   * @param row
+   *          input row.
+   * @param startCol
+   *          starting column number from the input row.
+   * @param numCols
+   *          number of columns to copy.
+   * @param soi
+   *          Object inspector for the to-be-copied columns.
    */
   public static void partialCopyToStandardObject(List<Object> result, Object row, int startCol,
       int numCols, StructObjectInspector soi,
@@ -283,7 +293,7 @@ public final class ObjectInspectorUtils {
         map.put(copyToStandardObject(entry.getKey(), moi
             .getMapKeyObjectInspector(), objectInspectorOption),
             copyToStandardObject(entry.getValue(), moi
-            .getMapValueObjectInspector(), objectInspectorOption));
+                .getMapValueObjectInspector(), objectInspectorOption));
       }
       result = map;
       break;
@@ -300,15 +310,241 @@ public final class ObjectInspectorUtils {
       break;
     }
     case UNION: {
-      UnionObjectInspector uoi = (UnionObjectInspector)oi;
+      UnionObjectInspector uoi = (UnionObjectInspector) oi;
       List<ObjectInspector> objectInspectors = uoi.getObjectInspectors();
       Object object = copyToStandardObject(
-              uoi.getField(o),
-              objectInspectors.get(uoi.getTag(o)),
-              objectInspectorOption);
+          uoi.getField(o),
+          objectInspectors.get(uoi.getTag(o)),
+          objectInspectorOption);
       result = object;
       break;
     }
+    default: {
+      throw new RuntimeException("Unknown ObjectInspector category!");
+    }
+    }
+    return result;
+  }
+
+  public static Object copyToStandardObjectForShark(Object o, ObjectInspector oi,
+      ObjectInspectorCopyOption objectInspectorOption) {
+    if (o == null) {
+      return null;
+    }
+
+    Object result = null;
+    switch (oi.getCategory()) {
+    case PRIMITIVE: {
+      PrimitiveObjectInspector loi = (PrimitiveObjectInspector) oi;
+      switch (objectInspectorOption) {
+      case DEFAULT: {
+        if (loi.preferWritable()) {
+          result = loi.getPrimitiveWritableObject(loi.copyObject(o));
+        } else {
+          result = loi.getPrimitiveJavaObject(o);
+        }
+        break;
+      }
+
+      case JAVA: {
+        result = loi.getPrimitiveJavaObject(o);
+        break;
+      }
+
+      case WRITABLE: {
+        result = loi.getPrimitiveWritableObject(loi.copyObject(o));
+        break;
+      }
+      }
+      break;
+    }
+
+
+    case LIST: {
+      ListObjectInspector loi = (ListObjectInspector) oi;
+      int length = loi.getListLength(o);
+      switch (objectInspectorOption) {
+      case DEFAULT: {
+        ArrayList<Object> list = new ArrayList<Object>(length);
+        for (int i = 0; i < length; i++) {
+          list.add(copyToStandardObject(loi.getListElement(o, i), loi
+              .getListElementObjectInspector(), objectInspectorOption));
+        }
+        boolean preferWritable = false;
+        for (Object e : list) {
+          if (e instanceof Writable) {
+            preferWritable = true;
+            break;
+          }
+        }
+        if (!preferWritable) {
+          result = list;
+        } else {
+          ArrayListWritable<Writable> buf = new ArrayListWritable<Writable>();
+          for (int i = 0; i < length; ++i) {
+            buf.add((Writable) list);
+          }
+          result = buf;
+        }
+        break;
+      }
+
+      case JAVA: {
+        ArrayList<Object> list = new ArrayList<Object>(length);
+        for (int i = 0; i < length; i++) {
+          list.add(copyToStandardObject(loi.getListElement(o, i), loi
+              .getListElementObjectInspector(), objectInspectorOption));
+        }
+        result = list;
+        break;
+      }
+
+      case WRITABLE: {
+        ArrayListWritable<Writable> list = new ArrayListWritable<Writable>();
+        for (int i = 0; i < length; i++) {
+          list.add((Writable) copyToStandardObject(loi.getListElement(o, i), loi
+              .getListElementObjectInspector(), objectInspectorOption));
+        }
+        result = list;
+        break;
+      }
+      }
+      break;
+    }
+
+
+    case MAP: {
+      MapObjectInspector moi = (MapObjectInspector) oi;
+      Map<? extends Object, ? extends Object> omap = moi.getMap(o);
+      switch (objectInspectorOption) {
+      case DEFAULT: {
+        boolean preferWritable = false;
+        for (Map.Entry<? extends Object, ? extends Object> entry : omap
+            .entrySet()) {
+          if (entry.getKey() instanceof Writable) {
+            preferWritable = true;
+            break;
+          }
+        }
+        if (!preferWritable) {
+          HashMap<Object, Object> map = new HashMap<Object, Object>();
+          for (Map.Entry<? extends Object, ? extends Object> entry : omap
+              .entrySet()) {
+            map.put(copyToStandardObject(entry.getKey(), moi
+                .getMapKeyObjectInspector(), objectInspectorOption),
+                copyToStandardObject(entry.getValue(), moi
+                    .getMapValueObjectInspector(), objectInspectorOption));
+          }
+          result = map;
+        } else {
+          MapWritable map = new MapWritable();
+          for (Map.Entry<? extends Object, ? extends Object> entry : omap
+              .entrySet()) {
+            map.put((Writable) copyToStandardObject(entry.getKey(), moi
+                .getMapKeyObjectInspector(), objectInspectorOption),
+                (Writable) copyToStandardObject(entry.getValue(), moi
+                    .getMapValueObjectInspector(), objectInspectorOption));
+          }
+          result = map;
+        }
+        break;
+      }
+
+      case JAVA: {
+        HashMap<Object, Object> map = new HashMap<Object, Object>();
+        for (Map.Entry<? extends Object, ? extends Object> entry : omap
+            .entrySet()) {
+          map.put(copyToStandardObject(entry.getKey(), moi
+              .getMapKeyObjectInspector(), objectInspectorOption),
+              copyToStandardObject(entry.getValue(), moi
+                  .getMapValueObjectInspector(), objectInspectorOption));
+        }
+        result = map;
+        break;
+      }
+
+      case WRITABLE: {
+        MapWritable map = new MapWritable();
+        for (Map.Entry<? extends Object, ? extends Object> entry : omap
+            .entrySet()) {
+          map.put((Writable) copyToStandardObject(entry.getKey(), moi
+              .getMapKeyObjectInspector(), objectInspectorOption),
+              (Writable) copyToStandardObject(entry.getValue(), moi
+                  .getMapValueObjectInspector(), objectInspectorOption));
+        }
+        result = map;
+        break;
+      }
+      }
+      break;
+    }
+
+
+    case STRUCT: {
+      StructObjectInspector soi = (StructObjectInspector) oi;
+      List<? extends StructField> fields = soi.getAllStructFieldRefs();
+      switch (objectInspectorOption) {
+      case DEFAULT: {
+        ArrayList<Object> struct = new ArrayList<Object>(fields.size());
+        for (StructField f : fields) {
+          struct.add(copyToStandardObject(soi.getStructFieldData(o, f), f
+              .getFieldObjectInspector(), objectInspectorOption));
+        }
+        boolean preferWritable = false;
+        for (Object e : struct) {
+          if (e instanceof Writable) {
+            preferWritable = true;
+            break;
+          }
+        }
+        if (!preferWritable) {
+          result = struct;
+        } else {
+          ArrayListWritable<Writable> buf = new ArrayListWritable<Writable>();
+          for (Object e : struct) {
+            buf.add((Writable) e);
+          }
+          result = buf;
+        }
+        break;
+      }
+
+      case JAVA: {
+        ArrayList<Object> struct = new ArrayList<Object>(fields.size());
+        for (StructField f : fields) {
+          struct.add(copyToStandardObject(soi.getStructFieldData(o, f), f
+              .getFieldObjectInspector(), objectInspectorOption));
+        }
+        result = struct;
+        break;
+      }
+
+      case WRITABLE: {
+        ArrayListWritable<Writable> struct = new ArrayListWritable<Writable>();
+        for (StructField f : fields) {
+          struct.add((Writable) copyToStandardObject(soi.getStructFieldData(o, f), f
+              .getFieldObjectInspector(), objectInspectorOption));
+        }
+        result = struct;
+        break;
+      }
+      }
+      break;
+    }
+
+
+    case UNION: {
+      UnionObjectInspector uoi = (UnionObjectInspector) oi;
+      List<ObjectInspector> objectInspectors = uoi.getObjectInspectors();
+      Object object = copyToStandardObject(
+          uoi.getField(o),
+          objectInspectors.get(uoi.getTag(o)),
+          objectInspectorOption);
+      result = object;
+      break;
+    }
+
+
     default: {
       throw new RuntimeException("Unknown ObjectInspector category!");
     }
@@ -336,7 +572,7 @@ public final class ObjectInspectorUtils {
     StringBuilder sb = new StringBuilder();
     sb.append(serdeConstants.UNION_TYPE_NAME + "<");
     List<ObjectInspector> ois = uoi.getObjectInspectors();
-    for(int i = 0; i < ois.size(); i++) {
+    for (int i = 0; i < ois.size(); i++) {
       if (i > 0) {
         sb.append(",");
       }
@@ -427,7 +663,7 @@ public final class ObjectInspectorUtils {
     case UNION: {
       StringBuffer result = new StringBuffer();
       result.append(oi.getClass().getSimpleName() + "<");
-      UnionObjectInspector uoi = (UnionObjectInspector)oi;
+      UnionObjectInspector uoi = (UnionObjectInspector) oi;
       List<ObjectInspector> ois = uoi.getObjectInspectors();
       for (int i = 0; i < ois.size(); i++) {
         if (i > 0) {
@@ -503,7 +739,7 @@ public final class ObjectInspectorUtils {
     }
     case LIST: {
       int r = 0;
-      ListObjectInspector listOI = (ListObjectInspector)objIns;
+      ListObjectInspector listOI = (ListObjectInspector) objIns;
       ObjectInspector elemOI = listOI.getListElementObjectInspector();
       for (int ii = 0; ii < listOI.getListLength(o); ++ii) {
         r = 31 * r + hashCode(listOI.getListElement(o, ii), elemOI);
@@ -512,13 +748,13 @@ public final class ObjectInspectorUtils {
     }
     case MAP: {
       int r = 0;
-      MapObjectInspector mapOI = (MapObjectInspector)objIns;
+      MapObjectInspector mapOI = (MapObjectInspector) objIns;
       ObjectInspector keyOI = mapOI.getMapKeyObjectInspector();
       ObjectInspector valueOI = mapOI.getMapValueObjectInspector();
       Map<?, ?> map = mapOI.getMap(o);
       for (Map.Entry entry : map.entrySet()) {
         r += hashCode(entry.getKey(), keyOI) ^
-             hashCode(entry.getValue(), valueOI);
+            hashCode(entry.getValue(), valueOI);
       }
       return r;
     }
@@ -728,7 +964,7 @@ public final class ObjectInspectorUtils {
       if (mapEqualComparer == null) {
         throw new RuntimeException("Compare on map type not supported!");
       } else {
-        return mapEqualComparer.compare(o1, (MapObjectInspector)oi1, o2, (MapObjectInspector)oi2);
+        return mapEqualComparer.compare(o1, (MapObjectInspector) oi1, o2, (MapObjectInspector) oi2);
       }
     }
     case UNION: {
@@ -799,20 +1035,19 @@ public final class ObjectInspectorUtils {
    * Compares two types identified by the given object inspectors. This method
    * compares the types as follows:
    * <ol>
-   * <li>If the given inspectors do not belong to same category, the result is
-   * negative.</li>
-   * <li>If the given inspectors are for <code>PRIMITIVE</code> type, the result
-   * is the comparison of their type names.</li>
-   * <li>If the given inspectors are for <code>LIST</code> type, then the result
-   * is recursive call to compare the type of list elements.</li>
-   * <li>If the given inspectors are <code>MAP</code> type, then the result is a
-   * recursive call to compare the map key and value types.</li>
-   * <li>If the given inspectors are <code>STRUCT</code> type, then the result
-   * is negative if they do not have the same number of fields. If they do have
-   * the same number of fields, the result is a recursive call to compare each
-   * of the field types.</li>
+   * <li>If the given inspectors do not belong to same category, the result is negative.</li>
+   * <li>If the given inspectors are for <code>PRIMITIVE</code> type, the result is the comparison
+   * of their type names.</li>
+   * <li>If the given inspectors are for <code>LIST</code> type, then the result is recursive call
+   * to compare the type of list elements.</li>
+   * <li>If the given inspectors are <code>MAP</code> type, then the result is a recursive call to
+   * compare the map key and value types.</li>
+   * <li>If the given inspectors are <code>STRUCT</code> type, then the result is negative if they
+   * do not have the same number of fields. If they do have the same number of fields, the result is
+   * a recursive call to compare each of the field types.</li>
    * <li>If none of the above, the result is negative.</li>
    * </ol>
+   *
    * @param o1
    * @param o2
    * @return true if the given object inspectors represent the same types.
@@ -834,9 +1069,9 @@ public final class ObjectInspectorUtils {
     // If lists, recursively compare the list element types
     if (c1.equals(Category.LIST)) {
       ObjectInspector child1 =
-        ((ListObjectInspector) o1).getListElementObjectInspector();
+          ((ListObjectInspector) o1).getListElementObjectInspector();
       ObjectInspector child2 =
-        ((ListObjectInspector) o2).getListElementObjectInspector();
+          ((ListObjectInspector) o2).getListElementObjectInspector();
       return compareTypes(child1, child2);
     }
 
@@ -865,10 +1100,8 @@ public final class ObjectInspectorUtils {
       StructObjectInspector structOI1 = (StructObjectInspector) o1;
       StructObjectInspector structOI2 = (StructObjectInspector) o2;
 
-      List<? extends StructField> childFieldsList1
-        = structOI1.getAllStructFieldRefs();
-      List<? extends StructField> childFieldsList2
-        = structOI2.getAllStructFieldRefs();
+      List<? extends StructField> childFieldsList1 = structOI1.getAllStructFieldRefs();
+      List<? extends StructField> childFieldsList2 = structOI2.getAllStructFieldRefs();
 
       if (childFieldsList1 == null && childFieldsList2 == null) {
         return true;
@@ -885,7 +1118,7 @@ public final class ObjectInspectorUtils {
         StructField field2 = it2.next();
 
         if (!compareTypes(field1.getFieldObjectInspector(),
-              field2.getFieldObjectInspector())) {
+            field2.getFieldObjectInspector())) {
           return false;
         }
       }
@@ -923,50 +1156,50 @@ public final class ObjectInspectorUtils {
   public static ConstantObjectInspector getConstantObjectInspector(ObjectInspector oi, Object value) {
     ObjectInspector writableOI = getStandardObjectInspector(oi, ObjectInspectorCopyOption.WRITABLE);
     Object writableValue =
-      ObjectInspectorConverters.getConverter(oi, writableOI).convert(value);
+        ObjectInspectorConverters.getConverter(oi, writableOI).convert(value);
     switch (writableOI.getCategory()) {
-      case PRIMITIVE:
-        PrimitiveObjectInspector poi = (PrimitiveObjectInspector) oi;
-        return PrimitiveObjectInspectorFactory.getPrimitiveWritableConstantObjectInspector(
-            poi.getPrimitiveCategory(), writableValue);
-      case LIST:
-        ListObjectInspector loi = (ListObjectInspector) oi;
-        return ObjectInspectorFactory.getStandardConstantListObjectInspector(
-            getStandardObjectInspector(
+    case PRIMITIVE:
+      PrimitiveObjectInspector poi = (PrimitiveObjectInspector) oi;
+      return PrimitiveObjectInspectorFactory.getPrimitiveWritableConstantObjectInspector(
+          poi.getPrimitiveCategory(), writableValue);
+    case LIST:
+      ListObjectInspector loi = (ListObjectInspector) oi;
+      return ObjectInspectorFactory.getStandardConstantListObjectInspector(
+          getStandardObjectInspector(
               loi.getListElementObjectInspector(),
               ObjectInspectorCopyOption.WRITABLE
-            ),
-            (List<?>)writableValue);
-      case MAP:
-        MapObjectInspector moi = (MapObjectInspector) oi;
-        return ObjectInspectorFactory.getStandardConstantMapObjectInspector(
-            getStandardObjectInspector(
+          ),
+          (List<?>) writableValue);
+    case MAP:
+      MapObjectInspector moi = (MapObjectInspector) oi;
+      return ObjectInspectorFactory.getStandardConstantMapObjectInspector(
+          getStandardObjectInspector(
               moi.getMapKeyObjectInspector(),
               ObjectInspectorCopyOption.WRITABLE
-            ),
-            getStandardObjectInspector(
+          ),
+          getStandardObjectInspector(
               moi.getMapValueObjectInspector(),
               ObjectInspectorCopyOption.WRITABLE
-            ),
-            (Map<?, ?>)writableValue);
-      default:
-       throw new IllegalArgumentException(
-           writableOI.getCategory() + " not yet supported for constant OI");
+          ),
+          (Map<?, ?>) writableValue);
+    default:
+      throw new IllegalArgumentException(
+          writableOI.getCategory() + " not yet supported for constant OI");
     }
   }
 
   public static Object getWritableConstantValue(ObjectInspector oi) {
-    return ((ConstantObjectInspector)oi).getWritableConstantValue();
+    return ((ConstantObjectInspector) oi).getWritableConstantValue();
   }
 
   public static boolean supportsConstantObjectInspector(ObjectInspector oi) {
     switch (oi.getCategory()) {
-      case PRIMITIVE:
-      case LIST:
-      case MAP:
-        return true;
-      default:
-        return false;
+    case PRIMITIVE:
+    case LIST:
+    case MAP:
+      return true;
+    default:
+      return false;
     }
   }
 
