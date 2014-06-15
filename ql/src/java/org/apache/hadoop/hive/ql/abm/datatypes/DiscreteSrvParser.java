@@ -13,8 +13,8 @@ public class DiscreteSrvParser extends SrvParser {
       os[i] = oi.getStructFieldData(o, fields[i]);
     }
 
-    int len = lois[0].getListLength(os[0]) - 2;
-    double[] srvs = new double[len * fields.length];
+    int len = lois[0].getListLength(os[0]);
+    double[] srvs = new double[(len - 2) * fields.length];
 
     // read one double value from each list at a time
     for(int i = 2; i < len; ++i) {

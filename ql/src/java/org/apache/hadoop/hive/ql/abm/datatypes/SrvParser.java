@@ -25,10 +25,10 @@ public class SrvParser {
     eois = new DoubleObjectInspector[len];
     os = new Object[len];
 
-    for (int i = from, j = 0; i < to; ++i, ++j) {
-      fields[j] = allFields.get(i);
-      lois[j] = (ListObjectInspector) fields[j].getFieldObjectInspector();
-      eois[j] = (DoubleObjectInspector) lois[j].getListElementObjectInspector();
+    for (int i = 0; i < len; ++i) {
+      fields[i] = allFields.get(i + from);
+      lois[i] = (ListObjectInspector) fields[i].getFieldObjectInspector();
+      eois[i] = (DoubleObjectInspector) lois[i].getListElementObjectInspector();
     }
   }
 
