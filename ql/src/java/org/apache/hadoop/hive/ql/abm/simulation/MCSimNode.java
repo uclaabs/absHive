@@ -29,7 +29,7 @@ public class MCSimNode {
       withinLevel[i] = level;
 
       int gby1 = gbyIds.get(i);
-      List<UdafType> udaf1 = udafTypes.get(i);
+      List<UdafType> udaf1 = udafTypes.get(gby1);
       boolean continuous1 = (gby1 <= lastContinuousGby);
       SrvReader reader = SrvReader.createReader(udaf1.size(), continuous1);
 
@@ -41,7 +41,7 @@ public class MCSimNode {
 
       for (int j = i + 1; j < numGbys1; ++j) {
         int gby2 = gbyIds.get(j);
-        List<UdafType> udaf2 = udafTypes.get(j);
+        List<UdafType> udaf2 = udafTypes.get(gby2);
         boolean continuous2 = (gby2 <= lastContinuousGby);
         if (independent || !continuous1 || !continuous2) {
           level[i] = new IndependentInterDistOracle(udaf1, udaf2);
@@ -58,12 +58,12 @@ public class MCSimNode {
       betweenLevel[i] = level;
 
       int gby1 = gbyIds.get(i);
-      List<UdafType> udaf1 = udafTypes.get(i);
+      List<UdafType> udaf1 = udafTypes.get(gby1);
       boolean continuous1 = (gby1 <= lastContinuousGby);
 
       for (int j = 0; j < numGbys2; ++j) {
         int gby2 = gbyIds.get(j);
-        List<UdafType> udaf2 = udafTypes.get(j);
+        List<UdafType> udaf2 = udafTypes.get(gby2);
         boolean continuous2 = (gby2 <= lastContinuousGby);
         if (independent || !continuous1 || !continuous2) {
           level[i] = new IndependentInterDistOracle(udaf1, udaf2);
