@@ -25,6 +25,25 @@ public class Merge {
     for (RangeList rangeArray : rangeMatrix) {
       addDimension(rangeArray);
     }
+
+  //TODO
+    System.out.println("Merge addDimension");
+    System.out.print("booleans:");
+    for(int i = 0; i < flags.size(); i ++) {
+     System.out.print(flags.get(i) + ",");
+    }
+    System.out.println();
+    System.out.print("Indexes:");
+    for(IntArrayList indexes: dimIndexes) {
+      for(int i = 0; i < indexes.size(); i ++) {
+        System.out.print(indexes.getInt(i));
+        if(i != indexes.size() - 1) {
+          System.out.print(",");
+        }
+      }
+      System.out.println();
+    }
+
   }
 
   private void addDimension(RangeList conditions) {
@@ -39,25 +58,6 @@ public class Merge {
     Arrays.quickSort(0, len, sorter, sorter);
     IntArrayList indexes = sorter.getIndexes();
     dimIndexes.add(indexes);
-
-    //TODO
-    System.out.println("Merge addDimension");
-    System.out.print("Conditions:");
-    for(int i = 0; i < conditions.size(); i ++) {
-      System.out.print(conditions.getDouble(i));
-      if(i != conditions.size() - 1) {
-        System.out.print(",");
-      }
-    }
-    System.out.println();
-    System.out.print("Indexes:");
-    for(int i = 0; i < indexes.size(); i ++) {
-      System.out.print(indexes.getInt(i));
-      if(i != indexes.size() - 1) {
-        System.out.print(",");
-      }
-    }
-    System.out.println();
 
 
     BooleanArrayList duplicates = new BooleanArrayList(len);
