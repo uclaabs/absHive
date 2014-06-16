@@ -36,7 +36,7 @@ public class ComparisonTransform extends BinaryTransform {
   }
 
   public boolean isAscending() {
-    if (lhs.getAggregatesInvolved().isEmpty()) {
+    if (!lhs.getAggregatesInvolved().isEmpty()) {
       return Comparator.GREATER_THAN == comparator || Comparator.GREATER_THAN_EQUAL_TO == comparator;
     }
     assert !rhs.getAggregatesInvolved().isEmpty();
