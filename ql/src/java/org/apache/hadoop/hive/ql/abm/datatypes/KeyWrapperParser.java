@@ -1,7 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-import java.util.List;
-
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
@@ -29,13 +27,6 @@ public class KeyWrapperParser {
     int length = oi.getListLength(o);
     for (int i = 0; i < length; ++i) {
       ret.add(eoi.get(oi.getListElement(o, i)));
-    }
-  }
-
-  public void shallowCopyInto(Object o, List<Object> ret) {
-    int length = oi.getListLength(o);
-    for (int i = 0; i < length; ++i) {
-      ret.add(oi.getListElement(o, i));
     }
   }
 
