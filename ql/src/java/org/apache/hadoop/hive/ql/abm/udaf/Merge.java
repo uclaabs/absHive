@@ -40,6 +40,26 @@ public class Merge {
     IntArrayList indexes = sorter.getIndexes();
     dimIndexes.add(indexes);
 
+    //TODO
+    System.out.println("Merge addDimension");
+    System.out.print("Conditions:");
+    for(int i = 0; i < conditions.size(); i ++) {
+      System.out.print(conditions.getDouble(i));
+      if(i != conditions.size() - 1) {
+        System.out.print(",");
+      }
+    }
+    System.out.println();
+    System.out.print("Indexes:");
+    for(int i = 0; i < indexes.size(); i ++) {
+      System.out.print(indexes.getInt(i));
+      if(i != indexes.size() - 1) {
+        System.out.print(",");
+      }
+    }
+    System.out.println();
+
+
     BooleanArrayList duplicates = new BooleanArrayList(len);
     duplicates.add(false);
     for (int i = 1; i < len; ++i) {
@@ -64,6 +84,20 @@ public class Merge {
     int parent = level - 1;
     IntArrayList indexes = dimIndexes.get(level);
     BooleanArrayList duplicates = dimDuplicates.get(level);
+
+    //TODO
+    if(leaf) {
+      System.out.println("Merge enumerate");
+      System.out.print("Indexes:");
+      for(int i = 0; i < indexes.size(); i ++) {
+        System.out.print(indexes.getInt(i));
+        if(i != indexes.size() - 1) {
+          System.out.print(",");
+        }
+      }
+      System.out.println();
+    }
+
 
     if (!leaf) {
       // filter out the empty partition in the beginning

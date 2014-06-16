@@ -34,6 +34,9 @@ public class SrvSumComputation extends UDAFComputation {
     this.currentSum = 0;
     this.currentSsum = 0;
     this.groupCnt++;
+
+    //TODO
+    System.out.println("SrvSumComputation AddGroup " + this.groupCnt + "; currentList size " + currentList.size());
   }
 
   public void clear() {
@@ -47,7 +50,18 @@ public class SrvSumComputation extends UDAFComputation {
 
   @Override
   public void iterate(int index) {
-    double value = this.currentList.getDouble(index);
+    double value;
+    try{
+      value = this.currentList.getDouble(index);
+    } catch(Exception e) {
+
+      System.out.println("SrvSumCom " + index);
+      for(double val:currentList) {
+        System.out.print(val + ",");
+      }
+      System.out.println();
+    }
+    value = this.currentList.getDouble(index);
     currentSum += value;
     currentSsum += (value * value);
   }
