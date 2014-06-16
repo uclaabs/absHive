@@ -20,10 +20,10 @@ interface InnerDistOracle extends DistOracle {
 
 interface InterDistOracle extends DistOracle {
 
-  public void fillCovSym(int groupId1, int groupId2, int condId1, int condId2, double[] mean,
-      double[][] cov, int offset1, int offset2);
+  public void fillCovSym(int groupId1, int groupId2, int condId1, int condId2, double[] mean1,
+      double[] mean2, double[][] cov, int offset1, int offset2);
 
-  public void fillCovAsym(int groupId1, int groupId2, int condId1, int condId2, double[] mean,
-      double[][] cov, int offset1, int offset2);
+  public void fillCovAsym(int groupId1, int groupId2, int condId1, int condId2, double[] mean1,
+      double[] mean2, double[][] cov, int offset1, int offset2);
 
 }

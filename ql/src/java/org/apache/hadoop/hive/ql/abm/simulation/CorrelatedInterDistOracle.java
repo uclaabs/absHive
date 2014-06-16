@@ -11,13 +11,14 @@ public class CorrelatedInterDistOracle implements InterDistOracle {
   private final int length1;
   private final int length2;
   private final InterCovMap inter;
+  private final CovOracle[][] oracles;
 
   public CorrelatedInterDistOracle(InterCovMap inter, List<UdafType> udafTypes1,
       List<UdafType> udafTypes2) {
     this.inter = inter;
     length1 = udafTypes1.size();
     length2 = udafTypes2.size();
-    // TODO Auto-generated constructor stub
+    oracles = CovOracle.getCovOracles(udafTypes1, udafTypes2);
   }
 
   @Override
@@ -31,12 +32,16 @@ public class CorrelatedInterDistOracle implements InterDistOracle {
   }
 
   @Override
-  public void fillCovSym(int groupId1, int groupId2, int condId1, int condId2, double[] mean,
-      double[][] cov, int offset1, int offset2) {
-    // TODO Auto-generated method stub
+  public void fillCovSym(int groupId1, int groupId2, int condId1, int condId2, double[] mean1,
+      double[] mean2, double[][] cov, int offset1, int offset2) {
     DoubleArray3D pcov = inter.get(groupId1, groupId2);
     pcov.fill(condId1, condId2, cov, offset1, offset2);
-    // TODO
+
+    for (int i = 0; i < length1; ++i) {
+      for (int j = 0; j < length2; ++j) {
+        oracles[i][j].fillCovariance(mean1, mean2, offset1, offset2, cov);
+      }
+    }
 
     int ito = offset1 + length1;
     int jto = offset2 + length2;
@@ -48,10 +53,16 @@ public class CorrelatedInterDistOracle implements InterDistOracle {
   }
 
   @Override
-  public void fillCovAsym(int groupId1, int groupId2, int condId1, int condId2, double[] mean,
-      double[][] cov, int offset1, int offset2) {
-    // TODO Auto-generated method stub
+  public void fillCovAsym(int groupId1, int groupId2, int condId1, int condId2, double[] mean1,
+      double[] mean2, double[][] cov, int offset1, int offset2) {
+    DoubleArray3D pcov = inter.get(groupId1, groupId2);
+    pcov.fill(condId1, condId2, cov, offset1, offset2);
 
+    for (int i = 0; i < length1; ++i) {
+      for (int j = 0; j < length2; ++j) {
+        oracles[i][j].fillCovariance(mean1, mean2, offset1, offset2, cov);
+      }
+    }
   }
 
 }

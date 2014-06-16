@@ -9,9 +9,9 @@ public class IndependentInterDistOracle implements InterDistOracle {
   private final int length1;
   private final int length2;
 
-  public IndependentInterDistOracle(List<UdafType> lhsTypes, List<UdafType> rhsTypes) {
-    length1 = lhsTypes.size();
-    length2 = rhsTypes.size();
+  public IndependentInterDistOracle(List<UdafType> udafTypes1, List<UdafType> udafTypes2) {
+    length1 = udafTypes1.size();
+    length2 = udafTypes2.size();
   }
 
   @Override
@@ -25,14 +25,14 @@ public class IndependentInterDistOracle implements InterDistOracle {
   }
 
   @Override
-  public void fillCovSym(int groupId1, int groupId2, int condId1, int condId2, double[] mean,
-      double[][] cov, int offset1, int offset2) {
+  public void fillCovSym(int groupId1, int groupId2, int condId1, int condId2, double[] mean1,
+      double[] mean2, double[][] cov, int offset1, int offset2) {
     // Do nothing, as cov should be initialized with all zeros
   }
 
   @Override
-  public void fillCovAsym(int groupId1, int groupId2, int condId1, int condId2, double[] mean,
-      double[][] cov, int offset1, int offset2) {
+  public void fillCovAsym(int groupId1, int groupId2, int condId1, int condId2, double[] mean1,
+      double[] mean2, double[][] cov, int offset1, int offset2) {
     // Do nothing, as cov should be initialized with all zeros
   }
 

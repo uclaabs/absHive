@@ -2,9 +2,12 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 
+import java.util.List;
+
 import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray2D;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvReader;
+import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class CorrelatedInnerDistOracle implements InnerDistOracle {
 
@@ -12,13 +15,15 @@ public class CorrelatedInnerDistOracle implements InnerDistOracle {
   private final SrvReader reader;
   private final int length;
   private final InnerCovMap inner;
+  private final CovOracle[][] oracles;
 
   public CorrelatedInnerDistOracle(Int2ReferenceOpenHashMap<double[]> srvs,
-      SrvReader reader, InnerCovMap inner) {
+      SrvReader reader, InnerCovMap inner, List<UdafType> aggrTypes) {
     this.srvs = srvs;
     this.reader = reader;
     length = reader.getNumCols();
     this.inner = inner;
+    oracles = CovOracle.getCovOracles(aggrTypes, aggrTypes);
   }
 
   @Override
@@ -40,7 +45,12 @@ public class CorrelatedInnerDistOracle implements InnerDistOracle {
     if (!fake) {
       DoubleArray2D pcov = inner.get(groupId);
       pcov.fill(condId, cov, offset);
-      // TODO
+
+      for (int i = 0; i < length; ++i) {
+        for (int j = i + 1; j < length; ++j) {
+          oracles[i][j].fillCovariance(mean, mean, offset, offset, cov);
+        }
+      }
 
       for (int i = offset, to = offset + length; i < to; ++i) {
         for (int j = i + 1; j < to; ++j) {
@@ -54,10 +64,17 @@ public class CorrelatedInnerDistOracle implements InnerDistOracle {
 
   @Override
   public void fillCov(int groupId, int condId1, int condId2, double[] mean, double[][] cov, int offset1, int offset2) {
-    // TODO Auto-generated method stub
-    int countIdx1 = offset1 + length;
-    int countIdx2 = offset2 + length;
+    for (int i = 0; i < length; ++i) {
+      for (int j = 0; j < length; ++j) {
+        oracles[i][j].fillCovariance(mean, mean, offset1, offset2, cov);
+      }
+    }
 
+    for (int i = offset1, ito = offset1 + length; i < ito; ++i) {
+      for (int j = offset2, jto = offset2 + length; j < jto; ++j) {
+        cov[j][i] = cov[i][j];
+      }
+    }
   }
 
 }
