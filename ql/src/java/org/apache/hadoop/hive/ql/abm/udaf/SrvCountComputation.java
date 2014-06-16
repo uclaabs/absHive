@@ -6,18 +6,20 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-
 public class SrvCountComputation extends UDAFComputation {
 
   protected List<LongArrayList> cntMatrix = new ArrayList<LongArrayList>();
   protected DoubleArrayList result = new DoubleArrayList();
-  protected int N = AbmUtilities.getTotalTupleNumber();
+  protected int N = 0;
   protected long baseCnt = 0;
   protected long currentCnt = 0;
   protected int groupCnt = -1;
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
+
+  public void setTotalTupleNumber(int N) {
+    this.N = N;
+  }
 
   public void setCount (long base) {
     this.baseCnt = base;

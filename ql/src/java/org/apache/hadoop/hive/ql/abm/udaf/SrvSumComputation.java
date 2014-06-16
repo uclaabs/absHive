@@ -5,8 +5,6 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.AbmUtilities;
-
 public class SrvSumComputation extends UDAFComputation {
 
   protected DoubleArrayList result = new DoubleArrayList();
@@ -14,7 +12,8 @@ public class SrvSumComputation extends UDAFComputation {
   protected DoubleArrayList currentList = new DoubleArrayList();
   protected double baseSum = 0;
   protected double baseSsum = 0;
-  protected int N = AbmUtilities.getTotalTupleNumber();
+//  protected int N = AbmUtilities.getTotalTupleNumber();
+  protected int N = 0;
   protected int groupCnt = -1;
 
   protected double currentSum = 0;
@@ -22,6 +21,9 @@ public class SrvSumComputation extends UDAFComputation {
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
 
+  public void setTotalTupleNumber(int N) {
+    this.N = N;
+  }
 
   public void setBase(double sum, double ssum) {
     this.baseSum = sum;

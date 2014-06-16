@@ -125,6 +125,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;
+    compute.setTotalTupleNumber(N);
     compute.setBase(myagg.baseSum, myagg.baseSsum, myagg.baseCnt);
     for (Map.Entry<Integer, DoubleArrayList> entry : myagg.groups.entrySet()) {
 

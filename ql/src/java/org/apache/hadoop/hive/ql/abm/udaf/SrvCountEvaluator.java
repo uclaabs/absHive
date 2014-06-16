@@ -89,6 +89,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
 
+    compute.setTotalTupleNumber(N);
     compute.setCount(myagg.baseCnt);
     List<Merge> instructions = ins.getMergeInstruction();
 
