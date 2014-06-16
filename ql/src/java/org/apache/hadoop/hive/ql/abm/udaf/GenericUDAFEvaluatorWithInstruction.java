@@ -7,7 +7,7 @@ public abstract class GenericUDAFEvaluatorWithInstruction extends GenericUDAFEva
   protected Instruction ins;
   protected int N;
 
-  public void setFlags(int N) {
+  public void setTotalTupleNumber(int N) {
     this.N = N;
   }
 

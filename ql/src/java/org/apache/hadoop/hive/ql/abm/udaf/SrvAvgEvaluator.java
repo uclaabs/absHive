@@ -19,14 +19,15 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 
 public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
 
+  private final List<String> columnName = new ArrayList<String>(Arrays.asList("Group", "BaseSum",
+      "BaseSsum", "BaseCnt"));
 
-  private final List<String> columnName = new ArrayList<String>(Arrays.asList("Group","BaseSum", "BaseSsum", "BaseCnt"));
-
-  private final List<ObjectInspector> objectInspectorType = new ArrayList<ObjectInspector>(Arrays.asList(
-      (ObjectInspector)partialGroupOI,
-      PrimitiveObjectInspectorFactory.javaDoubleObjectInspector,
-      PrimitiveObjectInspectorFactory.javaDoubleObjectInspector,
-      PrimitiveObjectInspectorFactory.javaIntObjectInspector));
+  private final List<ObjectInspector> objectInspectorType = new ArrayList<ObjectInspector>(
+      Arrays.asList(
+          (ObjectInspector) partialGroupOI,
+          PrimitiveObjectInspectorFactory.javaDoubleObjectInspector,
+          PrimitiveObjectInspectorFactory.javaDoubleObjectInspector,
+          PrimitiveObjectInspectorFactory.javaIntObjectInspector));
 
   private final StructObjectInspector partialOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(columnName, objectInspectorType);
@@ -40,7 +41,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
-    if(m == Mode.PARTIAL2|| m == Mode.FINAL) {
+    if (m == Mode.PARTIAL2 || m == Mode.FINAL) {
       sumField = fields.get(1);
       ssumField = fields.get(2);
       cntField = fields.get(3);
@@ -57,7 +58,7 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
     }
   }
 
-  protected static class SrvAvgAggregationBuffer extends SrvAggregationBuffer{
+  protected static class SrvAvgAggregationBuffer extends SrvAggregationBuffer {
 
     public double baseSum = 0;
     public double baseSsum = 0;
@@ -69,15 +70,15 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
 
     @Override
     public void processBase(double value) {
-      this.baseSum += value;
-      this.baseSsum += (value * value);
-      this.baseCnt += 1;
+      baseSum += value;
+      baseSsum += (value * value);
+      baseCnt += 1;
     }
 
     public void processPartialBase(double sum, double ssum, int cnt) {
-      this.baseSum += sum;
-      this.baseSsum += ssum;
-      this.baseCnt += cnt;
+      baseSum += sum;
+      baseSsum += ssum;
+      baseCnt += cnt;
     }
 
     @Override
@@ -110,13 +111,13 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
 
   @Override
   protected void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes) {
-    Object sumObj = this.mergeInputOI.getStructFieldData(partialRes, sumField);
-    Object ssumObj = this.mergeInputOI.getStructFieldData(partialRes, ssumField);
-    Object cntObj = this.mergeInputOI.getStructFieldData(partialRes, cntField);
-    double sum = this.baseSumOI.get(sumObj);
-    double ssum = this.baseSsumOI.get(ssumObj);
-    int cnt = this.baseCntOI.get(cntObj);
-    ((SrvAvgAggregationBuffer)agg).processPartialBase(sum, ssum, cnt);
+    Object sumObj = mergeInputOI.getStructFieldData(partialRes, sumField);
+    Object ssumObj = mergeInputOI.getStructFieldData(partialRes, ssumField);
+    Object cntObj = mergeInputOI.getStructFieldData(partialRes, cntField);
+    double sum = baseSumOI.get(sumObj);
+    double ssum = baseSsumOI.get(ssumObj);
+    int cnt = baseCntOI.get(cntObj);
+    ((SrvAvgAggregationBuffer) agg).processPartialBase(sum, ssum, cnt);
   }
 
   @Override
@@ -125,7 +126,6 @@ public class SrvAvgEvaluator extends SrvEvaluatorWithInstruction {
     List<Merge> instructions = ins.getMergeInstruction();
 
     int i = 0;
-    compute.setTotalTupleNumber(N);
     compute.setBase(myagg.baseSum, myagg.baseSsum, myagg.baseCnt);
     for (Map.Entry<Integer, DoubleArrayList> entry : myagg.groups.entrySet()) {
 

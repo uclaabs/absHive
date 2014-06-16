@@ -79,7 +79,4 @@ public abstract class SrvEvaluatorWithInstruction extends GenericUDAFEvaluatorWi
 
   protected abstract void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes);
 
-
-
-
 }

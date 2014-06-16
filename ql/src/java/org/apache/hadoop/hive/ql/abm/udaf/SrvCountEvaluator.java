@@ -24,7 +24,7 @@ public class SrvCountEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
-    if(m == Mode.PARTIAL2 || m == Mode.FINAL) {
+    if (m == Mode.PARTIAL2 || m == Mode.FINAL) {
       partialResOI = (LongObjectInspector) parameters[0];
     }
 

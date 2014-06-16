@@ -1,15 +1,17 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+
 public class CaseAvgComputation extends SrvAvgComputation {
 
   public void setBase(double sum, int cnt) {
-    this.baseSum = sum;
-    this.baseCnt = cnt;
+    baseSum = sum;
+    baseCnt = cnt;
   }
 
   @Override
   public void iterate(int index) {
-    double value = this.currentList.getDouble(index);
+    double value = currentList.getDouble(index);
     currentSum += value;
     currentCnt += 1;
   }
@@ -22,35 +24,37 @@ public class CaseAvgComputation extends SrvAvgComputation {
 
   protected void addDistribution(double sum, double cnt) {
     double mu = sum / cnt;
-    this.result.add(mu);
+    result.add(mu);
 
-    if(mu < this.confidenceLower) {
-      this.confidenceLower = mu;
+    if (mu < confidenceLower) {
+      confidenceLower = mu;
     }
-    if(mu > this.confidenceUpper) {
-      this.confidenceUpper = mu;
+    if (mu > confidenceUpper) {
+      confidenceUpper = mu;
     }
   }
 
   @Override
   public void unfold() {
-
-    if(groupCnt >= 0) {
-      unfoldSrvList(0, this.baseSum, this.baseCnt);
+    if (groupCnt >= 0) {
+      unfoldSrvList(0, baseSum, baseCnt);
     }
 
-    addDistribution(this.baseSum, this.baseCnt);
-    this.result.add(0, this.confidenceLower);
-    this.result.add(1, this.confidenceUpper);
+    result.add(0);
+    result.add(0);
+    addDistribution(baseSum, baseCnt);
+    result.set(0, confidenceLower);
+    result.set(1, confidenceUpper);
   }
 
   protected void unfoldSrvList(int level, double sum, double cnt) {
-    boolean leaf = (level == this.groupCnt);
-    for(int i = 0; i < this.doubleMatrix.get(level).size() / 2; i ++) {
-      double tmpSum = sum + this.doubleMatrix.get(level).getDouble(i * 2);
-      double tmpCnt = cnt + this.doubleMatrix.get(level).getDouble(i * 2 + 1);
+    boolean leaf = (level == groupCnt);
+    DoubleArrayList lev = doubleMatrix.get(level);
+    for (int i = 0; i < lev.size();) {
+      double tmpSum = sum + lev.getDouble(i++);
+      double tmpCnt = cnt + lev.getDouble(i++);
 
-      if(leaf) {
+      if (leaf) {
         addDistribution(tmpSum, tmpCnt);
       } else {
         unfoldSrvList(level + 1, tmpSum, tmpCnt);

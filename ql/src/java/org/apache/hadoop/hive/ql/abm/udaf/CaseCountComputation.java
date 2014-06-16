@@ -2,19 +2,20 @@ package org.apache.hadoop.hive.ql.abm.udaf;
 
 public class CaseCountComputation extends SrvCountComputation {
 
+  @Override
   public void setCount(long cnt) {
-    this.baseCnt = cnt;
+    baseCnt = cnt;
   }
 
   @Override
   protected void addDistribution(long cnt) {
-    this.result.add(cnt);
+    result.add(cnt);
 
-    if(cnt < this.confidenceLower) {
-      this.confidenceLower = cnt;
+    if (cnt < confidenceLower) {
+      confidenceLower = cnt;
     }
-    if(cnt > this.confidenceUpper) {
-      this.confidenceUpper = cnt;
+    if (cnt > confidenceUpper) {
+      confidenceUpper = cnt;
     }
   }
 

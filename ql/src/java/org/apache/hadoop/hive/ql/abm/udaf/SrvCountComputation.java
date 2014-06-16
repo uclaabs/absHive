@@ -21,8 +21,8 @@ public class SrvCountComputation extends UDAFComputation {
     this.N = N;
   }
 
-  public void setCount (long base) {
-    this.baseCnt = base;
+  public void setCount(long base) {
+    baseCnt = base;
   }
 
   public void clear() {
@@ -59,43 +59,43 @@ public class SrvCountComputation extends UDAFComputation {
   }
 
   protected void addDistribution(long cnt) {
-    double variance = cnt * (1 - cnt * 1.0 / this.N);
+    double variance = cnt * (1 - cnt * 1.0 / N);
     double std = Math.sqrt(variance);
 
-    this.result.add(cnt);
-    this.result.add(variance);
+    result.add(cnt);
+    result.add(variance);
 
     double lower = cnt - 3 * std;
     double upper = cnt + 3 * std;
 
-    if(lower < this.confidenceLower) {
-      this.confidenceLower = lower;
+    if (lower < confidenceLower) {
+      confidenceLower = lower;
     }
-    if(upper > this.confidenceUpper) {
-      this.confidenceUpper = upper;
+    if (upper > confidenceUpper) {
+      confidenceUpper = upper;
     }
   }
 
   @Override
   public void unfold() {
-
-    if(groupCnt >= 0) {
-      unfoldSrvList(0, this.baseCnt);
+    if (groupCnt >= 0) {
+      unfoldSrvList(0, baseCnt);
     }
 
-    addDistribution(this.baseCnt);
-    this.result.add(0, this.confidenceLower);
-    this.result.add(1, this.confidenceUpper);
+    result.add(0);
+    result.add(1);
+    addDistribution(baseCnt);
+    result.set(0, confidenceLower);
+    result.set(1, confidenceUpper);
   }
 
   protected void unfoldSrvList(int level, long cnt) {
+    boolean leaf = (level == groupCnt);
+    LongArrayList lev = cntMatrix.get(level);
+    for (int i = 0; i < lev.size();) {
+      long tmpCnt = cnt + lev.getLong(i++);
 
-    boolean leaf = (level == this.groupCnt);
-    for(int i = 0; i < this.cntMatrix.get(level).size(); i ++) {
-
-      long tmpCnt = cnt + this.cntMatrix.get(level).getLong(i);
-
-      if(leaf) {
+      if (leaf) {
         addDistribution(tmpCnt);
       } else {
         unfoldSrvList(level + 1, tmpCnt);

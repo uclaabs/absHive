@@ -804,6 +804,7 @@ public class RewriteProcFactory {
 
       desc.setUncertain(true);
       if (!firstGby) {
+        desc.setTotalTupleNumber(AbmUtilities.getTotalTupleNumber());
         desc.setFlags(ctx.getCondFlags(gby));
       }
 

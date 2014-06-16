@@ -14,8 +14,6 @@ public class SrvAvgComputation extends UDAFComputation {
   protected double baseSsum = 0;
   protected int baseCnt = 0;
 
-//  protected int N = AbmUtilities.getTotalTupleNumber();
-  protected int N = 0;
   protected int groupCnt = -1;
 
   protected double currentSum = 0;
@@ -25,24 +23,19 @@ public class SrvAvgComputation extends UDAFComputation {
   protected double confidenceLower = Double.POSITIVE_INFINITY;
   protected double confidenceUpper = Double.NEGATIVE_INFINITY;
 
-
-  public void setTotalTupleNumber(int N) {
-    this.N = N;
-  }
-
   public void setBase(double sum, double ssum, int cnt) {
-    this.baseSum = sum;
-    this.baseSsum = ssum;
-    this.baseCnt = cnt;
+    baseSum = sum;
+    baseSsum = ssum;
+    baseCnt = cnt;
   }
 
   public void setCurrentList(DoubleArrayList list) {
-    this.doubleMatrix.add(new DoubleArrayList());
-    this.currentList = list;
-    this.currentSum = 0;
-    this.currentSsum = 0;
-    this.currentCnt = 0;
-    this.groupCnt ++;
+    doubleMatrix.add(new DoubleArrayList());
+    currentList = list;
+    currentSum = 0;
+    currentSsum = 0;
+    currentCnt = 0;
+    groupCnt++;
   }
 
   public void clear() {
@@ -56,7 +49,7 @@ public class SrvAvgComputation extends UDAFComputation {
 
   @Override
   public void iterate(int index) {
-    double value = this.currentList.getDouble(index);
+    double value = currentList.getDouble(index);
     currentSum += value;
     currentSsum += (value * value);
     currentCnt += 1;
@@ -82,44 +75,45 @@ public class SrvAvgComputation extends UDAFComputation {
 
   protected void addDistribution(double sum, double ssum, double cnt) {
     double mu = sum / cnt;
-    double variance = ((ssum/cnt) - mu * mu)/cnt;
+    double variance = ((ssum / cnt) - mu * mu) / cnt;
     double std = Math.sqrt(variance);
 
-    this.result.add(mu);
-    this.result.add(variance);
+    result.add(mu);
+    result.add(variance);
 
     double lower = mu - 3 * std;
     double upper = mu + 3 * std;
 
-    if(lower < this.confidenceLower) {
-      this.confidenceLower = lower;
+    if (lower < confidenceLower) {
+      confidenceLower = lower;
     }
-    if(upper > this.confidenceUpper) {
-      this.confidenceUpper = upper;
+    if (upper > confidenceUpper) {
+      confidenceUpper = upper;
     }
   }
 
   @Override
   public void unfold() {
-
-    if(groupCnt >= 0) {
-      unfoldSrvList(0, this.baseSum, this.baseSsum, this.baseCnt);
+    if (groupCnt >= 0) {
+      unfoldSrvList(0, baseSum, baseSsum, baseCnt);
     }
 
-    addDistribution(this.baseSum,this.baseSsum, this.baseCnt);
-    this.result.add(0, this.confidenceLower);
-    this.result.add(1, this.confidenceUpper);
+    result.add(0);
+    result.add(0);
+    addDistribution(baseSum, baseSsum, baseCnt);
+    result.set(0, confidenceLower);
+    result.set(1, confidenceUpper);
   }
 
   protected void unfoldSrvList(int level, double sum, double ssum, double cnt) {
-    boolean leaf = (level == this.groupCnt);
-    for(int i = 0; i < this.doubleMatrix.get(level).size() / 3; i ++) {
+    boolean leaf = (level == groupCnt);
+    DoubleArrayList lev = doubleMatrix.get(level);
+    for (int i = 0; i < lev.size();) {
+      double tmpSum = sum + lev.getDouble(i++);
+      double tmpSsum = ssum + lev.getDouble(i++);
+      double tmpCnt = cnt + lev.getDouble(i++);
 
-      double tmpSum = sum + this.doubleMatrix.get(level).getDouble(i * 3);
-      double tmpSsum = ssum + this.doubleMatrix.get(level).getDouble(i * 3 + 1);
-      double tmpCnt = cnt + this.doubleMatrix.get(level).getDouble(i * 3 + 2);
-
-      if(leaf) {
+      if (leaf) {
         addDistribution(tmpSum, tmpSsum, tmpCnt);
       } else {
         unfoldSrvList(level + 1, tmpSum, tmpSsum, tmpCnt);

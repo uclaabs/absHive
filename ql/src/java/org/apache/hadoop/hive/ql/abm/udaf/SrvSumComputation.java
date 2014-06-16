@@ -12,7 +12,7 @@ public class SrvSumComputation extends UDAFComputation {
   protected DoubleArrayList currentList = new DoubleArrayList();
   protected double baseSum = 0;
   protected double baseSsum = 0;
-//  protected int N = AbmUtilities.getTotalTupleNumber();
+
   protected int N = 0;
   protected int groupCnt = -1;
 
@@ -26,16 +26,16 @@ public class SrvSumComputation extends UDAFComputation {
   }
 
   public void setBase(double sum, double ssum) {
-    this.baseSum = sum;
-    this.baseSsum = ssum;
+    baseSum = sum;
+    baseSsum = ssum;
   }
 
   public void setCurrentList(DoubleArrayList list) {
-    this.doubleMatrix.add(new DoubleArrayList());
-    this.currentList = list;
-    this.currentSum = 0;
-    this.currentSsum = 0;
-    this.groupCnt++;
+    doubleMatrix.add(new DoubleArrayList());
+    currentList = list;
+    currentSum = 0;
+    currentSsum = 0;
+    groupCnt++;
   }
 
   public void clear() {
@@ -49,7 +49,7 @@ public class SrvSumComputation extends UDAFComputation {
 
   @Override
   public void iterate(int index) {
-    double value = this.currentList.getDouble(index);
+    double value = currentList.getDouble(index);
     currentSum += value;
     currentSsum += (value * value);
   }
@@ -73,14 +73,14 @@ public class SrvSumComputation extends UDAFComputation {
   @Override
   public void unfold() {
     if(groupCnt >= 0) {
-      unfoldSrvList(0, this.baseSum, this.baseSsum);
+      unfoldSrvList(0, baseSum, baseSsum);
     }
 
     result.add(0); // dummy place holder
     result.add(0); // dummy place holder
-    addDistribution(this.baseSum, this.baseSsum);
-    result.set(0, this.confidenceLower);
-    result.set(1, this.confidenceUpper);
+    addDistribution(baseSum, baseSsum);
+    result.set(0, confidenceLower);
+    result.set(1, confidenceUpper);
     // update the first two values of array
   }
 
@@ -105,10 +105,9 @@ public class SrvSumComputation extends UDAFComputation {
   protected void unfoldSrvList(int level, double sum, double ssum) {
     boolean leaf = (level == groupCnt);
     DoubleArrayList lev = doubleMatrix.get(level);
-    for (int i = 0; i < lev.size(); i += 2) {
-
-      double tmpSum = sum + lev.getDouble(i);
-      double tmpSsum = ssum + lev.getDouble(i + 1);
+    for (int i = 0; i < lev.size(); ) {
+      double tmpSum = sum + lev.getDouble(i++);
+      double tmpSsum = ssum + lev.getDouble(i++);
 
       if (leaf) {
         addDistribution(tmpSum, tmpSsum);

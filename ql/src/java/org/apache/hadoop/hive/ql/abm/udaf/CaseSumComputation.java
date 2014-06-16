@@ -1,14 +1,16 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+
 public class CaseSumComputation extends SrvSumComputation {
 
   public void setBase(double sum) {
-    this.baseSum = sum;
+    baseSum = sum;
   }
 
   @Override
   public void iterate(int index) {
-    currentSum += this.currentList.getDouble(index);
+    currentSum += currentList.getDouble(index);
   }
 
   @Override
@@ -18,24 +20,24 @@ public class CaseSumComputation extends SrvSumComputation {
 
   @Override
   public void unfold() {
-
-    if(groupCnt >= 0) {
-      unfoldSrvList(0, this.baseSum);
+    if (groupCnt >= 0) {
+      unfoldSrvList(0, baseSum);
     }
 
-    addDistribution(this.baseSum);
-
-    this.result.add(0, this.confidenceLower);
-    this.result.add(1, this.confidenceUpper);
+    result.add(0);
+    result.add(0);
+    addDistribution(baseSum);
+    result.set(0, confidenceLower);
+    result.set(1, confidenceUpper);
   }
 
   protected void unfoldSrvList(int level, double sum) {
+    boolean leaf = (level == groupCnt);
+    DoubleArrayList lev = doubleMatrix.get(level);
+    for (int i = 0; i < lev.size();) {
+      double tmpSum = sum + lev.getDouble(i++);
 
-    boolean leaf = (level == this.groupCnt);
-    for(int i = 0; i < this.doubleMatrix.get(level).size(); i ++) {
-
-      double tmpSum = sum + this.doubleMatrix.get(level).getDouble(i);
-      if(leaf) {
+      if (leaf) {
         addDistribution(tmpSum);
       } else {
         unfoldSrvList(level + 1, tmpSum);
@@ -44,12 +46,13 @@ public class CaseSumComputation extends SrvSumComputation {
   }
 
   protected void addDistribution(double sum) {
-    this.result.add(sum);
-    if(sum < this.confidenceLower) {
-      this.confidenceLower = sum;
+    result.add(sum);
+
+    if (sum < confidenceLower) {
+      confidenceLower = sum;
     }
-    if(sum > this.confidenceUpper) {
-      this.confidenceUpper = sum;
+    if (sum > confidenceUpper) {
+      confidenceUpper = sum;
     }
   }
 

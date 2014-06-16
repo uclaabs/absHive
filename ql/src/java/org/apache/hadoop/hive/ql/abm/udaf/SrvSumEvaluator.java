@@ -18,9 +18,13 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 
 public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
 
-  private final List<String> columnName = new ArrayList<String>(Arrays.asList("Group","BaseSum", "BaseSsum"));
-  private final List<ObjectInspector> objectInspectorType = new ArrayList<ObjectInspector>(Arrays.asList(
-      (ObjectInspector)partialGroupOI,  PrimitiveObjectInspectorFactory.javaDoubleObjectInspector, PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
+  private final List<String> columnName = new ArrayList<String>(Arrays.asList("Group", "BaseSum",
+      "BaseSsum"));
+  private final List<ObjectInspector> objectInspectorType = new ArrayList<ObjectInspector>(
+      Arrays.asList(
+          (ObjectInspector) partialGroupOI,
+          PrimitiveObjectInspectorFactory.javaDoubleObjectInspector,
+          PrimitiveObjectInspectorFactory.javaDoubleObjectInspector));
   private final StructObjectInspector partialOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(columnName, objectInspectorType);
 
@@ -32,7 +36,7 @@ public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
-    if(m == Mode.PARTIAL2|| m == Mode.FINAL) {
+    if (m == Mode.PARTIAL2 || m == Mode.FINAL) {
       sumField = fields.get(1);
       ssumField = fields.get(2);
       baseSumOI = (DoubleObjectInspector) sumField.getFieldObjectInspector();
@@ -47,7 +51,7 @@ public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
     }
   }
 
-  protected static class SrvSumAggregationBuffer extends SrvAggregationBuffer{
+  protected static class SrvSumAggregationBuffer extends SrvAggregationBuffer {
 
     public double baseSum = 0;
     public double baseSsum = 0;
@@ -58,13 +62,13 @@ public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
 
     @Override
     public void processBase(double value) {
-      this.baseSum += value;
-      this.baseSsum += (value * value);
+      baseSum += value;
+      baseSsum += (value * value);
     }
 
     public void processPartialBase(double sum, double ssum) {
-      this.baseSum += sum;
-      this.baseSsum += ssum;
+      baseSum += sum;
+      baseSsum += ssum;
     }
 
     @Override
@@ -95,11 +99,11 @@ public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
 
   @Override
   protected void parseBaseInfo(SrvAggregationBuffer agg, Object partialRes) {
-    Object sumObj = this.mergeInputOI.getStructFieldData(partialRes, this.sumField);
-    Object ssumObj = this.mergeInputOI.getStructFieldData(partialRes, this.ssumField);
-    double sum = this.baseSumOI.get(sumObj);
-    double ssum = this.baseSsumOI.get(ssumObj);
-    ((SrvSumAggregationBuffer)agg).processPartialBase(sum, ssum);
+    Object sumObj = mergeInputOI.getStructFieldData(partialRes, sumField);
+    Object ssumObj = mergeInputOI.getStructFieldData(partialRes, ssumField);
+    double sum = baseSumOI.get(sumObj);
+    double ssum = baseSsumOI.get(ssumObj);
+    ((SrvSumAggregationBuffer) agg).processPartialBase(sum, ssum);
   }
 
   @Override

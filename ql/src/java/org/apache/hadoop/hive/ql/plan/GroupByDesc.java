@@ -74,6 +74,7 @@ public class GroupByDesc extends AbstractOperatorDesc {
   // ABM
   private boolean uncertain = false;
   private List<Boolean> flags = null;
+  private int totalTupleNumber = 0;
 
   public GroupByDesc() {
   }
@@ -292,6 +293,14 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   public void setFlags(List<Boolean> flags) {
     this.flags = flags;
+  }
+
+  public int getTotalTupleNumber() {
+    return totalTupleNumber;
+  }
+
+  public void setTotalTupleNumber(int totalTupleNumber) {
+    this.totalTupleNumber = totalTupleNumber;
   }
 
 }
