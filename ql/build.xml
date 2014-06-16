@@ -295,6 +295,9 @@
       <fileset dir="${build.dir.hive}/avro-mapred/classes" includes="**/*.class"/>
       <fileset dir="${build.dir.hive}/shims/classes" includes="**/*.class"/>
       <fileset dir="${build.dir.hive}/javaewah/classes" includes="**/*.class"/>
+      <fileset dir="${build.dir.hive}/fastutil/classes" includes="**/*.class"/>
+      <fileset dir="${build.dir.hive}/commons-math3/classes" includes="**/*.class"/>
+      <fileset dir="${build.dir.hive}/cloud9/classes" includes="**/*.class"/>
       <fileset dir="${build.dir.hive}/javolution/classes" includes="**/*.class"/>
       <fileset dir="${build.dir.hive}/protobuf-java/classes" 
                includes="**/*.class"/>

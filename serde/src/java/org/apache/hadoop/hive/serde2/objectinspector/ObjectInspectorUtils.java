@@ -55,6 +55,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
 
+import edu.umd.cloud9.io.array.ArrayListWritable;
+
 /**
  * ObjectInspectorFactory is the primary way to create new ObjectInspector
  * instances.

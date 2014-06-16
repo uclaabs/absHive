@@ -26,6 +26,7 @@
     <include file="${ivy.conf.dir}/common-configurations.xml"/>
   </configurations>
   <dependencies>
+    <dependency org="edu.umd" name="cloud9" rev="${cloud9.version}"/>
     <dependency org="edu.berkeley.cs.shark" name="hive-common" rev="${version}"
                 conf="compile->default" />
     <dependency org="org.slf4j" name="slf4j-api" rev="${slf4j-api.version}"/>
