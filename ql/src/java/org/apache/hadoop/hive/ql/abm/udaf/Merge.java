@@ -26,23 +26,23 @@ public class Merge {
       addDimension(rangeArray);
     }
 
-  //TODO
-    System.out.println("Merge addDimension");
-    System.out.print("booleans:");
-    for(int i = 0; i < flags.size(); i ++) {
-     System.out.print(flags.get(i) + ",");
-    }
-    System.out.println();
-    System.out.print("Indexes:");
-    for(IntArrayList indexes: dimIndexes) {
-      for(int i = 0; i < indexes.size(); i ++) {
-        System.out.print(indexes.getInt(i));
-        if(i != indexes.size() - 1) {
-          System.out.print(",");
-        }
-      }
-      System.out.println();
-    }
+//  //TODO
+//    System.out.println("Merge addDimension");
+//    System.out.print("booleans:");
+//    for(int i = 0; i < flags.size(); i ++) {
+//     System.out.print(flags.get(i) + ",");
+//    }
+//    System.out.println();
+//    System.out.print("Indexes:");
+//    for(IntArrayList indexes: dimIndexes) {
+//      for(int i = 0; i < indexes.size(); i ++) {
+//        System.out.print(indexes.getInt(i));
+//        if(i != indexes.size() - 1) {
+//          System.out.print(",");
+//        }
+//      }
+//      System.out.println();
+//    }
 
   }
 
@@ -85,18 +85,18 @@ public class Merge {
     IntArrayList indexes = dimIndexes.get(level);
     BooleanArrayList duplicates = dimDuplicates.get(level);
 
-    //TODO
-    if(leaf) {
-      System.out.println("Merge enumerate");
-      System.out.print("Indexes:");
-      for(int i = 0; i < indexes.size(); i ++) {
-        System.out.print(indexes.getInt(i));
-        if(i != indexes.size() - 1) {
-          System.out.print(",");
-        }
-      }
-      System.out.println();
-    }
+//    //TODO
+//    if(leaf) {
+//      System.out.println("Merge enumerate");
+//      System.out.print("Indexes:");
+//      for(int i = 0; i < indexes.size(); i ++) {
+//        System.out.print(indexes.getInt(i));
+//        if(i != indexes.size() - 1) {
+//          System.out.print(",");
+//        }
+//      }
+//      System.out.println();
+//    }
 
 
     if (!leaf) {

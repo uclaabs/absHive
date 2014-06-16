@@ -184,7 +184,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       boolean isBase = rangeParser.isBase(rangeObj);
       if (isBase) {
         ins.addGroupInstruction(-1);
-        // System.out.println("Iterate " + -1);
+        System.out.println("Iterate Ins " + -1);
         return;
       }
 
@@ -197,6 +197,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       // Set the instruction here
       ins.addGroupInstruction(inst);
 
+      myagg.status("Iterate");
     }
   }
 
@@ -220,7 +221,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     if (partialRes == null) {
       return;
     }
-    ins.resetMergeInstruction();
+    ins.resetGroupInstruction();
 
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
     Object keyGroupObj = inputOI.getStructFieldData(partialRes, this.keyField);
