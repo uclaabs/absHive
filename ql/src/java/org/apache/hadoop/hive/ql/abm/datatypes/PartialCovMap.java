@@ -148,6 +148,14 @@ public class PartialCovMap implements Serializable {
     }
   }
 
+  public InnerCovMap[] getInnerGbyCovs() {
+    return innerGbyCovs;
+  }
+
+  public InterCovMap[][] getInterGbyCovs() {
+    return interGbyCovs;
+  }
+
   public void iterate(int tid, IntArrayList gbys, IntArrayList groupIds,
       ArrayList<EWAHCompressedBitmap[]> lineages, ArrayList<double[]> values) {
     int length = gbys.size();

@@ -23,4 +23,12 @@ public abstract class SrvReader {
 
   public abstract boolean fillVar(double[][] dest, int pos);
 
+  public static SrvReader createReader(int numCols, boolean continuous) {
+    if (continuous) {
+      return new ContinuousSrvReader(numCols);
+    } else {
+      return new DiscreteSrvReader(numCols);
+    }
+  }
+
 }
