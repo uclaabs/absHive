@@ -148,13 +148,13 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
         List<RangeList> rangeMatrix = entry.getValue();
         System.out.println("Key");
         for (long key : keyArray) {
-          System.out.print(key + "\t");
+          System.out.print(key + ",");
         }
         System.out.println();
         System.out.println("Range");
         for (RangeList list : rangeMatrix) {
           for (double range : list) {
-            System.out.print(range + "\t");
+            System.out.print(range + ",");
           }
           System.out.println();
         }
@@ -242,10 +242,26 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
 
+    //TODO
     for (Map.Entry<KeyWrapper, List<RangeList>> entry : myagg.groups.entrySet()) {
       KeyWrapper keyArray = entry.getKey();
       List<RangeList> rangeMatrix = entry.getValue();
       compute.setFields(keyArray, rangeMatrix);
+
+      System.out.println("Cond Merge--------------------------------");
+      System.out.println("Key");
+      for (long key : keyArray) {
+        System.out.print(key + ",");
+      }
+      System.out.println();
+      System.out.println("Range");
+      for (RangeList list : rangeMatrix) {
+        for (double range : list) {
+          System.out.print(range + ",");
+        }
+        System.out.println();
+      }
+      System.out.println("--------------------------------");
 
       Merge merge = new Merge(flags, rangeMatrix);
       ins.addMergeInstruction(merge);
