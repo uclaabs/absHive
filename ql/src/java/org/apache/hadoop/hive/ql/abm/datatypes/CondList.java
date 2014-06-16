@@ -12,9 +12,9 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 
 public class CondList {
 
-  private final KeyWrapper keyList = new KeyWrapper();
-  private final List<RangeList> rangeMatrix = new ArrayList<RangeList>();
-  private final Object[] ret = {keyList, rangeMatrix};
+  private KeyWrapper keyList;
+  private List<RangeList> rangeMatrix;
+  private Object[] ret = new Object[2];
 
   public final static ListObjectInspector intListOI = ObjectInspectorFactory
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
@@ -28,6 +28,24 @@ public class CondList {
           (ObjectInspector) intListOI, (ObjectInspector) doubleMatrixOI));
   public final static StructObjectInspector condListOI = ObjectInspectorFactory
       .getStandardStructObjectInspector(columnName, objectInspectorType);
+
+  public CondList() {
+    this.keyList = new KeyWrapper();
+    this.rangeMatrix = new ArrayList<RangeList>();
+  }
+
+  public CondList(KeyWrapper keyList, List<RangeList> rangeMatrix) {
+    this.keyList = keyList;
+    this.rangeMatrix = rangeMatrix;
+  }
+
+  public KeyWrapper getKey() {
+    return this.keyList;
+  }
+
+  public List<RangeList> getRangeMatrix() {
+    return this.rangeMatrix;
+  }
 
   public void update(int id, double value) {
     keyList.set(0, id);
@@ -70,6 +88,8 @@ public class CondList {
   }
 
   public Object toArray() {
+    ret[0] = keyList;
+    ret[1] = rangeMatrix;
     return ret;
   }
 
