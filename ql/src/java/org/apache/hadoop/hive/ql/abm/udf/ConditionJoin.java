@@ -20,14 +20,13 @@ public class ConditionJoin extends GenericUDF {
   private final KeyWrapper inputKeys = new KeyWrapper();
   private final List<RangeList> inputRanges = new ArrayList<RangeList>();
   private final Object[] ret = new Object[] {inputKeys, inputRanges};
-
   private boolean first = true;
 
-  private KeyWrapperParser keyParser = null;
-  private RangeMatrixParser rangeParser = null;
-  private StructObjectInspector inputOI;
-  private StructField keyField;
-  private StructField rangeField;
+  private List<KeyWrapperParser> keyParser = new ArrayList<KeyWrapperParser>();
+  private List<RangeMatrixParser> rangeParser = new ArrayList<RangeMatrixParser>();
+  private List<StructObjectInspector> inputOI = new ArrayList<StructObjectInspector>();
+  private List<StructField> keyField = new ArrayList<StructField>();
+  private List<StructField> rangeField = new ArrayList<StructField>();
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -35,12 +34,17 @@ public class ConditionJoin extends GenericUDF {
       throw new UDFArgumentException("This function takes at least two arguments of type CondGroup");
     }
 
-    inputOI = (StructObjectInspector) arguments[0];
-    List<? extends StructField> fields = inputOI.getAllStructFieldRefs();
-    keyField = fields.get(0);
-    rangeField = fields.get(1);
-    keyParser = new KeyWrapperParser(keyField.getFieldObjectInspector());
-    rangeParser = new RangeMatrixParser(rangeField.getFieldObjectInspector());
+    for(int i = 0; i < arguments.length; ++ i) {
+      StructObjectInspector input = (StructObjectInspector) arguments[0];
+      List<? extends StructField> fields = input.getAllStructFieldRefs();
+      StructField key = fields.get(0);
+      StructField range = fields.get(1);
+      inputOI.add(input);
+      keyField.add(key);
+      rangeField.add(range);
+      keyParser.add(new KeyWrapperParser(key.getFieldObjectInspector()));
+      rangeParser.add(new RangeMatrixParser(range.getFieldObjectInspector()));
+    }
 
     return CondList.condListOI;
   }
@@ -64,10 +68,10 @@ public class ConditionJoin extends GenericUDF {
   @Override
   public Object evaluate(DeferredObject[] arg) throws HiveException {
     if (first) {
-      for (DeferredObject o : arg) {
-        Object condGroupObj = o.get();
-        keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
-        rangeParser.append(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges);
+      for(int i = 0; i < arg.length; ++ i) {
+        Object condGroupObj = arg[i].get();
+        keyParser.get(i).parseInto(inputOI.get(i).getStructFieldData(condGroupObj, keyField.get(i)), inputKeys);
+        rangeParser.get(i).append(inputOI.get(i).getStructFieldData(condGroupObj, rangeField.get(i)), inputRanges);
       }
       first = false;
     }
@@ -75,10 +79,10 @@ public class ConditionJoin extends GenericUDF {
     inputKeys.clear();
 
     int cursor = 0;
-    for (DeferredObject o : arg) {
-      Object condGroupObj = o.get();
-      keyParser.parseInto(inputOI.getStructFieldData(condGroupObj, keyField), inputKeys);
-      cursor += rangeParser.overwrite(inputOI.getStructFieldData(condGroupObj, rangeField), inputRanges, cursor);
+    for(int i = 0; i < arg.length; ++ i) {
+      Object condGroupObj = arg[i].get();
+      keyParser.get(i).parseInto(inputOI.get(i).getStructFieldData(condGroupObj, keyField.get(i)), inputKeys);
+      cursor += rangeParser.get(i).overwrite(inputOI.get(i).getStructFieldData(condGroupObj, rangeField.get(i)), inputRanges, cursor);
     }
 
     return ret;
