@@ -1,23 +1,29 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-public abstract class SrvReader {
+import java.io.Serializable;
+
+public abstract class SrvReader implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   protected int numCols;
-  protected int offset;
+  protected transient double[] srv = null;
+  protected transient int offset = 0;
 
   public SrvReader(int numCols) {
     this.numCols = numCols;
-    this.offset = 0;
   }
 
-  public int getLength() {
+  public int getNumCols() {
     return numCols;
   }
 
-  public abstract void setCondition(int condIdx) ;
+  public abstract void locate(double[] srv, int condId);
 
-  public abstract double getMean(double[] buf, int colIdx);
+  public void fillMean(double[] dest, int pos) {
+    System.arraycopy(srv, offset, dest, pos, numCols);
+  }
 
-  public abstract double getVariance(double[] buf, int colIdx);
+  public abstract boolean fillVar(double[][] dest, int pos);
 
 }

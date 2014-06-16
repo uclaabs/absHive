@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 
 public class ContinuousSrvReader extends SrvReader {
 
+  private static final long serialVersionUID = 1L;
 
   public ContinuousSrvReader(int numCols) {
     super(numCols);
@@ -12,20 +13,24 @@ public class ContinuousSrvReader extends SrvReader {
   }
 
   @Override
-  public void setCondition(int condIdx) {
-    offset = condIdx * numCols * 2;
+  public void locate(double[] srv, int condId) {
+    this.srv = srv;
+    offset = condId * numCols * 2;
   }
 
   @Override
-  public double getMean(double[] buf, int colIdx) {
-    return buf[offset + colIdx * 2];
+  public boolean fillVar(double[][] dest, int pos) {
+    if (srv[offset + numCols] != 0) {
+      for (int i = offset + numCols, to = i + numCols; i < to; ++i, ++pos) {
+        dest[pos][pos] = srv[i];
+      }
+      return true;
+    } else {
+      for (int i = 0; i < numCols; ++i, ++pos) {
+        dest[pos][pos] = 1;
+      }
+      return false;
+    }
   }
-
-  @Override
-  public double getVariance(double[] buf, int colIdx) {
-    return buf[offset + colIdx * 2 + 1];
-  }
-
-
 
 }
