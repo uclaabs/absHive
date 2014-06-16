@@ -242,6 +242,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
+    ins.resetMergeInstruction();
 
     for (Map.Entry<IntArrayList, List<RangeList>> entry : myagg.groups.entrySet()) {
       IntArrayList keyArray = entry.getKey();
