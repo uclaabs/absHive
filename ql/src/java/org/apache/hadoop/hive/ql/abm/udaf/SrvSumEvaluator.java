@@ -114,12 +114,6 @@ public class SrvSumEvaluator extends SrvEvaluatorWithInstruction {
       compute.setCurrentList(entry.getValue());
       Merge merge = instructions.get(i);
 
-      System.out.println("SrvSum:");
-      for(double val: entry.getValue()) {
-        System.out.print(val + ",");
-      }
-      System.out.println();
-
       merge.enumerate(compute);
       i++;
     }

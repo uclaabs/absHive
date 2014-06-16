@@ -184,7 +184,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       boolean isBase = rangeParser.isBase(rangeObj);
       if (isBase) {
         ins.addGroupInstruction(-1);
-        System.out.println("Iterate Ins " + -1);
+        // System.out.println("Iterate Ins " + -1);
         return;
       }
 
@@ -197,7 +197,6 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       // Set the instruction here
       ins.addGroupInstruction(inst);
 
-      myagg.status("Iterate");
     }
   }
 
@@ -243,26 +242,10 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
 
-    //TODO
     for (Map.Entry<KeyWrapper, List<RangeList>> entry : myagg.groups.entrySet()) {
       KeyWrapper keyArray = entry.getKey();
       List<RangeList> rangeMatrix = entry.getValue();
       compute.setFields(keyArray, rangeMatrix);
-
-      System.out.println("Cond Merge--------------------------------");
-      System.out.println("Key");
-      for (long key : keyArray) {
-        System.out.print(key + ",");
-      }
-      System.out.println();
-      System.out.println("Range");
-      for (RangeList list : rangeMatrix) {
-        for (double range : list) {
-          System.out.print(range + ",");
-        }
-        System.out.println();
-      }
-      System.out.println("--------------------------------");
 
       Merge merge = new Merge(flags, rangeMatrix);
       ins.addMergeInstruction(merge);

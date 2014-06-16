@@ -53,8 +53,6 @@ public abstract class SrvEvaluatorWithInstruction extends GenericUDAFEvaluatorWi
       SrvAggregationBuffer myagg = (SrvAggregationBuffer) agg;
       double value = PrimitiveObjectInspectorUtils.getDouble(parameters[0], inputValueOI);
       myagg.addValue(instruction, value);
-
-      System.out.println("Srv Iterate:" + instruction);
     }
   }
 
