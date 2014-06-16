@@ -1,21 +1,22 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
-import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 
 public class ConditionComputation extends UDAFComputation {
 
   private int cnt = -1;
-  private int dim;
-  private double[] newCondRanges;
+  private final int dim;
+  private final double[] newCondRanges;
 
   private List<RangeList> rangeMatrix = null;
 //  private CondGroup condGroups = new CondGroup();
-  private List<CondList> condGroups = new ArrayList<CondList>();
+  private final List<CondList> condGroups = new ArrayList<CondList>();
 
   private final CondList condList = new CondList();
 
@@ -24,7 +25,7 @@ public class ConditionComputation extends UDAFComputation {
     newCondRanges = new double[dim];
   }
 
-  public void setFields(KeyWrapper keyArray, List<RangeList> rangeMatrix) {
+  public void setFields(IntArrayList keyArray, List<RangeList> rangeMatrix) {
     this.cnt ++;
     this.rangeMatrix = rangeMatrix;
 

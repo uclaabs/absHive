@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -7,15 +9,15 @@ public class Conditions implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  public final KeyWrapper keys;
+  public final IntArrayList keys;
   public final List<RangeList> ranges;
 
-  public Conditions(KeyWrapper keys, List<RangeList> ranges) {
+  public Conditions(IntArrayList keys, List<RangeList> ranges) {
     this.keys = keys;
     this.ranges = ranges;
   }
 
-  public KeyWrapper getKeys() {
+  public IntArrayList getKeys() {
     return keys;
   }
 

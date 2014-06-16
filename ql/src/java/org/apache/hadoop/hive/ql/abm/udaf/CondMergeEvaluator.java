@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.udaf;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -7,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
-import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapperParser;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeMatrixParser;
@@ -34,7 +35,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
                   .getStandardListObjectInspector(CondList.intListOI),
               ObjectInspectorFactory.getStandardListObjectInspector(CondList.doubleMatrixOI)))
       );
-  protected final KeyWrapper key = new KeyWrapper();
+  protected final IntArrayList key = new IntArrayList();
 
   protected KeyWrapperParser keyParser = null;
   protected RangeMatrixParser rangeParser = null;
@@ -90,8 +91,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   }
 
   protected static class MyAggregationBuffer implements AggregationBuffer {
-    Map<KeyWrapper, List<RangeList>> groups = new LinkedHashMap<KeyWrapper, List<RangeList>>();
-    Map<KeyWrapper, Integer> keyIndexes = new LinkedHashMap<KeyWrapper, Integer>();
+    Map<IntArrayList, List<RangeList>> groups = new LinkedHashMap<IntArrayList, List<RangeList>>();
+    Map<IntArrayList, Integer> keyIndexes = new LinkedHashMap<IntArrayList, Integer>();
 
     Object[] partialRet = new Object[2];
     List<Object> keyRet = new ArrayList<Object>();
@@ -108,7 +109,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
       keyIndexes.clear();
     }
 
-    public int addRanges(KeyWrapper key, Object o) {
+    public int addRanges(IntArrayList key, Object o) {
       List<RangeList> ranges = groups.get(key);
       int index;
 
@@ -117,7 +118,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
         index = keyIndexes.get(key);
       } else {
         ranges = parser.parse(o);
-        KeyWrapper newKey = key.copyKey();
+        IntArrayList newKey = key.clone();
         index = keyIndexes.size();
         keyIndexes.put(newKey, index);
         groups.put(newKey, ranges);
@@ -129,7 +130,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
     public Object getPartialObj() {
       keyRet.clear();
       rangeRet.clear();
-      for (Map.Entry<KeyWrapper, List<RangeList>> entry : groups.entrySet()) {
+      for (Map.Entry<IntArrayList, List<RangeList>> entry : groups.entrySet()) {
         keyRet.add(entry.getKey());
         rangeRet.add(entry.getValue());
       }
@@ -143,8 +144,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
       System.out.println("--------------------------------");
       System.out.println(function);
-      for (Map.Entry<KeyWrapper, List<RangeList>> entry : groups.entrySet()) {
-        KeyWrapper keyArray = entry.getKey();
+      for (Map.Entry<IntArrayList, List<RangeList>> entry : groups.entrySet()) {
+        IntArrayList keyArray = entry.getKey();
         List<RangeList> rangeMatrix = entry.getValue();
         System.out.println("Key");
         for (long key : keyArray) {
@@ -242,8 +243,8 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
   public Object terminate(AggregationBuffer agg) throws HiveException {
     MyAggregationBuffer myagg = (MyAggregationBuffer) agg;
 
-    for (Map.Entry<KeyWrapper, List<RangeList>> entry : myagg.groups.entrySet()) {
-      KeyWrapper keyArray = entry.getKey();
+    for (Map.Entry<IntArrayList, List<RangeList>> entry : myagg.groups.entrySet()) {
+      IntArrayList keyArray = entry.getKey();
       List<RangeList> rangeMatrix = entry.getValue();
       compute.setFields(keyArray, rangeMatrix);
 

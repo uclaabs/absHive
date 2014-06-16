@@ -1,10 +1,11 @@
 package org.apache.hadoop.hive.ql.abm.udf;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.CondList;
-import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapper;
 import org.apache.hadoop.hive.ql.abm.datatypes.KeyWrapperParser;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeMatrixParser;
@@ -17,7 +18,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 
 public class ConditionJoin extends GenericUDF {
 
-  private final KeyWrapper inputKeys = new KeyWrapper();
+  private final IntArrayList inputKeys = new IntArrayList();
   private final List<RangeList> inputRanges = new ArrayList<RangeList>();
   private final Object[] ret = new Object[] {inputKeys, inputRanges};
   private boolean first = true;

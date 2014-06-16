@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.IntObjectInspector;
@@ -14,16 +16,16 @@ public class KeyWrapperParser {
     eoi = (IntObjectInspector) this.oi.getListElementObjectInspector();
   }
 
-  public KeyWrapper parse(Object o) {
+  public IntArrayList parse(Object o) {
     int length = oi.getListLength(o);
-    KeyWrapper ret = new KeyWrapper(length);
+    IntArrayList ret = new IntArrayList(length);
     for (int i = 0; i < length; ++i) {
       ret.add(eoi.get(oi.getListElement(o, i)));
     }
     return ret;
   }
 
-  public void parseInto(Object o, KeyWrapper ret) {
+  public void parseInto(Object o, IntArrayList ret) {
     int length = oi.getListLength(o);
     for (int i = 0; i < length; ++i) {
       ret.add(eoi.get(oi.getListElement(o, i)));

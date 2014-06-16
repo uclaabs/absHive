@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,9 +14,9 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 
 public class CondList {
 
-  private KeyWrapper keyList;
-  private List<RangeList> rangeMatrix;
-  private Object[] ret = new Object[2];
+  private final IntArrayList keyList;
+  private final List<RangeList> rangeMatrix;
+  private final Object[] ret = new Object[2];
 
   public final static ListObjectInspector intListOI = ObjectInspectorFactory
       .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
@@ -30,16 +32,16 @@ public class CondList {
       .getStandardStructObjectInspector(columnName, objectInspectorType);
 
   public CondList() {
-    this.keyList = new KeyWrapper();
+    this.keyList = new IntArrayList();
     this.rangeMatrix = new ArrayList<RangeList>();
   }
 
-  public CondList(KeyWrapper keyList, List<RangeList> rangeMatrix) {
+  public CondList(IntArrayList keyList, List<RangeList> rangeMatrix) {
     this.keyList = keyList;
     this.rangeMatrix = rangeMatrix;
   }
 
-  public KeyWrapper getKey() {
+  public IntArrayList getKey() {
     return this.keyList;
   }
 
@@ -68,7 +70,7 @@ public class CondList {
     rangeMatrix.add(newlist);
   }
 
-  public void addKeys(KeyWrapper newKeys) {
+  public void addKeys(IntArrayList newKeys) {
     keyList.addAll(newKeys);
   }
 
