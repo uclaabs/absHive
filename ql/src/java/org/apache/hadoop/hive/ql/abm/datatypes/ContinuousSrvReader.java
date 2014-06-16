@@ -2,8 +2,6 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 
 public class ContinuousSrvReader extends SrvReader {
 
-  private static final long serialVersionUID = 1L;
-
   public ContinuousSrvReader(int numCols) {
     super(numCols);
   }

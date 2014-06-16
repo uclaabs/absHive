@@ -1,14 +1,11 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
-import java.io.Serializable;
 
-public abstract class SrvReader implements Serializable {
-
-  private static final long serialVersionUID = 1L;
+public abstract class SrvReader {
 
   protected int numCols;
-  protected transient double[] srv = null;
-  protected transient int offset = 0;
+  protected double[] srv = null;
+  protected int offset = 0;
 
   public SrvReader(int numCols) {
     this.numCols = numCols;
