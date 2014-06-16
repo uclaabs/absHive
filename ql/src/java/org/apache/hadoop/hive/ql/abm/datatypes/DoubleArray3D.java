@@ -20,13 +20,11 @@ public class DoubleArray3D implements Serializable {
     this.dim2 = dim2;
   }
 
-  public void fill(int idx1, int idx2, double[][] dest, int row, int col) {
+  public void fill(int idx1, int idx2, double[][] dest, int offset1, int offset2) {
     int pos = idx1 * area + idx2 * len;
-    for (int i = row, iend = row + dim1; i < iend; ++i) {
-      double[] cur = dest[i];
-      for (int j = col, jend = col + dim2; j < jend; ++j) {
-        cur[j] = buf[pos++];
-      }
+    for (int i = offset1, to = offset1 + dim1; i < to; ++i) {
+      System.arraycopy(buf, pos, dest[i], offset2, dim2);
+      pos += dim2;
     }
   }
 

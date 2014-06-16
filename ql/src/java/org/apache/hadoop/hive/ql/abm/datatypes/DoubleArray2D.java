@@ -16,13 +16,13 @@ public class DoubleArray2D implements Serializable {
     this.dim = dim;
   }
 
-  public void fill(int idx, double[][] dest, int row, int col) {
+  public void fill(int idx, double[][] dest, int offset) {
     int pos = idx * len;
-    for (int i = 0; i < dim; ++i) {
-      double[] cur = dest[i + row];
-      for (int j = i + 1 + col, end = dim + col; j < end; ++j) {
-        cur[j] = buf[pos++];
-      }
+    int len = dim - 1;
+    for (int i = offset, to = dim + offset; i < to; ++i) {
+      System.arraycopy(buf, pos, dest[i], i + 1, len);
+      pos += len;
+      --len;
     }
   }
 
