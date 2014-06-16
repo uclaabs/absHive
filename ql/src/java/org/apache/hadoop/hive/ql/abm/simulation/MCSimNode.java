@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.simulation;
 
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.List;
 
@@ -11,18 +12,29 @@ import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class MCSimNode {
 
+  private final IntArrayList[] groups;
+  private final int[] numAggrs;
+
   private final DistOracle[][] withinLevel;
   private final DistOracle[][] betweenLevel;
+
+  private final KeyReader reader;
 
   public MCSimNode(List<Integer> gbyIds, List<List<UdafType>> udafTypes,
       List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes,
       List<Integer> parentGbyIds,
       Int2ReferenceOpenHashMap<double[]>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
       boolean independent) {
-    int lastContinuousGby = inners.length - 1;
+    int numGbys1 = gbyIds.size();
+
+    groups = new IntArrayList[numGbys1];
+    numAggrs = new int[numGbys1];
+    for (int i = 0; i < numGbys1; ++i) {
+      numAggrs[i] = udafTypes.get(gbyIds.get(i)).size();
+    }
 
     // Initialize distribution oracles
-    int numGbys1 = gbyIds.size();
+    int lastContinuousGby = inners.length - 1;
     withinLevel = new DistOracle[numGbys1][numGbys1];
     for (int i = 0; i < numGbys1; ++i) {
       DistOracle[] level = new DistOracle[numGbys1];
@@ -74,7 +86,7 @@ public class MCSimNode {
     }
 
     // Initialize condition reader
-    // TODO
+    reader = new KeyReader(gbyIds, numAggrs, gbyIdsInPreds, colsInPreds, predTypes);
   }
 
   public void init() {

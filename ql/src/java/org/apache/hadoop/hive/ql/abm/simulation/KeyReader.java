@@ -1,103 +1,100 @@
 package org.apache.hadoop.hive.ql.abm.simulation;
 
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
-import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
 import org.apache.hadoop.hive.ql.abm.datatypes.Conditions;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 
-public class KeyReader implements Serializable {
+public class KeyReader {
 
-  private static final long serialVersionUID = 1L;
+  private final int[] uniqs;
+  private final int[] numAggrs;
 
-  private int[] gbys;
-  private int[] cols;
-  private PredicateType[] preds;
-  private IntArrayList uniqueGbys;
+  private final int[] gbys;
+  private final int[] cols;
 
-  private transient List<RangeList> ranges;
-  private transient IntArrayList idx = new IntArrayList();
+  private final PredicateType[] preds;
 
-  public KeyReader() {
-  }
+  private List<RangeList> ranges = null;
+  private final IntArrayList idx = new IntArrayList();
 
-  public KeyReader(ComparisonTransform[] predicates) {
-    // TODO: initialize uniqGbys & gbys & cols & preds
-
-    // get unique groupByOps
-    IntOpenHashSet hSet = new IntOpenHashSet();
-    for(int gby:gbys) {
-      hSet.add(gby);
+  public KeyReader(List<Integer> gbyIds, int[] numAggrs,
+      List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes) {
+    // Initialize basic information
+    int numUniq = gbyIds.size();
+    uniqs = new int[numUniq];
+    Int2IntOpenHashMap tmpMap = new Int2IntOpenHashMap();
+    for (int i = 0; i < numUniq; ++i) {
+      int id = gbyIds.get(i);
+      uniqs[i] = id;
+      tmpMap.put(id, tmpMap.size());
     }
-    uniqueGbys = new IntArrayList(hSet);
-    Collections.sort(uniqueGbys);
 
+    this.numAggrs = numAggrs;
+
+    // Initialize key-related fields
+    int numKeys = gbyIdsInPreds.size();
+    gbys = new int[numKeys];
+    cols = new int[numKeys];
+    for (int i = 0; i < numKeys; ++i) {
+      int idx = tmpMap.get(gbyIdsInPreds.get(i));
+      gbys[i] = idx;
+      int col = colsInPreds.get(i);
+      cols[i] = (col == -1) ? numAggrs[idx] : col;
+
+    }
+
+    // Initialize predicate-related fields
+    preds = predTypes.toArray(new PredicateType[predTypes.size()]);
   }
 
-  public void init(Conditions condition, IntArrayList[] groups, int[] numAggrs) {
+  public void init(Conditions condition, IntArrayList[] groups) {
     ranges = condition.getRanges();
 
-    // create a temporal Int2IntLinkedOpenHashMap for every group
-    Int2ObjectOpenHashMap<Int2IntLinkedOpenHashMap> groupMaps = new Int2ObjectOpenHashMap<Int2IntLinkedOpenHashMap>();
-    for(int gby: uniqueGbys) {
-      groupMaps.put(gby, new Int2IntLinkedOpenHashMap());
+    // dedup
+    Int2IntLinkedOpenHashMap[] allGroupIds = new Int2IntLinkedOpenHashMap[uniqs.length];
+    for (int i = 0; i < uniqs.length; ++i) {
+      allGroupIds[i] = new Int2IntLinkedOpenHashMap();
+      groups[i].clear();
     }
 
-    int dimensions = gbys.length;
     IntArrayList keys = condition.keys;
-    int condGroupSize = keys.size() / dimensions;
-
-    // fill in the groups and groupMaps
-    for(int i = 0; i < dimensions; i ++) {
-      // for every dimension, they have the same groupByOp
-      int groupByOp = gbys[i];
-      int colIdx = cols[i];
-      Int2IntLinkedOpenHashMap hashMap = groupMaps.get(groupByOp);
-
-      // for the ith dimension in every condGroup, update the hashMap and groups
-      for(int j = 0; j < condGroupSize; j ++) {
-        int offset = j * dimensions + i;
-        int group = keys.getInt(offset);
-
-        if(!hashMap.containsKey(group)) {
-          hashMap.put(group, colIdx);
-          groups[groupByOp].add(group);
-        }
+    int numKeys = keys.size();
+    for (int i = 0, j = 0; i < numKeys; ++i) {
+      int idx = gbys[j++];
+      Int2IntLinkedOpenHashMap tmp = allGroupIds[idx];
+      int groupId = keys.getInt(i);
+      if (!tmp.containsKey(groupId)) {
+        tmp.put(groupId, tmp.size());
+        groups[idx].add(groupId);
+      }
+      if (j == gbys.length) {
+        j = 0;
       }
     }
 
-    // update the groupMaps to compute the offset
-    int offset = 0;
-    for(int gby: uniqueGbys) {
-      int numAggr = numAggrs[gby];
-      Int2IntLinkedOpenHashMap hashMap = groupMaps.get(gby);
-      for(Map.Entry<Integer, Integer> entry: hashMap.entrySet()) {
-        int key = entry.getKey();
-        int value = entry.getValue() + offset;
-        hashMap.put(key, value);
-        offset += numAggr;
-      }
+    // fill in idx
+    int[] offset = new int[uniqs.length];
+    int cum = 0;
+    for (int i = 0; i < uniqs.length; ++i) {
+      offset[i] = cum;
+      cum += allGroupIds[i].size() * numAggrs[i];
     }
 
-    // fill in the idx
     idx.clear();
-    int keySize = keys.size();
-    for(int i = 0; i < keySize; i ++) {
-      int group = keys.getInt(i);
-      int groupByOp = gbys[i%dimensions];
-      idx.add(groupMaps.get(groupByOp).get(group));
+    for (int i = 0, j = 0; i < numKeys; i++) {
+      int gby = gbys[j++];
+      int groupId = keys.getInt(i);
+      idx.add(offset[gby] + allGroupIds[gby].get(groupId) * numAggrs[gby] + cols[i]);
+      if (j == gbys.length) {
+        j = 0;
+      }
     }
-
   }
-
 
   public int parse(double[] samples) {
     int left = 0;
@@ -113,7 +110,7 @@ public class KeyReader implements Serializable {
       valx = samples[idx.getInt(pos)];
       RangeList currentRange = ranges.get(cur);
 
-      switch (preds[cur%preds.length]) {
+      switch (preds[cur % preds.length]) {
       case SINGLE_LESS_THAN:
         conditionLessThan(tmpBound, left, right, currentRange, valx);
         ++pos;
@@ -175,9 +172,9 @@ public class KeyReader implements Serializable {
 
 
   private int lessThan(int left, int right, RangeList range, double value) {
-    while(right > left) {
+    while (right > left) {
       int midPos = (left + right) / 2;
-      if(range.getDouble(midPos) < value) {
+      if (range.getDouble(midPos) < value) {
         right = midPos;
       } else {
         left = midPos + 1;
@@ -187,9 +184,9 @@ public class KeyReader implements Serializable {
   }
 
   private int lessEqualThan(int left, int right, RangeList range, double value) {
-    while(right > left) {
+    while (right > left) {
       int midPos = (left + right) / 2;
-      if(range.getDouble(midPos) <= value) {
+      if (range.getDouble(midPos) <= value) {
         right = midPos;
       } else {
         left = midPos + 1;
@@ -200,9 +197,9 @@ public class KeyReader implements Serializable {
 
 
   private int greaterEqualThan(int left, int right, RangeList range, double value) {
-    while(right > left) {
+    while (right > left) {
       int midPos = (left + right) / 2;
-      if(range.getDouble(midPos) >= value) {
+      if (range.getDouble(midPos) >= value) {
         right = midPos;
       } else {
         left = midPos + 1;
@@ -212,9 +209,9 @@ public class KeyReader implements Serializable {
   }
 
   private int greaterThan(int left, int right, RangeList range, double value) {
-    while(right > left) {
+    while (right > left) {
       int midPos = (left + right) / 2;
-      if(range.getDouble(midPos) > value) {
+      if (range.getDouble(midPos) > value) {
         right = midPos;
       } else {
         left = midPos + 1;
@@ -223,14 +220,15 @@ public class KeyReader implements Serializable {
     return left;
   }
 
-  private void conditionGreaterEqualThan(int[] bound, int left, int right, RangeList range, double value) {
+  private void conditionGreaterEqualThan(int[] bound, int left, int right, RangeList range,
+      double value) {
 
-    int index = greaterThan(left,right,range,value);
-    if(range.getDouble(index) <= value) {
+    int index = greaterThan(left, right, range, value);
+    if (range.getDouble(index) <= value) {
       bound[1] = index;
       bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
     } else {
-      if(index == left) {
+      if (index == left) {
         bound[0] = range.size();
         bound[1] = range.size();
       } else {
@@ -242,12 +240,12 @@ public class KeyReader implements Serializable {
 
   private void conditionGreaterThan(int[] bound, int left, int right, RangeList range, double value) {
 
-    int index = greaterEqualThan(left,right,range,value);
-    if(range.getDouble(index) < value) {
+    int index = greaterEqualThan(left, right, range, value);
+    if (range.getDouble(index) < value) {
       bound[1] = index;
       bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
     } else {
-      if(index == left) {
+      if (index == left) {
         bound[0] = range.size();
         bound[1] = range.size();
       } else {
@@ -257,14 +255,15 @@ public class KeyReader implements Serializable {
     }
   }
 
-  private void conditionLessEqualThan(int[] bound, int left, int right, RangeList range, double value) {
+  private void conditionLessEqualThan(int[] bound, int left, int right, RangeList range,
+      double value) {
 
-    int index = lessThan(left,right,range,value);
-    if(range.getDouble(index) >= value) {
+    int index = lessThan(left, right, range, value);
+    if (range.getDouble(index) >= value) {
       bound[1] = index;
       bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
     } else {
-      if(index == left) {
+      if (index == left) {
         bound[0] = range.size();
         bound[1] = range.size();
       } else {
@@ -276,12 +275,12 @@ public class KeyReader implements Serializable {
 
   private void conditionLessThan(int[] bound, int left, int right, RangeList range, double value) {
 
-    int index = lessEqualThan(left,right,range,value);
-    if(range.getDouble(index) > value) {
+    int index = lessEqualThan(left, right, range, value);
+    if (range.getDouble(index) > value) {
       bound[1] = index;
       bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
     } else {
-      if(index == left) {
+      if (index == left) {
         bound[0] = range.size();
         bound[1] = range.size();
       } else {
@@ -291,15 +290,4 @@ public class KeyReader implements Serializable {
     }
   }
 
-}
-
-enum PredicateType {
-  SINGLE_LESS_THAN,
-  SINGLE_LESS_THAN_OR_EQUAL_TO,
-  SINGLE_GREATER_THAN,
-  SINGLE_GREATER_THAN_OR_EQUAL_TO,
-  DOUBLE_LESS_THAN,
-  DOUBLE_LESS_THAN_OR_EQUAL_TO,
-  DOUBLE_GREATER_THAN,
-  DOUBLE_GREATER_THAN_OR_EQUAL_TO
 }
