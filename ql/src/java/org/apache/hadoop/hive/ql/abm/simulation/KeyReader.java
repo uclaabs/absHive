@@ -11,26 +11,27 @@ import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 
 public class KeyReader {
 
-  private final int[] uniqs;
   private final int[] numAggrs;
+  private final TupleMap[] dict;
 
   private final int[] gbys;
   private final int[] cols;
 
   private final PredicateType[] preds;
 
-  private List<RangeList> ranges = null;
-  private final IntArrayList idx = new IntArrayList();
+  private final TupleList[] tuples;
+  private final IntArrayList condIds;
 
   public KeyReader(List<Integer> gbyIds, int[] numAggrs,
-      List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes) {
+      List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes,
+      TupleMap[] srvs) {
     // Initialize basic information
     int numUniq = gbyIds.size();
-    uniqs = new int[numUniq];
+    dict = new TupleMap[numUniq];
     Int2IntOpenHashMap tmpMap = new Int2IntOpenHashMap();
     for (int i = 0; i < numUniq; ++i) {
       int id = gbyIds.get(i);
-      uniqs[i] = id;
+      dict[i] = srvs[id];
       tmpMap.put(id, tmpMap.size());
     }
 
@@ -50,199 +51,229 @@ public class KeyReader {
 
     // Initialize predicate-related fields
     preds = predTypes.toArray(new PredicateType[predTypes.size()]);
+
+    // Initialize simulation-related fields
+    tuples = new TupleList[numUniq];
+    condIds = new IntArrayList();
   }
 
-  public void init(SrvTuple tuple, IntArrayList[] groups) {
-    ranges = tuple.range;
-
-    // dedup
-    Int2IntLinkedOpenHashMap[] allGroupIds = new Int2IntLinkedOpenHashMap[uniqs.length];
-    for (int i = 0; i < uniqs.length; ++i) {
+  public void init(IntArrayList[] target, IntArrayList[] dependent) {
+    Int2IntLinkedOpenHashMap[] allGroupIds = new Int2IntLinkedOpenHashMap[numAggrs.length];
+    for (int i = 0; i < numAggrs.length; ++i) {
       allGroupIds[i] = new Int2IntLinkedOpenHashMap();
-      groups[i].clear();
+      tuples[i].clear();
+      dependent[i].clear();
     }
 
-    IntArrayList keys = tuple.key;
-    int numKeys = keys.size();
-    for (int i = 0, j = 0; i < numKeys; ++i) {
-      int idx = gbys[j++];
-      Int2IntLinkedOpenHashMap tmp = allGroupIds[idx];
-      int groupId = keys.getInt(i);
-      if (!tmp.containsKey(groupId)) {
-        tmp.put(groupId, tmp.size());
-        groups[idx].add(groupId);
-      }
-      if (j == gbys.length) {
-        j = 0;
+    for (int ind = 0; ind < dict.length; ++ind) {
+      TupleMap map = dict[ind];
+      IntArrayList todo = target[ind];
+      TupleList buf = tuples[ind];
+
+      for (int cur = 0; cur < todo.size(); ++cur) {
+        SrvTuple tuple = map.get(todo.getInt(cur));
+        buf.add(tuple);
+        // dedup
+        IntArrayList key = tuple.key;
+        for (int i = 0, j = 0; i < key.size(); ++i) {
+          int idx = gbys[j++];
+          Int2IntLinkedOpenHashMap tmp = allGroupIds[idx];
+          int groupId = key.getInt(i);
+          if (!tmp.containsKey(groupId)) {
+            tmp.put(groupId, tmp.size());
+            dependent[idx].add(groupId);
+          }
+          if (j == gbys.length) {
+            j = 0;
+          }
+        }
       }
     }
 
-    // fill in idx
-    int[] offset = new int[uniqs.length];
+    // preprocess offset
+    int[] offset = new int[numAggrs.length];
     int cum = 0;
-    for (int i = 0; i < uniqs.length; ++i) {
+    for (int i = 0; i < numAggrs.length; ++i) {
       offset[i] = cum;
       cum += allGroupIds[i].size() * numAggrs[i];
     }
 
-    idx.clear();
-    for (int i = 0, j = 0; i < numKeys; i++) {
-      int gby = gbys[j++];
-      int groupId = keys.getInt(i);
-      idx.add(offset[gby] + allGroupIds[gby].get(groupId) * numAggrs[gby] + cols[i]);
-      if (j == gbys.length) {
-        j = 0;
+    for (int ind = 0; ind < dict.length; ++ind) {
+      TupleList buf = tuples[ind];
+      for (SrvTuple tuple : buf) {
+        IntArrayList key = tuple.key;
+        IntArrayList idx = tuple.getIdx();
+        // fill in idx
+        idx.clear();
+        for (int i = 0, j = 0; i < key.size(); i++) {
+          int gby = gbys[j++];
+          int groupId = key.getInt(i);
+          idx.add(offset[gby] + allGroupIds[gby].get(groupId) * numAggrs[gby] + cols[i]);
+          if (j == gbys.length) {
+            j = 0;
+          }
+        }
       }
     }
   }
 
-  public int parse(double[] samples) {
-    double value;
+  public IntArrayList parse(double[] samples) {
+    condIds.clear();
 
-    int left = 0;
-    int right = ranges.get(0).size();
-    int[] tmpBound = {left, right};
-    int index;
+    for (TupleList list : tuples) {
+      for (SrvTuple tuple : list) {
+        IntArrayList idx =  tuple.getIdx();
+        double value;
 
-    int keyIdx = 0;
-    int rangeIdx = 0;
-    int predIdx = 0;
+        int left = 0;
+        int right = tuple.range.get(0).size();
+        int[] tmpBound = {left, right};
+        int index;
 
-    while (true) {
-      RangeList range = ranges.get(rangeIdx++);
+        int keyIdx = 0;
+        int rangeIdx = 0;
+        int predIdx = 0;
 
-      switch (preds[predIdx++]) {
-      case SINGLE_LESS_THAN:
-        value = samples[idx.getInt(keyIdx)];
-        index = firstLte(value, range, left, right);
-        if (range.getDouble(index) > value) {
-          right = index;
-          left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstLte(range.getDouble(right), range, left, right);
+        while (true) {
+          RangeList range = tuple.range.get(rangeIdx++);
+
+          switch (preds[predIdx++]) {
+          case SINGLE_LESS_THAN:
+            value = samples[idx.getInt(keyIdx)];
+            index = firstLte(value, range, left, right);
+            if (range.getDouble(index) > value) {
+              right = index;
+              left = firstLte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstLte(range.getDouble(right), range, left, right);
+            }
+            ++keyIdx;
+            break;
+
+          case SINGLE_LESS_THAN_OR_EQUAL_TO:
+            value = samples[idx.getInt(keyIdx)];
+            index = firstLt(value, range, left, right);
+            if (index == -1) {
+              right = index;
+              left = firstLte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstLte(range.getDouble(right), range, left, right);
+            }
+            ++keyIdx;
+            break;
+
+          case SINGLE_GREATER_THAN:
+            value = samples[idx.getInt(keyIdx)];
+            index = firstGte(value, range, left, right);
+            if (index == -1) {
+              right = index;
+              left = firstGte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstGte(range.getDouble(right), range, left, right);
+            }
+            ++keyIdx;
+            break;
+
+          case SINGLE_GREATER_THAN_OR_EQUAL_TO:
+            value = samples[idx.getInt(keyIdx)];
+            index = firstGt(value, range, left, right);
+            if (index == -1) {
+              right = index;
+              left = firstGte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstGte(range.getDouble(right), range, left, right);
+            }
+            ++keyIdx;
+            break;
+
+          case DOUBLE_LESS_THAN:
+            value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+            index = firstLte(value, range, left, right);
+            if (range.getDouble(index) > value) {
+              right = index;
+              left = firstLte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstLte(range.getDouble(right), range, left, right);
+            }
+            keyIdx += 2;
+            break;
+
+          case DOUBLE_LESS_THAN_OR_EQUAL_TO:
+            value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+            index = firstLt(value, range, left, right);
+            if (index == -1) {
+              right = index;
+              left = firstLte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstLte(range.getDouble(right), range, left, right);
+            }
+            keyIdx += 2;
+            break;
+
+          case DOUBLE_GREATER_THAN:
+            value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+            index = firstGte(value, range, left, right);
+            if (index == -1) {
+              right = index;
+              left = firstGte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstGte(range.getDouble(right), range, left, right);
+            }
+            keyIdx += 2;
+            break;
+
+          default: // case DOUBLE_GREATER_THAN_OR_EQUAL_TO
+            value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+            index = firstGt(value, range, left, right);
+            if (index == -1) {
+              right = index;
+              left = firstGte(range.getDouble(right), range, left, right);
+            } else if (index == left) {
+              left = right = range.size();
+            } else {
+              right = index - 1;
+              left = firstGte(range.getDouble(right), range, left, right);
+            }
+            keyIdx += 2;
+          }
+
+          left = tmpBound[0];
+          right = tmpBound[1];
+
+          if (left == right) {
+            condIds.add(left);
+            break;
+          }
+
+          if (predIdx == preds.length) {
+            predIdx = 0;
+          }
         }
-        ++keyIdx;
-        break;
-
-      case SINGLE_LESS_THAN_OR_EQUAL_TO:
-        value = samples[idx.getInt(keyIdx)];
-        index = firstLt(value, range, left, right);
-        if (index == -1) {
-          right = index;
-          left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstLte(range.getDouble(right), range, left, right);
-        }
-        ++keyIdx;
-        break;
-
-      case SINGLE_GREATER_THAN:
-        value = samples[idx.getInt(keyIdx)];
-        index = firstGte(value, range, left, right);
-        if (index == -1) {
-          right = index;
-          left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstGte(range.getDouble(right), range, left, right);
-        }
-        ++keyIdx;
-        break;
-
-      case SINGLE_GREATER_THAN_OR_EQUAL_TO:
-        value = samples[idx.getInt(keyIdx)];
-        index = firstGt(value, range, left, right);
-        if (index == -1) {
-          right = index;
-          left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstGte(range.getDouble(right), range, left, right);
-        }
-        ++keyIdx;
-        break;
-
-      case DOUBLE_LESS_THAN:
-        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
-        index = firstLte(value, range, left, right);
-        if (range.getDouble(index) > value) {
-          right = index;
-          left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstLte(range.getDouble(right), range, left, right);
-        }
-        keyIdx += 2;
-        break;
-
-      case DOUBLE_LESS_THAN_OR_EQUAL_TO:
-        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
-        index = firstLt(value, range, left, right);
-        if (index == -1) {
-          right = index;
-          left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstLte(range.getDouble(right), range, left, right);
-        }
-        keyIdx += 2;
-        break;
-
-      case DOUBLE_GREATER_THAN:
-        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
-        index = firstGte(value, range, left, right);
-        if (index == -1) {
-          right = index;
-          left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstGte(range.getDouble(right), range, left, right);
-        }
-        keyIdx += 2;
-        break;
-
-      default: // case DOUBLE_GREATER_THAN_OR_EQUAL_TO
-        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
-        index = firstGt(value, range, left, right);
-        if (index == -1) {
-          right = index;
-          left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
-        } else {
-          right = index - 1;
-          left = firstGte(range.getDouble(right), range, left, right);
-        }
-        keyIdx += 2;
-      }
-
-      left = tmpBound[0];
-      right = tmpBound[1];
-
-      if (left == right) {
-        return left;
-      }
-
-      if (predIdx == preds.length) {
-        predIdx = 0;
       }
     }
+
+    return condIds;
   }
 
   private int firstLt(double value, RangeList range, int left, int right) {

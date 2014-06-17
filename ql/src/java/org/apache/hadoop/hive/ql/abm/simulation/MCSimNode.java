@@ -1,6 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.simulation;
 
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -14,7 +13,7 @@ import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class MCSimNode {
 
-  private final IntArrayList[] groups;
+  private final IntArrayList[] target;
   private final int[] numAggrs;
 
   private final DistOracle[][] withinLevel;
@@ -27,11 +26,11 @@ public class MCSimNode {
   public MCSimNode(List<Integer> gbyIds, List<List<UdafType>> udafTypes,
       List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes,
       List<Integer> parentGbyIds,
-      Int2ReferenceOpenHashMap<SrvTuple>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
+      TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
       boolean independent) {
     int numGbys1 = gbyIds.size();
 
-    groups = new IntArrayList[numGbys1];
+    target = new IntArrayList[numGbys1];
     numAggrs = new int[numGbys1];
     for (int i = 0; i < numGbys1; ++i) {
       numAggrs[i] = udafTypes.get(gbyIds.get(i)).size();
@@ -90,7 +89,7 @@ public class MCSimNode {
     }
 
     // Initialize condition reader
-    reader = new KeyReader(gbyIds, numAggrs, gbyIdsInPreds, colsInPreds, predTypes);
+    reader = new KeyReader(gbyIds, numAggrs, gbyIdsInPreds, colsInPreds, predTypes, srvs);
   }
 
   public void setParent(MCSimNode parent) {
@@ -98,16 +97,20 @@ public class MCSimNode {
   }
 
   public void simulate(SrvTuple tuple) {
-    // TODO
-    reader.init(tuple, groups);
+    if (parent == null) {
+      // TODO
+      return;
+    }
 
+    reader.init(target, parent.target);
+    // TODO
   }
 
   public static MCSimNode createSimulationChain(List<List<Integer>> gbyIds,
       List<List<UdafType>> udafTypes,
       List<List<Integer>> gbyIdsInPreds, List<List<Integer>> colsInPreds,
       List<List<PredicateType>> predTypes,
-      Int2ReferenceOpenHashMap<SrvTuple>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
+      TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
       boolean simpleQuery) {
     int lastLevel = gbyIds.size();
     MCSimNode parent = null;
@@ -116,7 +119,8 @@ public class MCSimNode {
       boolean simpleReturn = (i == lastLevel && predTypes.get(i).size() <= 1);
 
       MCSimNode node = new MCSimNode(gbyIds.get(i), udafTypes, gbyIdsInPreds.get(i),
-          colsInPreds.get(i), predTypes.get(i), parentGbyIds, srvs, inners, inters, simpleQuery || simpleReturn);
+          colsInPreds.get(i), predTypes.get(i), parentGbyIds, srvs, inners, inters, simpleQuery
+              || simpleReturn);
       node.setParent(parent);
 
       parent = node;
