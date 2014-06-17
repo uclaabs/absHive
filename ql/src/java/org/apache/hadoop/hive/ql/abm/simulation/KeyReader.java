@@ -97,66 +97,139 @@ public class KeyReader {
   }
 
   public int parse(double[] samples) {
+    double value;
+
     int left = 0;
     int right = ranges.get(0).size();
-
     int[] tmpBound = {left, right};
-    int cur = 0;
-    int pos = 0;
+    int index;
 
-    double valx, valy, value;
+    int keyIdx = 0;
+    int rangeIdx = 0;
+    int predIdx = 0;
 
     while (true) {
-      valx = samples[idx.getInt(pos)];
-      RangeList currentRange = ranges.get(cur);
+      RangeList range = ranges.get(rangeIdx++);
 
-      switch (preds[cur % preds.length]) {
+      switch (preds[predIdx++]) {
       case SINGLE_LESS_THAN:
-        conditionLessThan(tmpBound, left, right, currentRange, valx);
-        ++pos;
+        value = samples[idx.getInt(keyIdx)];
+        index = firstLte(value, range, left, right);
+        if (range.getDouble(index) > value) {
+          right = index;
+          left = firstLte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstLte(range.getDouble(right), range, left, right);
+        }
+        ++keyIdx;
         break;
 
       case SINGLE_LESS_THAN_OR_EQUAL_TO:
-        conditionLessEqualThan(tmpBound, left, right, currentRange, valx);
-        ++pos;
+        value = samples[idx.getInt(keyIdx)];
+        index = firstLt(value, range, left, right);
+        if (index == -1) {
+          right = index;
+          left = firstLte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstLte(range.getDouble(right), range, left, right);
+        }
+        ++keyIdx;
         break;
 
       case SINGLE_GREATER_THAN:
-        conditionGreaterThan(tmpBound, left, right, currentRange, valx);
-        ++pos;
+        value = samples[idx.getInt(keyIdx)];
+        index = firstGte(value, range, left, right);
+        if (index == -1) {
+          right = index;
+          left = firstGte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstGte(range.getDouble(right), range, left, right);
+        }
+        ++keyIdx;
         break;
 
       case SINGLE_GREATER_THAN_OR_EQUAL_TO:
-        conditionGreaterEqualThan(tmpBound, left, right, currentRange, valx);
-        ++pos;
+        value = samples[idx.getInt(keyIdx)];
+        index = firstGt(value, range, left, right);
+        if (index == -1) {
+          right = index;
+          left = firstGte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstGte(range.getDouble(right), range, left, right);
+        }
+        ++keyIdx;
         break;
 
       case DOUBLE_LESS_THAN:
-        valy = samples[idx.getInt(pos + 1)];
-        value = valx - valy;
-        conditionLessThan(tmpBound, left, right, currentRange, value);
-        pos += 2;
+        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+        index = firstLte(value, range, left, right);
+        if (range.getDouble(index) > value) {
+          right = index;
+          left = firstLte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstLte(range.getDouble(right), range, left, right);
+        }
+        keyIdx += 2;
         break;
 
       case DOUBLE_LESS_THAN_OR_EQUAL_TO:
-        valy = samples[idx.getInt(pos + 1)];
-        value = valx - valy;
-        conditionLessThan(tmpBound, left, right, currentRange, value);
-        pos += 2;
+        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+        index = firstLt(value, range, left, right);
+        if (index == -1) {
+          right = index;
+          left = firstLte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstLte(range.getDouble(right), range, left, right);
+        }
+        keyIdx += 2;
         break;
 
       case DOUBLE_GREATER_THAN:
-        valy = samples[idx.getInt(pos + 1)];
-        value = valx - valy;
-        conditionGreaterThan(tmpBound, left, right, currentRange, value);
-        pos += 2;
+        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+        index = firstGte(value, range, left, right);
+        if (index == -1) {
+          right = index;
+          left = firstGte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstGte(range.getDouble(right), range, left, right);
+        }
+        keyIdx += 2;
         break;
 
-      default:
-        valy = samples[idx.getInt(pos + 1)];
-        value = valx - valy;
-        conditionGreaterEqualThan(tmpBound, left, right, currentRange, value);
-        pos += 2;
+      default: // case DOUBLE_GREATER_THAN_OR_EQUAL_TO
+        value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
+        index = firstGt(value, range, left, right);
+        if (index == -1) {
+          right = index;
+          left = firstGte(range.getDouble(right), range, left, right);
+        } else if (index == left) {
+          left = right = range.size();
+        } else {
+          right = index - 1;
+          left = firstGte(range.getDouble(right), range, left, right);
+        }
+        keyIdx += 2;
       }
 
       left = tmpBound[0];
@@ -166,127 +239,74 @@ public class KeyReader {
         return left;
       }
 
-      ++cur;
-    }
-  }
-
-
-  private int lessThan(int left, int right, RangeList range, double value) {
-    while (right > left) {
-      int midPos = (left + right) / 2;
-      if (range.getDouble(midPos) < value) {
-        right = midPos;
-      } else {
-        left = midPos + 1;
+      if (predIdx == preds.length) {
+        predIdx = 0;
       }
     }
-    return left;
   }
 
-  private int lessEqualThan(int left, int right, RangeList range, double value) {
-    while (right > left) {
-      int midPos = (left + right) / 2;
-      if (range.getDouble(midPos) <= value) {
-        right = midPos;
+  private int firstLt(double value, RangeList range, int left, int right) {
+    while (left < right) {
+      int mid = (left + right) / 2;
+      if (value > range.getDouble(mid)) {
+        right = mid;
       } else {
-        left = midPos + 1;
+        left = mid + 1;
       }
     }
-    return left;
-  }
-
-
-  private int greaterEqualThan(int left, int right, RangeList range, double value) {
-    while (right > left) {
-      int midPos = (left + right) / 2;
-      if (range.getDouble(midPos) >= value) {
-        right = midPos;
-      } else {
-        left = midPos + 1;
-      }
-    }
-    return left;
-  }
-
-  private int greaterThan(int left, int right, RangeList range, double value) {
-    while (right > left) {
-      int midPos = (left + right) / 2;
-      if (range.getDouble(midPos) > value) {
-        right = midPos;
-      } else {
-        left = midPos + 1;
-      }
-    }
-    return left;
-  }
-
-  private void conditionGreaterEqualThan(int[] bound, int left, int right, RangeList range,
-      double value) {
-
-    int index = greaterThan(left, right, range, value);
-    if (range.getDouble(index) <= value) {
-      bound[1] = index;
-      bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+    if (value > range.getDouble(left)) {
+      return left;
     } else {
-      if (index == left) {
-        bound[0] = range.size();
-        bound[1] = range.size();
-      } else {
-        bound[1] = index - 1;
-        bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
-      }
+      return -1;
     }
   }
 
-  private void conditionGreaterThan(int[] bound, int left, int right, RangeList range, double value) {
-
-    int index = greaterEqualThan(left, right, range, value);
-    if (range.getDouble(index) < value) {
-      bound[1] = index;
-      bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
-    } else {
-      if (index == left) {
-        bound[0] = range.size();
-        bound[1] = range.size();
+  private int firstLte(double value, RangeList range, int left, int right) {
+    while (left < right) {
+      int mid = (left + right) / 2;
+      if (value >= range.getDouble(mid)) {
+        right = mid;
       } else {
-        bound[1] = index - 1;
-        bound[0] = greaterEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+        left = mid + 1;
       }
+    }
+    if (value >= range.getDouble(left)) {
+      return left;
+    } else {
+      return -1;
     }
   }
 
-  private void conditionLessEqualThan(int[] bound, int left, int right, RangeList range,
-      double value) {
-
-    int index = lessThan(left, right, range, value);
-    if (range.getDouble(index) >= value) {
-      bound[1] = index;
-      bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
-    } else {
-      if (index == left) {
-        bound[0] = range.size();
-        bound[1] = range.size();
+  private int firstGte(double value, RangeList range, int left, int right) {
+    while (left < right) {
+      int mid = (left + right) / 2;
+      if (value <= range.getDouble(mid)) {
+        right = mid;
       } else {
-        bound[1] = index - 1;
-        bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+        left = mid + 1;
       }
+    }
+
+    if (value <= range.getDouble(left)) {
+      return left;
+    } else {
+      return -1;
     }
   }
 
-  private void conditionLessThan(int[] bound, int left, int right, RangeList range, double value) {
-
-    int index = lessEqualThan(left, right, range, value);
-    if (range.getDouble(index) > value) {
-      bound[1] = index;
-      bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
-    } else {
-      if (index == left) {
-        bound[0] = range.size();
-        bound[1] = range.size();
+  private int firstGt(double value, RangeList range, int left, int right) {
+    while (left < right) {
+      int mid = (left + right) / 2;
+      if (value < range.getDouble(mid)) {
+        right = mid;
       } else {
-        bound[1] = index - 1;
-        bound[0] = lessEqualThan(left, bound[1], range, range.getDouble(bound[1]));
+        left = mid + 1;
       }
+    }
+    if (value < range.getDouble(left)) {
+      return left;
+    } else {
+      return -1;
     }
   }
 
