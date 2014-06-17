@@ -3,8 +3,10 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.ql.abm.datatypes.Conditions;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InterCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvReader;
@@ -19,6 +21,8 @@ public class MCSimNode {
   private final DistOracle[][] betweenLevel;
 
   private final KeyReader reader;
+
+  private MCSimNode parent = null;
 
   public MCSimNode(List<Integer> gbyIds, List<List<UdafType>> udafTypes,
       List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes,
@@ -89,8 +93,36 @@ public class MCSimNode {
     reader = new KeyReader(gbyIds, numAggrs, gbyIdsInPreds, colsInPreds, predTypes);
   }
 
-  public void init() {
-    //
+  public void setParent(MCSimNode parent) {
+    this.parent = parent;
+  }
+
+  public void init(Conditions condition) {
+    // TODO
+    reader.init(condition, groups);
+  }
+
+  public static MCSimNode createSimulationChain(List<List<Integer>> gbyIds,
+      List<List<UdafType>> udafTypes,
+      List<List<Integer>> gbyIdsInPreds, List<List<Integer>> colsInPreds,
+      List<List<PredicateType>> predTypes,
+      Int2ReferenceOpenHashMap<double[]>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
+      boolean simpleQuery) {
+    int lastLevel = gbyIds.size();
+    MCSimNode parent = null;
+    List<Integer> parentGbyIds = new ArrayList<Integer>();
+    for (int i = 0; i <= lastLevel; ++i) {
+      boolean simpleReturn = (i == lastLevel && predTypes.get(i).size() <= 1);
+
+      MCSimNode node = new MCSimNode(gbyIds.get(i), udafTypes, gbyIdsInPreds.get(i),
+          colsInPreds.get(i), predTypes.get(i), parentGbyIds, srvs, inners, inters, simpleQuery || simpleReturn);
+      node.setParent(parent);
+
+      parent = node;
+      parentGbyIds.addAll(gbyIds.get(i));
+    }
+
+    return parent;
   }
 
 }
