@@ -25,11 +25,6 @@ public class ConditionsParser {
     rangesParser = new RangeMatrixParser(ranges.getFieldObjectInspector());
   }
 
-  public Conditions parse(Object o) {
-    return new Conditions(keyParser.parse(oi.getStructFieldData(o, key)),
-        rangesParser.parse(oi.getStructFieldData(o, ranges)));
-  }
-
   public IntArrayList parseKey(Object o) {
     return keyParser.parse(oi.getStructFieldData(o, key));
   }

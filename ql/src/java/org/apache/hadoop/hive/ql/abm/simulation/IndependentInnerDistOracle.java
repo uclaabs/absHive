@@ -5,15 +5,16 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvReader;
+import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class IndependentInnerDistOracle implements InnerDistOracle {
 
-  private final Int2ReferenceOpenHashMap<double[]> srvs;
+  private final Int2ReferenceOpenHashMap<SrvTuple> srvs;
   private final SrvReader reader;
   private final int length;
 
-  public IndependentInnerDistOracle(Int2ReferenceOpenHashMap<double[]> srvs, SrvReader reader, List<UdafType> udafTypes) {
+  public IndependentInnerDistOracle(Int2ReferenceOpenHashMap<SrvTuple> srvs, SrvReader reader, List<UdafType> udafTypes) {
     this.srvs = srvs;
     this.reader = reader;
     length = reader.getNumCols();
@@ -31,7 +32,7 @@ public class IndependentInnerDistOracle implements InnerDistOracle {
 
   @Override
   public boolean fillMeanAndCov(int groupId, int condId, double[] mean, double[][] cov, int offset) {
-    reader.locate(srvs.get(groupId), condId);
+    reader.locate(srvs.get(groupId).srv, condId);
 
     reader.fillMean(mean, offset);
     return reader.fillVar(cov, offset); // the covariance matrix is already initialized to 0

@@ -6,8 +6,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.Conditions;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
+import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 
 public class KeyReader {
 
@@ -52,8 +52,8 @@ public class KeyReader {
     preds = predTypes.toArray(new PredicateType[predTypes.size()]);
   }
 
-  public void init(Conditions condition, IntArrayList[] groups) {
-    ranges = condition.getRanges();
+  public void init(SrvTuple tuple, IntArrayList[] groups) {
+    ranges = tuple.range;
 
     // dedup
     Int2IntLinkedOpenHashMap[] allGroupIds = new Int2IntLinkedOpenHashMap[uniqs.length];
@@ -62,7 +62,7 @@ public class KeyReader {
       groups[i].clear();
     }
 
-    IntArrayList keys = condition.keys;
+    IntArrayList keys = tuple.key;
     int numKeys = keys.size();
     for (int i = 0, j = 0; i < numKeys; ++i) {
       int idx = gbys[j++];

@@ -7,17 +7,18 @@ import java.util.List;
 import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray2D;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvReader;
+import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class CorrelatedInnerDistOracle implements InnerDistOracle {
 
-  private final Int2ReferenceOpenHashMap<double[]> srvs;
+  private final Int2ReferenceOpenHashMap<SrvTuple> srvs;
   private final SrvReader reader;
   private final int length;
   private final InnerCovMap inner;
   private final CovOracle[][] oracles;
 
-  public CorrelatedInnerDistOracle(Int2ReferenceOpenHashMap<double[]> srvs,
+  public CorrelatedInnerDistOracle(Int2ReferenceOpenHashMap<SrvTuple> srvs,
       SrvReader reader, InnerCovMap inner, List<UdafType> aggrTypes) {
     this.srvs = srvs;
     this.reader = reader;
@@ -38,7 +39,7 @@ public class CorrelatedInnerDistOracle implements InnerDistOracle {
 
   @Override
   public boolean fillMeanAndCov(int groupId, int condId, double[] mean, double[][] cov, int offset) {
-    reader.locate(srvs.get(groupId), condId);
+    reader.locate(srvs.get(groupId).srv, condId);
 
     reader.fillMean(mean, offset);
     boolean fake = reader.fillVar(cov, offset);

@@ -6,10 +6,10 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.abm.datatypes.Conditions;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InterCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvReader;
+import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class MCSimNode {
@@ -27,7 +27,7 @@ public class MCSimNode {
   public MCSimNode(List<Integer> gbyIds, List<List<UdafType>> udafTypes,
       List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes,
       List<Integer> parentGbyIds,
-      Int2ReferenceOpenHashMap<double[]>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
+      Int2ReferenceOpenHashMap<SrvTuple>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
       boolean independent) {
     int numGbys1 = gbyIds.size();
 
@@ -97,16 +97,17 @@ public class MCSimNode {
     this.parent = parent;
   }
 
-  public void init(Conditions condition) {
+  public void simulate(SrvTuple tuple) {
     // TODO
-    reader.init(condition, groups);
+    reader.init(tuple, groups);
+
   }
 
   public static MCSimNode createSimulationChain(List<List<Integer>> gbyIds,
       List<List<UdafType>> udafTypes,
       List<List<Integer>> gbyIdsInPreds, List<List<Integer>> colsInPreds,
       List<List<PredicateType>> predTypes,
-      Int2ReferenceOpenHashMap<double[]>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
+      Int2ReferenceOpenHashMap<SrvTuple>[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
       boolean simpleQuery) {
     int lastLevel = gbyIds.size();
     MCSimNode parent = null;
