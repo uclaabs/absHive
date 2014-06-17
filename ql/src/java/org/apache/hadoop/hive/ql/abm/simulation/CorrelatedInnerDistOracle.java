@@ -10,7 +10,7 @@ import org.apache.hadoop.hive.ql.abm.datatypes.SrvReader;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
-public class CorrelatedInnerDistOracle implements InnerDistOracle {
+public class CorrelatedInnerDistOracle extends InnerDistOracle {
 
   private final Int2ReferenceOpenHashMap<SrvTuple> srvs;
   private final SrvReader reader;
@@ -64,7 +64,7 @@ public class CorrelatedInnerDistOracle implements InnerDistOracle {
   }
 
   @Override
-  public void fillCov(int groupId, int condId1, int condId2, double[] mean, double[][] cov, int offset1, int offset2) {
+  public void fillCov(double[] mean, double[][] cov, int offset1, int offset2) {
     for (int i = 0; i < length; ++i) {
       for (int j = 0; j < length; ++j) {
         oracles[i][j].fillCovariance(mean, mean, offset1, offset2, cov);

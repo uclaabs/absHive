@@ -6,7 +6,7 @@ import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray3D;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InterCovMap;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
-public class CorrelatedInterDistOracle implements InterDistOracle {
+public class CorrelatedInterDistOracle extends InterDistOracle {
 
   private final int length1;
   private final int length2;

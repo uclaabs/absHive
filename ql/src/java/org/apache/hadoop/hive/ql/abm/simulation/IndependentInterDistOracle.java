@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
-public class IndependentInterDistOracle implements InterDistOracle {
+public class IndependentInterDistOracle extends InterDistOracle {
 
   private final int length1;
   private final int length2;

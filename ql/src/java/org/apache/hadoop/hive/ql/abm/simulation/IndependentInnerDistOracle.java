@@ -8,7 +8,7 @@ import org.apache.hadoop.hive.ql.abm.datatypes.SrvReader;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
-public class IndependentInnerDistOracle implements InnerDistOracle {
+public class IndependentInnerDistOracle extends InnerDistOracle {
 
   private final Int2ReferenceOpenHashMap<SrvTuple> srvs;
   private final SrvReader reader;
@@ -39,7 +39,7 @@ public class IndependentInnerDistOracle implements InnerDistOracle {
   }
 
   @Override
-  public void fillCov(int groupId, int condId1, int condId2, double[] mean, double[][] cov, int offset1, int offset2) {
+  public void fillCov(double[] mean, double[][] cov, int offset1, int offset2) {
     // Do nothing, as cov should be initialized with all zeros
   }
 

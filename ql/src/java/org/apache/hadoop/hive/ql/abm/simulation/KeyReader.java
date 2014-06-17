@@ -19,7 +19,7 @@ public class KeyReader {
 
   private final PredicateType[] preds;
 
-  private final TupleList[] tuples;
+  private final TupleList[] targetTuples;
   private final IntArrayList condIds;
 
   public KeyReader(List<Integer> gbyIds, int[] numAggrs,
@@ -53,22 +53,22 @@ public class KeyReader {
     preds = predTypes.toArray(new PredicateType[predTypes.size()]);
 
     // Initialize simulation-related fields
-    tuples = new TupleList[numUniq];
+    targetTuples = new TupleList[numUniq];
     condIds = new IntArrayList();
   }
 
-  public void init(IntArrayList[] target, IntArrayList[] dependent) {
+  public int init(IntArrayList[] target, IntArrayList[] dependent) {
     Int2IntLinkedOpenHashMap[] allGroupIds = new Int2IntLinkedOpenHashMap[numAggrs.length];
     for (int i = 0; i < numAggrs.length; ++i) {
       allGroupIds[i] = new Int2IntLinkedOpenHashMap();
-      tuples[i].clear();
+      targetTuples[i].clear();
       dependent[i].clear();
     }
 
     for (int ind = 0; ind < dict.length; ++ind) {
       TupleMap map = dict[ind];
       IntArrayList todo = target[ind];
-      TupleList buf = tuples[ind];
+      TupleList buf = targetTuples[ind];
 
       for (int cur = 0; cur < todo.size(); ++cur) {
         SrvTuple tuple = map.get(todo.getInt(cur));
@@ -99,7 +99,7 @@ public class KeyReader {
     }
 
     for (int ind = 0; ind < dict.length; ++ind) {
-      TupleList buf = tuples[ind];
+      TupleList buf = targetTuples[ind];
       for (SrvTuple tuple : buf) {
         IntArrayList key = tuple.key;
         IntArrayList idx = tuple.getIdx();
@@ -115,12 +115,14 @@ public class KeyReader {
         }
       }
     }
+
+    return cum;
   }
 
   public IntArrayList parse(double[] samples) {
     condIds.clear();
 
-    for (TupleList list : tuples) {
+    for (TupleList list : targetTuples) {
       for (SrvTuple tuple : list) {
         IntArrayList idx =  tuple.getIdx();
         double value;

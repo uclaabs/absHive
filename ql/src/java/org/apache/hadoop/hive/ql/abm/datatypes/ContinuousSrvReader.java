@@ -22,12 +22,12 @@ public class ContinuousSrvReader extends SrvReader {
       for (int i = offset + numCols, to = i + numCols; i < to; ++i, ++pos) {
         dest[pos][pos] = srv[i];
       }
-      return true;
+      return false;
     } else {
       for (int i = 0; i < numCols; ++i, ++pos) {
         dest[pos][pos] = 1;
       }
-      return false;
+      return true;
     }
   }
 
