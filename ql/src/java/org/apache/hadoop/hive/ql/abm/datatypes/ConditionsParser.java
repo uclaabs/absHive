@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.List;
 
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -26,6 +28,14 @@ public class ConditionsParser {
   public Conditions parse(Object o) {
     return new Conditions(keyParser.parse(oi.getStructFieldData(o, key)),
         rangesParser.parse(oi.getStructFieldData(o, ranges)));
+  }
+
+  public IntArrayList parseKey(Object o) {
+    return keyParser.parse(oi.getStructFieldData(o, key));
+  }
+
+  public List<RangeList> parseRange(Object o) {
+    return rangesParser.parse(oi.getStructFieldData(o, ranges));
   }
 
 }
