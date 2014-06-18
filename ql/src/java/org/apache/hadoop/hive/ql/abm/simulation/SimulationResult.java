@@ -40,7 +40,6 @@ public class SimulationResult {
         res[ind ++] =sample;
       }
     }
-
     return res;
   }
 
