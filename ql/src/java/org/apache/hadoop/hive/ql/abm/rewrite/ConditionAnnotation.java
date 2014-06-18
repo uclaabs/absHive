@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -225,39 +227,40 @@ public class ConditionAnnotation {
 
     // TODO: GBYs' dependency structure
 
-//    List<List<GroupByOperator>> sorted
+    int[][][] gby3d = new int[sorted.size()][][];
+    int[][][] index3d = new int[sorted.size()][][];
+    PredicateType[][][] type3d = new PredicateType[sorted.size()][][];
 
-    List<List<List<Integer>>> gby3D = new ArrayList<List<List<Integer>>>();
-    List<List<List<Integer>>> index3D = new ArrayList<List<List<Integer>>>();
-    List<List<List<PredicateType>>> type3D = new ArrayList<List<List<PredicateType>>>();
-    for(List<GroupByOperator> sortedArray:this.sorted) {
-      List<List<Integer>> gby2D = new ArrayList<List<Integer>>();
-      List<List<Integer>> index2D = new ArrayList<List<Integer>>();
-      List<List<PredicateType>> type2D = new ArrayList<List<PredicateType>>();
-      for(GroupByOperator sortedElement:sortedArray) {
-        List<Integer> gbyArray = new ArrayList<Integer>();
-        List<Integer> indexArray = new ArrayList<Integer>();
-        List<PredicateType> typeArray = new ArrayList<PredicateType>();
-        ComparisonTransform[] transforms = this.dependencies.get(sortedElement);
+    for (int i = 0; i < sorted.size(); ++i) {
+      List<GroupByOperator> level = sorted.get(i);
+      int[][] gby2d = new int[level.size()][];
+      int[][] index2d = new int[level.size()][];
+      PredicateType[][] type2d = new PredicateType[level.size()][];
+
+      for (int j = 0; j < level.size(); ++j) {
+        IntArrayList gby1d = new IntArrayList();
+        IntArrayList index1d = new IntArrayList();
+        List<PredicateType> type1d = new ArrayList<PredicateType>();
+
         // unfold it to array
-        for(ComparisonTransform transform:transforms) {
-          Set<AggregateInfo> aggrInfos = transform.getAggregatesInvolved();
-          for(AggregateInfo aggrInfo:aggrInfos) {
-            gbyArray.add(this.gbyDict.get(aggrInfo.getGroupByOperator()));
-            indexArray.add(aggrInfo.getIndex());
+        for (ComparisonTransform transform : dependencies.get(level.get(j))) {
+          Set<AggregateInfo> ais = transform.getAggregatesInvolved();
+          for (AggregateInfo ai : ais) {
+            gby1d.add(level.indexOf(ai.getGroupByOperator()));
+            index1d.add(ai.getIndex());
           }
-          typeArray.add(transform.getPredicateType());
+          type1d.add(transform.getPredicateType());
         }
-        gby2D.add(gbyArray);
-        index2D.add(indexArray);
-        type2D.add(typeArray);
-      }
-      gby3D.add(gby2D);
-      index3D.add(index2D);
-      type3D.add(type2D);
-    }
 
-    // TODO: Detailed structure (of each predicate) of every condition column
+        gby2d[j] = gby1d.toIntArray();
+        index2d[j] = index1d.toIntArray();
+        type2d[j] = type1d.toArray(new PredicateType[type1d.size()]);
+      }
+
+      gby3d[i] = gby2d;
+      index3d[i] = index2d;
+      type3d[i] = type2d;
+    }
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
