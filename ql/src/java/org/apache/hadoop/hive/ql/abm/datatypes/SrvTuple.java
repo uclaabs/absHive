@@ -10,8 +10,8 @@ public class SrvTuple implements Serializable {
   private static final long serialVersionUID = 1L;
 
   public final double[] srv;
-  public final IntArrayList key;
-  public final List<RangeList> range;
+  public IntArrayList key;
+  public List<RangeList> range;
   private transient IntArrayList idx = null;
 
   public SrvTuple(double[] srv, IntArrayList key, List<RangeList> range) {

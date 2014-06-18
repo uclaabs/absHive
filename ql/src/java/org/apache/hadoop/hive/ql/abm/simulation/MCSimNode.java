@@ -12,6 +12,8 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InterCovMap;
+import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
+import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class MCSimNode {
@@ -34,11 +36,17 @@ public class MCSimNode {
 
   private MCSimNode parent = null;
 
+  private final KeyReader port;
+  private static final SrvTuple fakeTuple = new SrvTuple(null, null, null);
+  private static final IntArrayList[] fakeTarget =
+      new IntArrayList[] {new IntArrayList(new int[] {0})};
+
   public MCSimNode(int[] gbys, UdafType[][] udafTypes,
       int[][] gbyIdsInPreds, int[][] colsInPreds, PredicateType[][] predTypes,
       List<MCSimNode> parents,
       TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
-      boolean independent) {
+      boolean independent, boolean last, int[][] gbyIdsInPorts, int[][] colsInPorts,
+      PredicateType[][] predTypesInPorts) {
     int len1 = gbys.length;
 
     this.gbys = gbys;
@@ -117,10 +125,39 @@ public class MCSimNode {
 
     // Initialize condition reader
     reader = new KeyReader(gbys, numAggrs, gbyIdsInPreds, colsInPreds, predTypes, srvs);
+
+    if (last) {
+      FakeTupleMap tm = new FakeTupleMap();
+      tm.setDefaultTuple(fakeTuple);
+      port = new KeyReader(new int[1], new int[1], gbyIdsInPorts, colsInPorts, predTypesInPorts,
+          new TupleMap[] {tm});
+    } else {
+      port = null;
+    }
   }
 
   public void setParent(MCSimNode parent) {
     this.parent = parent;
+  }
+
+  public List<SimulationResult> simulate(IntArrayList key, List<RangeList> range) {
+    fakeTuple.key = key;
+    fakeTuple.range = range;
+
+    port.init(fakeTarget, targets);
+
+    int level = NUM_LEVEL - 1;
+    List<SimulationResult> results = simulate(level);
+    for (SimulationResult result : results) {
+      int pos = 0;
+      for (double[][] smpls : result.samples) {
+        if (port.parse(smpls[level]).getInt(0) == 1) {
+          result.samples.set(pos, null);
+        }
+        ++pos;
+      }
+    }
+    return results;
   }
 
   public List<SimulationResult> simulate(int level) {
@@ -207,7 +244,8 @@ public class MCSimNode {
         Array2DRowRealMatrix a = new Array2DRowRealMatrix(A);
         Array2DRowRealMatrix b = new Array2DRowRealMatrix(B);
         Array2DRowRealMatrix c = (Array2DRowRealMatrix) b.transpose();
-        Array2DRowRealMatrix id = new Array2DRowRealMatrix(new LUDecomposition(sr.sigma).getSolver().getInverse().getData());
+        Array2DRowRealMatrix id = new Array2DRowRealMatrix(new LUDecomposition(sr.sigma)
+            .getSolver().getInverse().getData());
         Array2DRowRealMatrix tmp = b.multiply(id);
 
         Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(c));
@@ -232,27 +270,6 @@ public class MCSimNode {
     }
 
     return ret;
-  }
-
-  public static MCSimNode createSimulationChain(int[][] gbyIds, UdafType[][][] udafTypes,
-      int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
-      TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
-      boolean simpleQuery) {
-    int last = gbyIds.length - 1;
-    MCSimNode parent = null;
-    List<MCSimNode> parents = new ArrayList<MCSimNode>();
-    for (int i = 0; i <= last; ++i) {
-      boolean simpleReturn = (i == last && predTypes[i].length <= 1);
-      MCSimNode node = new MCSimNode(gbyIds[i], udafTypes[i], gbyIdsInPreds[i],
-          colsInPreds[i], predTypes[i], parents, srvs, inners, inters, simpleQuery
-              || simpleReturn);
-      node.setParent(parent);
-
-      parent = node;
-      parents.add(node);
-    }
-
-    return parent;
   }
 
   private void initOffsetInfos() {
@@ -300,9 +317,10 @@ public class MCSimNode {
     }
   }
 
-  private Array2DRowRealMatrix concat(Array2DRowRealMatrix A, Array2DRowRealMatrix B, Array2DRowRealMatrix C, Array2DRowRealMatrix D) {
+  private Array2DRowRealMatrix concat(Array2DRowRealMatrix A, Array2DRowRealMatrix B,
+      Array2DRowRealMatrix C, Array2DRowRealMatrix D) {
     int dim = A.getRowDimension() + D.getRowDimension();
-    Array2DRowRealMatrix ret =  new Array2DRowRealMatrix(dim, dim);
+    Array2DRowRealMatrix ret = new Array2DRowRealMatrix(dim, dim);
 
     ret.setSubMatrix(A.getData(), 0, 0);
     ret.setSubMatrix(B.getData(), 0, A.getColumnDimension());
@@ -310,6 +328,30 @@ public class MCSimNode {
     ret.setSubMatrix(D.getData(), A.getRowDimension(), A.getColumnDimension());
 
     return ret;
+  }
+
+  public static MCSimNode createSimulationChain(int[][] gbyIds, UdafType[][][] udafTypes,
+      int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
+      TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
+      boolean simpleQuery, int[][] gbyIdsInPorts, int[][] colsInPorts,
+      PredicateType[][] predTypesInPorts) {
+    MCSimNode.NUM_LEVEL = gbyIds.length;
+
+    int last = gbyIds.length - 1;
+    MCSimNode parent = null;
+    List<MCSimNode> parents = new ArrayList<MCSimNode>();
+    for (int i = 0; i <= last; ++i) {
+      boolean simpleReturn = (i == last && predTypes[i].length <= 1);
+      MCSimNode node = new MCSimNode(gbyIds[i], udafTypes[i], gbyIdsInPreds[i],
+          colsInPreds[i], predTypes[i], parents, srvs, inners, inters,
+          simpleQuery || simpleReturn, i == last, gbyIdsInPorts, colsInPorts, predTypesInPorts);
+      node.setParent(parent);
+
+      parent = node;
+      parents.add(node);
+    }
+
+    return parent;
   }
 
 }

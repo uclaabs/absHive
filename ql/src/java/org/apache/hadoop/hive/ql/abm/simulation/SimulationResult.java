@@ -10,7 +10,7 @@ public class SimulationResult {
 
   public final ArrayList<double[]> means = new ArrayList<double[]>();
   public final ArrayList<IntArrayList> condIds = new ArrayList<IntArrayList>();
-  public final ArrayList<double[][]> samples = new ArrayList<double[][]>();
+  public ArrayList<double[][]> samples = new ArrayList<double[][]>();
   public Array2DRowRealMatrix sigma;
 
   @Override
