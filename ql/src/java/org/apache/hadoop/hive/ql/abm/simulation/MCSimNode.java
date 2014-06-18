@@ -9,7 +9,6 @@ import java.util.Map;
 
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InterCovMap;
@@ -25,6 +24,7 @@ public class MCSimNode {
   private final OffsetInfo[] offInfos;
   private final int[] numAggrs;
   private int dimension = 0;
+  private int pdimension = 0;
 
   private final InnerDistOracle[] within1;
   private final InterDistOracle[][] within2;
@@ -124,6 +124,8 @@ public class MCSimNode {
   }
 
   public List<SimulationResult> simulate(int level) {
+    List<SimulationResult> ret = new ArrayList<SimulationResult>();
+
     initOffsetInfos();
 
     if (parent == null) {
@@ -144,28 +146,27 @@ public class MCSimNode {
 
       MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu, sigma);
       double[][] smpls = dist.sample(NUM_SIMULATIONS);
+      fixFake(fake, smpls);
 
-      SimulationResult ret = new SimulationResult();
+      SimulationResult sr = new SimulationResult();
       for (int i = 0; i < smpls.length; ++i) {
         double[][] samples = new double[NUM_LEVEL][];
         samples[0] = smpls[i];
-        ret.samples.add(samples);
+        sr.samples.add(samples);
       }
+      sr.means.add(mu);
+      sr.sigma = new Array2DRowRealMatrix(sigma);
 
-      ArrayList<SimulationResult> retSet = new ArrayList<SimulationResult>();
-      retSet.add(ret);
-      return retSet;
+      ret.add(sr);
+      return ret;
     }
-
-    List<SimulationResult> ret = new ArrayList<SimulationResult>();
 
     int pLevel = level - 1;
     reader.init(targets, parent.targets);
     for (SimulationResult result : parent.simulate(pLevel)) {
       LinkedHashMap<IntArrayList, SimulationResult> map = new LinkedHashMap<IntArrayList, SimulationResult>();
       for (double[][] smpls : result.samples) {
-        double[] sample = smpls[pLevel];
-        IntArrayList condIds = reader.parse(sample);
+        IntArrayList condIds = reader.parse(smpls[pLevel]);
         SimulationResult sr = map.get(condIds);
         if (sr == null) {
           sr = result.clone();
@@ -181,7 +182,7 @@ public class MCSimNode {
         boolean[] fake = new boolean[dimension];
         double[] mu = new double[dimension];
         double[][] A = new double[dimension][dimension];
-        double[][] B = new double[dimension][sr.dimension];
+        double[][] B = new double[dimension][pdimension];
 
         for (int i = 0; i < within1.length; ++i) {
           within1[i].fill(condIds, fake, mu, A);
@@ -197,29 +198,34 @@ public class MCSimNode {
           double[] mu2 = sr.means.get(k);
           for (int i = 0; i < oss.length; ++i) {
             InterDistOracle[] os = oss[i];
-            for (int j = 0; j < os.length; ++j) {
-              os[j].fillAsym(condIds, condIds2, fake, mu, mu2, A);
+            for (int j = 0, cum = 0; j < os.length; ++j) {
+              cum += os[j].fillAsym(condIds, condIds2, fake, mu, mu2, A, cum);
             }
           }
         }
 
-        ArrayRealVector x = new ArrayRealVector(mu);
         Array2DRowRealMatrix a = new Array2DRowRealMatrix(A);
         Array2DRowRealMatrix b = new Array2DRowRealMatrix(B);
         Array2DRowRealMatrix c = (Array2DRowRealMatrix) b.transpose();
-        Array2DRowRealMatrix tmp = b.multiply(sr.ivSigma);
+        Array2DRowRealMatrix id = new Array2DRowRealMatrix(new LUDecomposition(sr.sigma).getSolver().getInverse().getData());
+        Array2DRowRealMatrix tmp = b.multiply(id);
 
         Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(c));
         MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu,
             sigma.getDataRef());
-        double[][] smpls = dist.sample(sr.samples.size());
-        for (int i = 0; i < smpls.length; ++i) {
-          // TODO
-          // sr.samples.get(i)[level] = new ArrayRealVector(smpls[i]);
-        }
 
-        sr.ivSigma = new Array2DRowRealMatrix(new LUDecomposition(sigma).getSolver().getInverse()
-            .getData());
+        double[][] smpls = dist.sample(sr.samples.size());
+        fixFake(fake, smpls);
+
+        double[] pmu = sr.getMean(pdimension);
+        for (int i = 0; i < smpls.length; ++i) {
+          double[] s = sr.getSample(i, pdimension);
+          subtract(s, pmu);
+          add(smpls[i], tmp.operate(s));
+          sr.samples.get(i)[level] = smpls[i];
+        }
+        sr.means.add(mu);
+        sr.sigma = concat(a, b, c, sr.sigma);
 
         ret.add(sr);
       }
@@ -259,6 +265,51 @@ public class MCSimNode {
       cumOff += targets[i].size() * numAggrs[i];
     }
     dimension = cumOff;
+    if (parent == null) {
+      pdimension = 0;
+    } else {
+      pdimension = parent.pdimension + parent.dimension;
+    }
+  }
+
+  private void fixFake(boolean[] fake, double[][] samples) {
+    for (double[] sample : samples) {
+      for (int i = 0, pos = 0; i < fake.length; ++i) {
+        boolean flag = fake[i];
+        int numAggr = numAggrs[i];
+        if (flag) {
+          for (int j = 0; j < numAggr; ++j) {
+            sample[pos++] = 0;
+          }
+        } else {
+          pos += numAggr;
+        }
+      }
+    }
+  }
+
+  private void add(double[] x, double[] y) {
+    for (int i = 0; i < x.length; ++i) {
+      x[i] += y[i];
+    }
+  }
+
+  private void subtract(double[] x, double[] y) {
+    for (int i = 0; i < x.length; ++i) {
+      x[i] += y[i];
+    }
+  }
+
+  private Array2DRowRealMatrix concat(Array2DRowRealMatrix A, Array2DRowRealMatrix B, Array2DRowRealMatrix C, Array2DRowRealMatrix D) {
+    int dim = A.getRowDimension() + D.getRowDimension();
+    Array2DRowRealMatrix ret =  new Array2DRowRealMatrix(dim, dim);
+
+    ret.setSubMatrix(A.getData(), 0, 0);
+    ret.setSubMatrix(B.getData(), 0, A.getColumnDimension());
+    ret.setSubMatrix(C.getData(), A.getRowDimension(), 0);
+    ret.setSubMatrix(D.getData(), A.getRowDimension(), A.getColumnDimension());
+
+    return ret;
   }
 
 }

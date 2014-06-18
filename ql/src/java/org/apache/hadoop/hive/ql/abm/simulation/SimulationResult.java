@@ -8,36 +8,37 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 
 public class SimulationResult {
 
-  public int dimension = 0;
-  public final ArrayList<double[]> means = new ArrayList<double[]>(); // TODO
+  public final ArrayList<double[]> means = new ArrayList<double[]>();
   public final ArrayList<IntArrayList> condIds = new ArrayList<IntArrayList>();
   public final ArrayList<double[][]> samples = new ArrayList<double[][]>();
-  public Array2DRowRealMatrix ivSigma;
+  public Array2DRowRealMatrix sigma;
 
   @Override
   public SimulationResult clone() {
     SimulationResult ret = new SimulationResult();
-    ret.dimension = dimension;
+    ret.means.addAll(means);
     ret.condIds.addAll(condIds);
-    ret.ivSigma = ivSigma;
+    ret.sigma = sigma;
     return ret;
   }
 
-  public double[] getSampleArray(int indi, int indj) {
-    double[] res;
-    int resLen = 0;
-    double[][] sampleMatrix = samples.get(indi);
-
-    for(int i = 0; i < indj; ++ i) {
-      resLen += sampleMatrix[i].length;
+  public double[] getSample(int idx, int len) {
+    double[] res = new double[len];
+    double[][] smpls = samples.get(idx);
+    for(int i = 0, ind = 0; ind < len; ) {
+      double[] smpl = smpls[i++];
+      System.arraycopy(smpl, 0, res, ind, smpl.length);
+      ind += smpl.length;
     }
-    res = new double[resLen];
+    return res;
+  }
 
-    int ind = 0;
-    for(int i = 0; i < indj; ++ i) {
-      double[] sampleArray = sampleMatrix[i];
-      System.arraycopy(sampleArray, 0, res, ind, sampleArray.length);
-      ind += sampleArray.length;
+  public double[] getMean(int len) {
+    double[] res = new double[len];
+    int pos = 0;
+    for (double[] mean : means) {
+      System.arraycopy(mean, 0, res, pos, mean.length);
+      pos += mean.length;
     }
     return res;
   }

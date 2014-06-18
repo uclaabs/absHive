@@ -2,7 +2,7 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 
 public abstract class SrvReader {
 
-  public static final double FAKE_ZERO = 0.0000000000000001;
+  public static final double FAKE_ZERO = 1000000;
 
   protected int numCols;
   protected double[] srv = null;
