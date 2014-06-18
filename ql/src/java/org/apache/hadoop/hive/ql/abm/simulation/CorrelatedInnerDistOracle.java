@@ -4,9 +4,9 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray2D;
-import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
+import org.apache.hadoop.hive.ql.abm.simulation.PartialCovMap.InnerCovMap;
 
 public class CorrelatedInnerDistOracle extends InnerDistOracle {
 

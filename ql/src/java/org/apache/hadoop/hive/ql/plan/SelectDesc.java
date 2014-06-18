@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
+import org.apache.hadoop.hive.ql.abm.simulation.PredicateType;
 
 
 /**
@@ -46,12 +47,23 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   // ABM
   private boolean simulated = false;
-  private boolean simpleQuery = false;
   private List<Integer> numKeysContinuous = null;
   private List<List<UdafType>> aggrTypesContinuous = null;
   private List<Integer> numKeysDiscrete = null;
   private List<String> cachedOutputs = null;
   private List<String> cachedInputs = null;
+
+  private boolean simpleQuery = false;
+
+  private int[][] gbyIds;
+  private UdafType[][][] udafTypes;
+  private int[][][] gbyIdsInPreds;
+  private int[][][] colsInPreds;
+  private PredicateType[][][] predTypes;
+
+  private int[][] gbyIdsInPorts;
+  private int[][] colsInPorts;
+  private PredicateType[][] predTypesInPorts;
 
   public SelectDesc() {
   }
@@ -192,14 +204,6 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.simulated = simulated;
   }
 
-  public boolean isSimpleQuery() {
-    return simpleQuery;
-  }
-
-  public void setSimpleQuery(boolean simpleQuery) {
-    this.simpleQuery = simpleQuery;
-  }
-
   public List<Integer> getNumKeysContinuous() {
     return numKeysContinuous;
   }
@@ -240,10 +244,85 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.cachedInputs = cachedInputs;
   }
 
-  public void setMCSim(boolean simpleQuery, List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
-      List<Integer> numKeysDiscrete, List<String> cachedOutputs, List<String> cachedInputs) {
-    simulated = true;
+  public boolean isSimpleQuery() {
+    return simpleQuery;
+  }
+
+  public void setSimpleQuery(boolean simpleQuery) {
     this.simpleQuery = simpleQuery;
+  }
+
+  public int[][] getGbyIds() {
+    return gbyIds;
+  }
+
+  public void setGbyIds(int[][] gbyIds) {
+    this.gbyIds = gbyIds;
+  }
+
+  public UdafType[][][] getUdafTypes() {
+    return udafTypes;
+  }
+
+  public void setUdafTypes(UdafType[][][] udafTypes) {
+    this.udafTypes = udafTypes;
+  }
+
+  public int[][][] getGbyIdsInPreds() {
+    return gbyIdsInPreds;
+  }
+
+  public void setGbyIdsInPreds(int[][][] gbyIdsInPreds) {
+    this.gbyIdsInPreds = gbyIdsInPreds;
+  }
+
+  public int[][][] getColsInPreds() {
+    return colsInPreds;
+  }
+
+  public void setColsInPreds(int[][][] colsInPreds) {
+    this.colsInPreds = colsInPreds;
+  }
+
+  public PredicateType[][][] getPredTypes() {
+    return predTypes;
+  }
+
+  public void setPredTypes(PredicateType[][][] predTypes) {
+    this.predTypes = predTypes;
+  }
+
+  public int[][] getGbyIdsInPorts() {
+    return gbyIdsInPorts;
+  }
+
+  public void setGbyIdsInPorts(int[][] gbyIdsInPorts) {
+    this.gbyIdsInPorts = gbyIdsInPorts;
+  }
+
+  public int[][] getColsInPorts() {
+    return colsInPorts;
+  }
+
+  public void setColsInPorts(int[][] colsInPorts) {
+    this.colsInPorts = colsInPorts;
+  }
+
+  public PredicateType[][] getPredTypesInPorts() {
+    return predTypesInPorts;
+  }
+
+  public void setPredTypesInPorts(PredicateType[][] predTypesInPorts) {
+    this.predTypesInPorts = predTypesInPorts;
+  }
+
+  public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
+      List<Integer> numKeysDiscrete,
+      List<String> cachedOutputs, List<String> cachedInputs, boolean simpleQuery,
+      int[][] gbyIds, UdafType[][][] udafTypes,
+      int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
+      int[][] gbyIdsInPorts, int[][] colsInPorts, PredicateType[][] predTypesInPorts) {
+    simulated = true;
 
     this.numKeysContinuous = numKeysContinuous;
     this.aggrTypesContinuous = aggrTypesContinuous;
@@ -251,6 +330,18 @@ public class SelectDesc extends AbstractOperatorDesc {
 
     this.cachedOutputs = cachedOutputs;
     this.cachedInputs = cachedInputs;
+
+    this.simpleQuery = simpleQuery;
+
+    this.gbyIds = gbyIds;
+    this.udafTypes = udafTypes;
+    this.gbyIdsInPreds = gbyIdsInPreds;
+    this.colsInPreds = colsInPreds;
+    this.predTypes = predTypes;
+
+    this.gbyIdsInPorts = gbyIdsInPorts;
+    this.colsInPorts = colsInPorts;
+    this.predTypesInPorts = predTypesInPorts;
   }
 
 }

@@ -3,8 +3,8 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray3D;
-import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InterCovMap;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
+import org.apache.hadoop.hive.ql.abm.simulation.PartialCovMap.InterCovMap;
 
 public class CorrelatedInterDistOracle extends InterDistOracle {
 

@@ -10,16 +10,21 @@ import java.util.Map;
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.LUDecomposition;
-import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
-import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InterCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
+import org.apache.hadoop.hive.ql.abm.simulation.PartialCovMap.InnerCovMap;
+import org.apache.hadoop.hive.ql.abm.simulation.PartialCovMap.InterCovMap;
 
 public class MCSimNode {
 
   private static int NUM_SIMULATIONS = 0;
   private static int NUM_LEVEL = 0;
+  private static KeyReader port;
+
+  private static final SrvTuple fakeTuple = new SrvTuple(null, null, null);
+  private static final IntArrayList[] fakeTarget =
+      new IntArrayList[] {new IntArrayList(new int[] {0})};
 
   private final int[] gbys;
   private final IntArrayList[] targets;
@@ -36,17 +41,11 @@ public class MCSimNode {
 
   private MCSimNode parent = null;
 
-  private final KeyReader port;
-  private static final SrvTuple fakeTuple = new SrvTuple(null, null, null);
-  private static final IntArrayList[] fakeTarget =
-      new IntArrayList[] {new IntArrayList(new int[] {0})};
-
   public MCSimNode(int[] gbys, UdafType[][] udafTypes,
       int[][] gbyIdsInPreds, int[][] colsInPreds, PredicateType[][] predTypes,
       List<MCSimNode> parents,
       TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
-      boolean independent, boolean last, int[][] gbyIdsInPorts, int[][] colsInPorts,
-      PredicateType[][] predTypesInPorts) {
+      boolean independent) {
     int len1 = gbys.length;
 
     this.gbys = gbys;
@@ -125,15 +124,6 @@ public class MCSimNode {
 
     // Initialize condition reader
     reader = new KeyReader(gbys, numAggrs, gbyIdsInPreds, colsInPreds, predTypes, srvs);
-
-    if (last) {
-      FakeTupleMap tm = new FakeTupleMap();
-      tm.setDefaultTuple(fakeTuple);
-      port = new KeyReader(new int[1], new int[1], gbyIdsInPorts, colsInPorts, predTypesInPorts,
-          new TupleMap[] {tm});
-    } else {
-      port = null;
-    }
   }
 
   public void setParent(MCSimNode parent) {
@@ -337,6 +327,11 @@ public class MCSimNode {
       PredicateType[][] predTypesInPorts) {
     MCSimNode.NUM_LEVEL = gbyIds.length;
 
+    FakeTupleMap fakeMap = new FakeTupleMap();
+    fakeMap.setDefaultTuple(fakeTuple);
+    port = new KeyReader(new int[1], new int[1], gbyIdsInPorts, colsInPorts, predTypesInPorts,
+        new TupleMap[] {fakeMap});
+
     int last = gbyIds.length - 1;
     MCSimNode parent = null;
     List<MCSimNode> parents = new ArrayList<MCSimNode>();
@@ -344,7 +339,7 @@ public class MCSimNode {
       boolean simpleReturn = (i == last && predTypes[i].length <= 1);
       MCSimNode node = new MCSimNode(gbyIds[i], udafTypes[i], gbyIdsInPreds[i],
           colsInPreds[i], predTypes[i], parents, srvs, inners, inters,
-          simpleQuery || simpleReturn, i == last, gbyIdsInPorts, colsInPorts, predTypesInPorts);
+          simpleQuery || simpleReturn);
       node.setParent(parent);
 
       parent = node;

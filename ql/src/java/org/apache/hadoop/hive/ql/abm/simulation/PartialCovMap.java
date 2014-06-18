@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.ql.abm.datatypes;
+package org.apache.hadoop.hive.ql.abm.simulation;
 
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -9,6 +9,9 @@ import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Map;
+
+import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray2D;
+import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray3D;
 
 import com.googlecode.javaewah.EWAHCompressedBitmap;
 

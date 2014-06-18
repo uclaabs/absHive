@@ -222,54 +222,80 @@ public class ConditionAnnotation {
       numKeysDiscrete.add(gby.getConf().getKeys().size());
     }
 
-    select.getConf().setMCSim(simpleQuery, numKeysContinuous, aggrTypes, numKeysDiscrete,
-        cachedOutputs, cachedInputs);
+    // GBYs' dependency structure
+    int[][] gbyIds = new int[sorted.size()][];
 
-    // TODO: GBYs' dependency structure
-
-    int[][][] gby3d = new int[sorted.size()][][];
-    int[][][] index3d = new int[sorted.size()][][];
-    PredicateType[][][] type3d = new PredicateType[sorted.size()][][];
-    UdafType[][][] udafType3d = new UdafType[sorted.size()][][];
+    UdafType[][][] udafTypes = new UdafType[sorted.size()][][];
+    int[][][] gbyIdsInPreds = new int[sorted.size()][][];
+    int[][][] colsInPreds = new int[sorted.size()][][];
+    PredicateType[][][] predTypes = new PredicateType[sorted.size()][][];
 
     for (int i = 0; i < sorted.size(); ++i) {
       List<GroupByOperator> level = sorted.get(i);
-      int[][] gby2d = new int[level.size()][];
-      int[][] index2d = new int[level.size()][];
-      PredicateType[][] type2d = new PredicateType[level.size()][];
-      UdafType[][] udafType2d = new UdafType[level.size()][];
+
+      int[] gbyIds2 = new int[level.size()];
+      UdafType[][] udafTypes2 = new UdafType[level.size()][];
+      int[][] gbyIdsInPreds2 = new int[level.size()][];
+      int[][] colsInPreds2 = new int[level.size()][];
+      PredicateType[][] predTypes2 = new PredicateType[level.size()][];
 
       for (int j = 0; j < level.size(); ++j) {
-        IntArrayList gby1d = new IntArrayList();
-        IntArrayList index1d = new IntArrayList();
-        List<PredicateType> type1d = new ArrayList<PredicateType>();
-        List<UdafType> udafType1d = new ArrayList<UdafType>();
+        gbyIds2[j] = gbyDict.get(level.get(j));
+
+        List<UdafType> udafType1 = new ArrayList<UdafType>();
+        IntArrayList gbyIdsInPreds1 = new IntArrayList();
+        IntArrayList colsInPreds1 = new IntArrayList();
+        List<PredicateType> predTypes1 = new ArrayList<PredicateType>();
+
+        for (AggregateInfo ai : aggregates.get(level.get(j))) {
+          udafType1.add(ai.getUdafType());
+        }
 
         // unfold it to array
         for (ComparisonTransform transform : dependencies.get(level.get(j))) {
           Set<AggregateInfo> ais = transform.getAggregatesInvolved();
           for (AggregateInfo ai : ais) {
-            gby1d.add(level.indexOf(ai.getGroupByOperator()));
-            index1d.add(ai.getIndex());
+            gbyIdsInPreds1.add(level.indexOf(ai.getGroupByOperator()));
+            colsInPreds1.add(ai.getIndex());
           }
-          type1d.add(transform.getPredicateType());
+          predTypes1.add(transform.getPredicateType());
         }
 
-        for(AggregateInfo ai: aggregates.get(level.get(j))) {
-          udafType1d.add(ai.getUdafType());
-        }
-
-        gby2d[j] = gby1d.toIntArray();
-        index2d[j] = index1d.toIntArray();
-        type2d[j] = type1d.toArray(new PredicateType[type1d.size()]);
-        udafType2d[j] = udafType1d.toArray(new UdafType[udafType1d.size()]);
+        gbyIdsInPreds2[j] = gbyIdsInPreds1.toIntArray();
+        udafTypes2[j] = udafType1.toArray(new UdafType[udafType1.size()]);
+        colsInPreds2[j] = colsInPreds1.toIntArray();
+        predTypes2[j] = predTypes1.toArray(new PredicateType[predTypes1.size()]);
       }
 
-      gby3d[i] = gby2d;
-      index3d[i] = index2d;
-      type3d[i] = type2d;
-      udafType3d[i] = udafType2d;
+      gbyIds[i] = gbyIds2;
+      udafTypes[i] = udafTypes2;
+      gbyIdsInPreds[i] = gbyIdsInPreds2;
+      colsInPreds[i] = colsInPreds2;
+      predTypes[i] = predTypes2;
     }
+
+    // Last condition
+    IntArrayList gbyIdsInPorts1 = new IntArrayList();
+    IntArrayList colsInPorts1 = new IntArrayList();
+    ArrayList<PredicateType> predTypesInPorts1 = new ArrayList<PredicateType>();
+
+    for (ComparisonTransform transform : transforms) {
+      Set<AggregateInfo> ais = transform.getAggregatesInvolved();
+      for (AggregateInfo ai : ais) {
+        gbyIdsInPorts1.add(sorted.get(0).indexOf(ai.getGroupByOperator()));
+        colsInPorts1.add(ai.getIndex());
+      }
+      predTypesInPorts1.add(transform.getPredicateType());
+    }
+
+    int[][] gbyIdsInPorts = new int[][] {gbyIdsInPorts1.toIntArray()};
+    int[][] colsInPorts = new int[][] {colsInPorts1.toIntArray()};
+    PredicateType[][] predTypesInPorts = new PredicateType[][] {
+        predTypesInPorts1.toArray(new PredicateType[predTypesInPorts1.size()])};
+
+    select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete, cachedOutputs,
+        cachedInputs, simpleQuery, gbyIds, udafTypes, gbyIdsInPreds, colsInPreds, predTypes,
+        gbyIdsInPorts, colsInPorts, predTypesInPorts);
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
