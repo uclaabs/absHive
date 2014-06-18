@@ -23,4 +23,25 @@ public class SimulationResult {
     return ret;
   }
 
+  public double[] getSampleArray(int indi, int indj) {
+    double[] res;
+    int resLen = 0;
+    double[][] sampleMatrix = samples.get(indi);
+
+    for(int i = 0; i < indj; ++ i) {
+      resLen += sampleMatrix[i].length;
+    }
+    res = new double[resLen];
+
+    int ind = 0;
+    for(int i = 0; i < indj; ++ i) {
+      double[] sampleArray = sampleMatrix[i];
+      for(double sample:sampleArray) {
+        res[ind ++] =sample;
+      }
+    }
+
+    return res;
+  }
+
 }
