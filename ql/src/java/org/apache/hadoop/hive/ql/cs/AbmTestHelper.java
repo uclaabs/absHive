@@ -4,7 +4,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.lineage.LineageCtx;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
@@ -31,6 +38,10 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.util.Progressable;
+
+import edu.umd.cloud9.io.array.ArrayListWritable;
 
 /**
  * Test class for ABM
@@ -297,15 +308,20 @@ public class AbmTestHelper {
 
   }
 
-
   private static void constructJsonMap(Operator<? extends OperatorDesc> op, Map<Operator<? extends OperatorDesc>, JsonNode> nodeMap) {
     JsonNode node = new JsonNode(op);
     nodeMap.put(op, node);
 
     List<Operator<? extends OperatorDesc>> lst = op.getParentOperators();
     if (lst != null) {
-      for (Operator<? extends OperatorDesc> l: lst) {
-        constructJsonMap(l, nodeMap);
+      for (Operator<? extends OperatorDesc> parentOp: lst) {
+        constructJsonMap(parentOp, nodeMap);
+        /**
+         * for selectOp, we only add its first parent currently
+         */
+        if (op instanceof SelectOperator) {
+          break;
+        }
       }
     }
   }
@@ -340,15 +356,47 @@ public class AbmTestHelper {
      */
   }
 
+
+  public static String hdfsURI = "hdfs://localhost:9000";
+  public static String filePath = "/tmp/json_plan.txt";
+  public static String hadoopHome = "/home/victor/hadoop-1.0.4/";
+  //"/s2013/batch/table.html";
+
+  public static void writeHDFS(String out) throws IOException, URISyntaxException {
+    Configuration configuration = new Configuration();
+    FileSystem hdfs = FileSystem.get(new URI(hdfsURI), configuration);
+    Path file = new Path(hdfsURI + filePath);
+    if (hdfs.exists(file)) {
+      hdfs.delete(file, true);
+    }
+
+    OutputStream os = hdfs.create(file,
+        new Progressable() {
+      public void progress() {
+        System.out.println("Writing ...");
+        //out.println("...bytes written: [ "+bytesWritten+" ]");
+      }
+    });
+
+    BufferedWriter br = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+    br.write(out);
+
+    br.close();
+    hdfs.close();
+
+    System.out.println("Write finished!");
+  }
+
   public static void printBeforeRewritePlan(Operator<? extends OperatorDesc> op) {
+    //test
+    ArrayListWritable<Writable> m = new ArrayListWritable<Writable>();
+    m.add(null);
+    System.out.println("jiaqi" + m.toString());
+
     try {
       needLogToFile = false;
       println(0, "####### Before Rewrite #########");
       analyzeHelper(op, 0);
-      //System.out.println(getJSONPlan(op));
-      //json array cast error!
-
-      //logPlan(getJSONPlan(op));
     }
     catch (Exception e) {
       e.printStackTrace();
@@ -384,6 +432,9 @@ public class AbmTestHelper {
 
       println(0, "####### Tree #########");
       printTree(op, 0);
+
+      String plan = getJSONPlan(op);
+      logPlan(plan);
 
       //println(0, "####### Op relations #########");
 
@@ -610,6 +661,8 @@ public class AbmTestHelper {
   }
 
   private static void logPlan(String msg) {
+    System.out.println("[JsonPlan] " + msg);
+
     File f = new File(jsonPlanFile);
     f.delete();
     try {
