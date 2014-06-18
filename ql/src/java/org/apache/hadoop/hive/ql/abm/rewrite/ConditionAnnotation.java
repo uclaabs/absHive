@@ -11,6 +11,7 @@ import java.util.TreeSet;
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
 import org.apache.hadoop.hive.ql.abm.lib.TopologicalSort;
+import org.apache.hadoop.hive.ql.abm.simulation.PredicateType;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
@@ -223,6 +224,39 @@ public class ConditionAnnotation {
         cachedOutputs, cachedInputs);
 
     // TODO: GBYs' dependency structure
+
+//    List<List<GroupByOperator>> sorted
+
+    List<List<List<Integer>>> gby3D = new ArrayList<List<List<Integer>>>();
+    List<List<List<Integer>>> index3D = new ArrayList<List<List<Integer>>>();
+    List<List<List<PredicateType>>> type3D = new ArrayList<List<List<PredicateType>>>();
+    for(List<GroupByOperator> sortedArray:this.sorted) {
+      List<List<Integer>> gby2D = new ArrayList<List<Integer>>();
+      List<List<Integer>> index2D = new ArrayList<List<Integer>>();
+      List<List<PredicateType>> type2D = new ArrayList<List<PredicateType>>();
+      for(GroupByOperator sortedElement:sortedArray) {
+        List<Integer> gbyArray = new ArrayList<Integer>();
+        List<Integer> indexArray = new ArrayList<Integer>();
+        List<PredicateType> typeArray = new ArrayList<PredicateType>();
+        ComparisonTransform[] transforms = this.dependencies.get(sortedElement);
+        // unfold it to array
+        for(ComparisonTransform transform:transforms) {
+          Set<AggregateInfo> aggrInfos = transform.getAggregatesInvolved();
+          for(AggregateInfo aggrInfo:aggrInfos) {
+            gbyArray.add(this.gbyDict.get(aggrInfo.getGroupByOperator()));
+            indexArray.add(aggrInfo.getIndex());
+          }
+          typeArray.add(transform.getPredicateType());
+        }
+        gby2D.add(gbyArray);
+        index2D.add(indexArray);
+        type2D.add(typeArray);
+      }
+      gby3D.add(gby2D);
+      index3D.add(index2D);
+      type3D.add(type2D);
+    }
+
     // TODO: Detailed structure (of each predicate) of every condition column
   }
 

@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.ql.abm.algebra;
 
+import org.apache.hadoop.hive.ql.abm.simulation.PredicateType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
@@ -41,6 +42,34 @@ public class ComparisonTransform extends BinaryTransform {
     }
     assert !rhs.getAggregatesInvolved().isEmpty();
     return Comparator.LESS_THAN == comparator || Comparator.LESS_THAN_EQUAL_TO == comparator;
+  }
+
+  public PredicateType getPredicateType() {
+
+    int aggrLen = this.getAggregatesInvolved().size();
+    if(aggrLen == 1) {
+      if(this.comparator == Comparator.LESS_THAN) {
+        return PredicateType.SINGLE_LESS_THAN;
+      } else if(this.comparator == Comparator.LESS_THAN_EQUAL_TO) {
+        return PredicateType.SINGLE_LESS_THAN_OR_EQUAL_TO;
+      } else if(this.comparator == Comparator.GREATER_THAN) {
+        return PredicateType.SINGLE_GREATER_THAN;
+      } else {
+        return PredicateType.SINGLE_GREATER_THAN_OR_EQUAL_TO;
+      }
+    } else if(aggrLen == 2) {
+      if(this.comparator == Comparator.LESS_THAN) {
+        return PredicateType.DOUBLE_LESS_THAN;
+      } else if(this.comparator == Comparator.LESS_THAN_EQUAL_TO) {
+        return PredicateType.DOUBLE_LESS_THAN_OR_EQUAL_TO;
+      } else if(this.comparator == Comparator.GREATER_THAN) {
+        return PredicateType.DOUBLE_GREATER_THAN;
+      } else {
+        return PredicateType.DOUBLE_GREATER_THAN_OR_EQUAL_TO;
+      }
+    }
+    return null;
+
   }
 
 }
