@@ -57,7 +57,7 @@ public class KeyReader {
     condIds = new IntArrayList();
   }
 
-  public int init(IntArrayList[] target, IntArrayList[] dependent) {
+  public int init(IntArrayList[] target, OffsetInfo[] offInfos, IntArrayList[] dependent) {
     Int2IntLinkedOpenHashMap[] allGroupIds = new Int2IntLinkedOpenHashMap[numAggrs.length];
     for (int i = 0; i < numAggrs.length; ++i) {
       allGroupIds[i] = new Int2IntLinkedOpenHashMap();
@@ -91,11 +91,13 @@ public class KeyReader {
     }
 
     // preprocess offset
-    int[] offset = new int[numAggrs.length];
-    int cum = 0;
+    int cumPos = 0;
+    int cumOff = 0;
     for (int i = 0; i < numAggrs.length; ++i) {
-      offset[i] = cum;
-      cum += allGroupIds[i].size() * numAggrs[i];
+      offInfos[i].pos = cumPos;
+      offInfos[i].offset = cumOff;
+      cumPos += allGroupIds[i].size();
+      cumOff += allGroupIds[i].size() * numAggrs[i];
     }
 
     for (int ind = 0; ind < dict.length; ++ind) {
@@ -108,7 +110,7 @@ public class KeyReader {
         for (int i = 0, j = 0; i < key.size(); i++) {
           int gby = gbys[j++];
           int groupId = key.getInt(i);
-          idx.add(offset[gby] + allGroupIds[gby].get(groupId) * numAggrs[gby] + cols[i]);
+          idx.add(offInfos[gby].offset + allGroupIds[gby].get(groupId) * numAggrs[gby] + cols[i]);
           if (j == gbys.length) {
             j = 0;
           }
@@ -116,7 +118,7 @@ public class KeyReader {
       }
     }
 
-    return cum;
+    return cumOff;
   }
 
   public IntArrayList parse(double[] samples) {

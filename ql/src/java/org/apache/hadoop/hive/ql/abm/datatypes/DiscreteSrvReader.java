@@ -24,7 +24,7 @@ public class DiscreteSrvReader extends SrvReader {
       return false;
     } else {
       for (int i = 0; i < numCols; ++i, ++pos) {
-        dest[pos][pos] = 1;
+        dest[pos][pos] = FAKE_ZERO;
       }
       return true;
     }
