@@ -230,17 +230,20 @@ public class ConditionAnnotation {
     int[][][] gby3d = new int[sorted.size()][][];
     int[][][] index3d = new int[sorted.size()][][];
     PredicateType[][][] type3d = new PredicateType[sorted.size()][][];
+    UdafType[][][] udafType3d = new UdafType[sorted.size()][][];
 
     for (int i = 0; i < sorted.size(); ++i) {
       List<GroupByOperator> level = sorted.get(i);
       int[][] gby2d = new int[level.size()][];
       int[][] index2d = new int[level.size()][];
       PredicateType[][] type2d = new PredicateType[level.size()][];
+      UdafType[][] udafType2d = new UdafType[level.size()][];
 
       for (int j = 0; j < level.size(); ++j) {
         IntArrayList gby1d = new IntArrayList();
         IntArrayList index1d = new IntArrayList();
         List<PredicateType> type1d = new ArrayList<PredicateType>();
+        List<UdafType> udafType1d = new ArrayList<UdafType>();
 
         // unfold it to array
         for (ComparisonTransform transform : dependencies.get(level.get(j))) {
@@ -252,14 +255,20 @@ public class ConditionAnnotation {
           type1d.add(transform.getPredicateType());
         }
 
+        for(AggregateInfo aggrInfo: aggregates.get(level.get(j))) {
+          udafType1d.add(aggrInfo.getUdafType());
+        }
+
         gby2d[j] = gby1d.toIntArray();
         index2d[j] = index1d.toIntArray();
         type2d[j] = type1d.toArray(new PredicateType[type1d.size()]);
+        udafType2d[j] = udafType1d.toArray(new UdafType[udafType1d.size()]);
       }
 
       gby3d[i] = gby2d;
       index3d[i] = index2d;
       type3d[i] = type2d;
+      udafType3d[i] = udafType2d;
     }
   }
 
