@@ -38,38 +38,37 @@ public class ComparisonTransform extends BinaryTransform {
 
   public boolean isAscending() {
     if (!lhs.getAggregatesInvolved().isEmpty()) {
-      return Comparator.GREATER_THAN == comparator || Comparator.GREATER_THAN_EQUAL_TO == comparator;
+      return Comparator.GREATER_THAN == comparator
+          || Comparator.GREATER_THAN_EQUAL_TO == comparator;
     }
     assert !rhs.getAggregatesInvolved().isEmpty();
     return Comparator.LESS_THAN == comparator || Comparator.LESS_THAN_EQUAL_TO == comparator;
   }
 
   public PredicateType getPredicateType() {
-
-    int aggrLen = this.getAggregatesInvolved().size();
-    if(aggrLen == 1) {
-      if(this.comparator == Comparator.LESS_THAN) {
+    if (getAggregatesInvolved().size() == 1) {
+      switch (comparator) {
+      case LESS_THAN:
         return PredicateType.SINGLE_LESS_THAN;
-      } else if(this.comparator == Comparator.LESS_THAN_EQUAL_TO) {
+      case LESS_THAN_EQUAL_TO:
         return PredicateType.SINGLE_LESS_THAN_OR_EQUAL_TO;
-      } else if(this.comparator == Comparator.GREATER_THAN) {
+      case GREATER_THAN:
         return PredicateType.SINGLE_GREATER_THAN;
-      } else {
+      default: // case GREATER_THAN_EQUAL_TO:
         return PredicateType.SINGLE_GREATER_THAN_OR_EQUAL_TO;
       }
-    } else if(aggrLen == 2) {
-      if(this.comparator == Comparator.LESS_THAN) {
+    } else {
+      switch (comparator) {
+      case LESS_THAN:
         return PredicateType.DOUBLE_LESS_THAN;
-      } else if(this.comparator == Comparator.LESS_THAN_EQUAL_TO) {
+      case LESS_THAN_EQUAL_TO:
         return PredicateType.DOUBLE_LESS_THAN_OR_EQUAL_TO;
-      } else if(this.comparator == Comparator.GREATER_THAN) {
+      case GREATER_THAN:
         return PredicateType.DOUBLE_GREATER_THAN;
-      } else {
+      default: // case GREATER_THAN_EQUAL_TO:
         return PredicateType.DOUBLE_GREATER_THAN_OR_EQUAL_TO;
       }
     }
-    return null;
-
   }
 
 }
