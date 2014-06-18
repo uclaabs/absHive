@@ -326,23 +326,30 @@ public class AbmTestHelper {
     }
   }
 
-  private static String getJSONPlan(Operator<? extends OperatorDesc> op) {
+  private static String getJSONPlan(Operator<? extends OperatorDesc> sinkOp) {
     Map<Operator<? extends OperatorDesc>, JsonNode> nodeMap = new HashMap<Operator<? extends OperatorDesc>, JsonNode>();
-    constructJsonMap(op, nodeMap);
+    constructJsonMap(sinkOp, nodeMap);
 
     for (Entry<Operator<? extends OperatorDesc>, JsonNode> entry : nodeMap.entrySet()) {
       //append children
-      List<Operator<? extends OperatorDesc>> children = entry.getKey().getParentOperators();
+      Operator<? extends OperatorDesc> op = entry.getKey();
+      List<Operator<? extends OperatorDesc>> children = op.getParentOperators();
       if (children != null) {
         for (Operator<? extends OperatorDesc> child: children) {
           entry.getValue().addChild(nodeMap.get(child));
+          /**
+           * for selectOp, we only add its first parent currently
+           */
+          if (op instanceof SelectOperator) {
+            break;
+          }
         }
       }
     }
 
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    sb.append(nodeMap.get(op).getJSONObject().toString());
+    sb.append(nodeMap.get(sinkOp).getJSONObject().toString());
     sb.append("]");
 
     return sb.toString();
