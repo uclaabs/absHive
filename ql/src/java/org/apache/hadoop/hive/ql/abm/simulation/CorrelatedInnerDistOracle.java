@@ -3,8 +3,6 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.List;
-
 import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray2D;
 import org.apache.hadoop.hive.ql.abm.datatypes.PartialCovMap.InnerCovMap;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
@@ -16,8 +14,8 @@ public class CorrelatedInnerDistOracle extends InnerDistOracle {
   private final CovOracle[][] oracles;
 
   public CorrelatedInnerDistOracle(Int2ReferenceOpenHashMap<SrvTuple> srv, boolean continuous,
-      IntArrayList groupIds, InnerCovMap inner, List<UdafType> aggrTypes, OffsetInfo offInfo) {
-    super(srv, continuous, groupIds, aggrTypes.size(), offInfo);
+      IntArrayList groupIds, InnerCovMap inner, UdafType[] aggrTypes, OffsetInfo offInfo) {
+    super(srv, continuous, groupIds, aggrTypes.length, offInfo);
     this.inner = inner;
     oracles = CovOracle.getCovOracles(aggrTypes, aggrTypes);
   }

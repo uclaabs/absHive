@@ -3,16 +3,14 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.List;
-
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class IndependentInnerDistOracle extends InnerDistOracle {
 
   public IndependentInnerDistOracle(Int2ReferenceOpenHashMap<SrvTuple> srvs, boolean continuous,
-      IntArrayList groupIds, List<UdafType> udafTypes, OffsetInfo offInfo) {
-    super(srvs, continuous, groupIds, udafTypes.size(), offInfo);
+      IntArrayList groupIds, UdafType[] udafTypes, OffsetInfo offInfo) {
+    super(srvs, continuous, groupIds, udafTypes.length, offInfo);
   }
 
   @Override

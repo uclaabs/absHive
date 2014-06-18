@@ -1,7 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.simulation;
 
-import java.util.List;
-
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 
@@ -20,24 +18,24 @@ public abstract class CovOracle {
   public abstract void fillCovariance(double[] mean1, double[] mean2, int offset1,
       int offset2, double[][] partialCov);
 
-  public static CovOracle[][] getCovOracles(List<UdafType> aggrs1, List<UdafType> aggrs2) {
-    CovOracle[][] oracles = new CovOracle[aggrs1.size()][aggrs2.size()];
+  public static CovOracle[][] getCovOracles(UdafType[] aggrs1, UdafType[] aggrs2) {
+    CovOracle[][] oracles = new CovOracle[aggrs1.length][aggrs2.length];
 
-    for (int i = 0; i < aggrs1.size(); ++i) {
-      int type = (aggrs1.get(i) == UdafType.AVG) ? 2 : 0;
-      for (int j = 0; j < aggrs2.size(); ++j) {
-        switch (type + ((aggrs2.get(j) == UdafType.AVG) ? 1 : 0)) {
+    for (int i = 0; i < aggrs1.length; ++i) {
+      int type = (aggrs1[i] == UdafType.AVG) ? 2 : 0;
+      for (int j = 0; j < aggrs2.length; ++j) {
+        switch (type + ((aggrs2[j] == UdafType.AVG) ? 1 : 0)) {
         case 0:
           oracles[i][j] = new SumSumCovOracle(i, j);
           break;
         case 1:
-          oracles[i][j] = new SumAvgCovOracle(i, j, aggrs2.size());
+          oracles[i][j] = new SumAvgCovOracle(i, j, aggrs2.length);
           break;
         case 2:
-          oracles[i][j] = new AvgSumCovOracle(i, j, aggrs1.size());
+          oracles[i][j] = new AvgSumCovOracle(i, j, aggrs1.length);
           break;
         default: // case 3:
-          oracles[i][j] = new AvgAvgCovOracle(i, j, aggrs1.size(), aggrs2.size());
+          oracles[i][j] = new AvgAvgCovOracle(i, j, aggrs1.length, aggrs2.length);
           break;
         }
       }

@@ -36,9 +36,8 @@ public class SimulationResult {
     int ind = 0;
     for(int i = 0; i < indj; ++ i) {
       double[] sampleArray = sampleMatrix[i];
-      for(double sample:sampleArray) {
-        res[ind ++] =sample;
-      }
+      System.arraycopy(sampleArray, 0, res, ind, sampleArray.length);
+      ind += sampleArray.length;
     }
     return res;
   }

@@ -1,87 +1,70 @@
 package org.apache.hadoop.hive.ql.abm.simulation;
 
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-
-import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 
 public class KeyReader {
 
+  private final TupleMap[] dicts;
+
   private final int[] numAggrs;
-  private final TupleMap[] dict;
+  private final int[][] gbysInPreds;
+  private final int[][] colsInPreds;
+  private final PredicateType[][] predTypes;
 
-  private final int[] gbys;
-  private final int[] cols;
-
-  private final PredicateType[] preds;
-
-  private final TupleList[] targetTuples;
+  private final TupleList[] tuples;
   private final IntArrayList condIds;
 
-  public KeyReader(List<Integer> gbyIds, int[] numAggrs,
-      List<Integer> gbyIdsInPreds, List<Integer> colsInPreds, List<PredicateType> predTypes,
+  public KeyReader(int[] gbyIds, int[] numAggrs,
+      int[][] gbysInPreds, int[][] colsInPreds, PredicateType[][] predTypes,
       TupleMap[] srvs) {
     // Initialize basic information
-    int numUniq = gbyIds.size();
-    dict = new TupleMap[numUniq];
-    Int2IntOpenHashMap tmpMap = new Int2IntOpenHashMap();
-    for (int i = 0; i < numUniq; ++i) {
-      int id = gbyIds.get(i);
-      dict[i] = srvs[id];
-      tmpMap.put(id, tmpMap.size());
+    dicts = new TupleMap[gbyIds.length];
+    for (int i = 0; i < gbyIds.length; ++i) {
+      dicts[i] = srvs[gbyIds[i]];
     }
 
     this.numAggrs = numAggrs;
-
     // Initialize key-related fields
-    int numKeys = gbyIdsInPreds.size();
-    gbys = new int[numKeys];
-    cols = new int[numKeys];
-    for (int i = 0; i < numKeys; ++i) {
-      int idx = tmpMap.get(gbyIdsInPreds.get(i));
-      gbys[i] = idx;
-      int col = colsInPreds.get(i);
-      cols[i] = (col == -1) ? numAggrs[idx] : col;
-
-    }
-
+    this.gbysInPreds = gbysInPreds;
+    this.colsInPreds = colsInPreds;
     // Initialize predicate-related fields
-    preds = predTypes.toArray(new PredicateType[predTypes.size()]);
+    this.predTypes = predTypes;
 
     // Initialize simulation-related fields
-    targetTuples = new TupleList[numUniq];
+    tuples = new TupleList[gbyIds.length];
     condIds = new IntArrayList();
   }
 
-  public int init(IntArrayList[] target, OffsetInfo[] offInfos, IntArrayList[] dependent) {
-    Int2IntLinkedOpenHashMap[] allGroupIds = new Int2IntLinkedOpenHashMap[numAggrs.length];
+  public void init(IntArrayList[] targets, IntArrayList[] dependents) {
+    Int2IntLinkedOpenHashMap[] uniqs = new Int2IntLinkedOpenHashMap[numAggrs.length];
     for (int i = 0; i < numAggrs.length; ++i) {
-      allGroupIds[i] = new Int2IntLinkedOpenHashMap();
-      targetTuples[i].clear();
-      dependent[i].clear();
+      uniqs[i] = new Int2IntLinkedOpenHashMap();
+      tuples[i].clear();
+      dependents[i].clear();
     }
 
-    for (int ind = 0; ind < dict.length; ++ind) {
-      TupleMap map = dict[ind];
-      IntArrayList todo = target[ind];
-      TupleList buf = targetTuples[ind];
+    for (int ind = 0; ind < numAggrs.length; ++ind) {
+      TupleMap map = dicts[ind];
+      IntArrayList target = targets[ind];
+      TupleList buf = tuples[ind];
+      int[] gbys = gbysInPreds[ind];
 
-      for (int cur = 0; cur < todo.size(); ++cur) {
-        SrvTuple tuple = map.get(todo.getInt(cur));
+      for (int cur = 0; cur < target.size(); ++cur) {
+        SrvTuple tuple = map.get(target.getInt(cur));
         buf.add(tuple);
         // dedup
         IntArrayList key = tuple.key;
         for (int i = 0, j = 0; i < key.size(); ++i) {
           int idx = gbys[j++];
-          Int2IntLinkedOpenHashMap tmp = allGroupIds[idx];
+          Int2IntLinkedOpenHashMap uniq = uniqs[idx];
           int groupId = key.getInt(i);
-          if (!tmp.containsKey(groupId)) {
-            tmp.put(groupId, tmp.size());
-            dependent[idx].add(groupId);
+          if (!uniq.containsKey(groupId)) {
+            uniq.put(groupId, uniq.size());
+            dependents[idx].add(groupId);
           }
           if (j == gbys.length) {
             j = 0;
@@ -91,17 +74,17 @@ public class KeyReader {
     }
 
     // preprocess offset
-    int cumPos = 0;
-    int cumOff = 0;
+    int[] offsets = new int[numAggrs.length];
+    int cum = 0;
     for (int i = 0; i < numAggrs.length; ++i) {
-      offInfos[i].pos = cumPos;
-      offInfos[i].offset = cumOff;
-      cumPos += allGroupIds[i].size();
-      cumOff += allGroupIds[i].size() * numAggrs[i];
+      offsets[i] = cum;
+      cum += uniqs[i].size() * numAggrs[i];
     }
 
-    for (int ind = 0; ind < dict.length; ++ind) {
-      TupleList buf = targetTuples[ind];
+    for (int ind = 0; ind < numAggrs.length; ++ind) {
+      TupleList buf = tuples[ind];
+      int[] gbys = gbysInPreds[ind];
+      int[] cols = colsInPreds[ind];
       for (SrvTuple tuple : buf) {
         IntArrayList key = tuple.key;
         IntArrayList idx = tuple.getIdx();
@@ -110,23 +93,23 @@ public class KeyReader {
         for (int i = 0, j = 0; i < key.size(); i++) {
           int gby = gbys[j++];
           int groupId = key.getInt(i);
-          idx.add(offInfos[gby].offset + allGroupIds[gby].get(groupId) * numAggrs[gby] + cols[i]);
+          idx.add(offsets[gby] + uniqs[gby].get(groupId) * numAggrs[gby] + cols[i]);
           if (j == gbys.length) {
             j = 0;
           }
         }
       }
     }
-
-    return cumOff;
   }
 
   public IntArrayList parse(double[] samples) {
     condIds.clear();
 
-    for (TupleList list : targetTuples) {
-      for (SrvTuple tuple : list) {
-        IntArrayList idx =  tuple.getIdx();
+    for (int ind = 0; ind < tuples.length; ++ind) {
+      PredicateType[] preds = this.predTypes[ind];
+
+      for (SrvTuple tuple : tuples[ind]) {
+        IntArrayList idx = tuple.getIdx();
         double value;
 
         int left = 0;

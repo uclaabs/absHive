@@ -255,8 +255,8 @@ public class ConditionAnnotation {
           type1d.add(transform.getPredicateType());
         }
 
-        for(AggregateInfo aggrInfo: aggregates.get(level.get(j))) {
-          udafType1d.add(aggrInfo.getUdafType());
+        for(AggregateInfo ai: aggregates.get(level.get(j))) {
+          udafType1d.add(ai.getUdafType());
         }
 
         gby2d[j] = gby1d.toIntArray();
