@@ -1,5 +1,7 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -450,6 +452,10 @@ public class RewriteProcFactory {
     private int insertSelect() throws UDFArgumentException {
       SelectFactory selFactory = new SelectFactory(ctx);
 
+      GenericUDF udf = getUdf(getMeasureFuncName(AbmUtilities.getErrorMeasure()));
+      ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
+      IntArrayList aggIdxs = new IntArrayList();
+
       // Forward original columns
       HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(parent);
       for (int i = 0; i < parentSignature.size(); ++i) {
@@ -457,18 +463,13 @@ public class RewriteProcFactory {
           String internalName = parentSignature.get(i).getInternalName();
           AggregateInfo linfo = ctx.getLineage(parent, internalName);
           if (linfo != null) {
-            GenericUDF udf = getUdf(getMeasureFuncName(AbmUtilities.getErrorMeasure()));
-            ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
-            int[] aggrIds = ctx.getAggregateId(linfo);
-            int gbyIdIndex = ctx.getGbyIdColumnIndex(parent, linfo.getGroupByOperator());
-            params.add(new ExprNodeConstantDesc(aggrIds[0]));
-            params.add(Utils.generateColumnDescs(parent, gbyIdIndex).get(0));
-            params.add(new ExprNodeConstantDesc(aggrIds[1]));
+            aggIdxs.add(ctx.getAggregateId(linfo));
             int index = selFactory.addColumn(
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
                 internalName);
             selFactory.putLineage(index, linfo);
           } else {
+            aggIdxs.add(-1);
             selFactory.forwardColumn(parent, i, true);
           }
         }
@@ -491,7 +492,7 @@ public class RewriteProcFactory {
       fs.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
 
       // Set SelectOperator
-      ctx.setupMCSim(sel);
+      ctx.setupMCSim(sel, aggIdxs.toIntArray());
 
       return probIndex;
     }

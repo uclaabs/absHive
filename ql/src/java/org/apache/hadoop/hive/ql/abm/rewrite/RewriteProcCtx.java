@@ -185,7 +185,7 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     funcs.add(func);
   }
 
-  public int[] getAggregateId(AggregateInfo ai) {
+  public int getAggregateId(AggregateInfo ai) {
     return condAnno.getAggregateId(ai);
   }
 
@@ -193,8 +193,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return condAnno.getCondFlags(gby);
   }
 
-  public void setupMCSim(SelectOperator select) {
-    condAnno.setupMCSim(select);
+  public void setupMCSim(SelectOperator select, int[] aggIdxs) {
+    condAnno.setupMCSim(select, aggIdxs);
   }
 
   public LineageCtx getLineageCtx() {

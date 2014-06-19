@@ -1,7 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.udf.simulation;
 
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-
 import org.apache.hadoop.hive.ql.udf.UDFType;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 
@@ -9,14 +7,19 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 public abstract class GenericUDFWithSimulation extends GenericUDF {
 
   protected int numSimulation;
-  protected DoubleArrayList samples;
-
-  public void setSamples(DoubleArrayList samples) {
-    this.samples = samples;
-  }
+  protected SimulationSamples samples = null;
+  protected int idx;
 
   public void setNumSimulation(int numSimulation) {
     this.numSimulation = numSimulation;
+  }
+
+  public void setSamples(SimulationSamples samples) {
+    this.samples = samples;
+  }
+
+  public void setIdx(int idx) {
+    this.idx = idx;
   }
 
 }

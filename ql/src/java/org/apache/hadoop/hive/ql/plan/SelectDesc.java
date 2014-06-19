@@ -65,6 +65,9 @@ public class SelectDesc extends AbstractOperatorDesc {
   private int[][] colsInPorts;
   private PredicateType[][] predTypesInPorts;
 
+  private int[] aggIdxs;
+  private int numSimulationSample;
+
   public SelectDesc() {
   }
 
@@ -316,12 +319,28 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.predTypesInPorts = predTypesInPorts;
   }
 
+  public int[] getAggIdxs() {
+    return aggIdxs;
+  }
+
+  public void setAggIdxs(int[] aggIdxs) {
+    this.aggIdxs = aggIdxs;
+  }
+
+  public int getNumSimulationSample() {
+    return numSimulationSample;
+  }
+
+  public void setNumSimulationSample(int numSimulationSample) {
+    this.numSimulationSample = numSimulationSample;
+  }
+
   public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
       List<Integer> numKeysDiscrete,
       List<String> cachedOutputs, List<String> cachedInputs, boolean simpleQuery,
       int[][] gbyIds, UdafType[][][] udafTypes,
       int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
-      int[][] gbyIdsInPorts, int[][] colsInPorts, PredicateType[][] predTypesInPorts) {
+      int[][] gbyIdsInPorts, int[][] colsInPorts, PredicateType[][] predTypesInPorts, int[] aggIdxs, int numSimulationSample) {
     simulated = true;
 
     this.numKeysContinuous = numKeysContinuous;
@@ -342,6 +361,9 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.gbyIdsInPorts = gbyIdsInPorts;
     this.colsInPorts = colsInPorts;
     this.predTypesInPorts = predTypesInPorts;
+
+    this.aggIdxs = aggIdxs;
+    this.numSimulationSample = numSimulationSample;
   }
 
 }

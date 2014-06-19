@@ -320,6 +320,10 @@ public class MCSimNode {
     return ret;
   }
 
+  public static void setNumSimulations(int numSimulations) {
+    NUM_SIMULATIONS = numSimulations;
+  }
+
   public static MCSimNode createSimulationChain(int[][] gbyIds, UdafType[][][] udafTypes,
       int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
       TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,

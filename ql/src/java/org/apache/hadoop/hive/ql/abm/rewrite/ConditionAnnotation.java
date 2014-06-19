@@ -132,14 +132,24 @@ public class ConditionAnnotation {
     cachedOutputs.add(tableName);
   }
 
-  public int[] getAggregateId(AggregateInfo ai) {
+  public int getAggregateId(AggregateInfo ai) {
     if (sorted == null) {
       setupIds();
     }
-    return new int[] {
-        gbyDict.get(ai.getGroupByOperator()),
-        ai.getIndex() != -1 ? ai.getIndex() : aggregates.get(ai.getGroupByOperator()).size() - 1
-    };
+    List<GroupByOperator> gbys = sorted.get(sorted.size() - 1);
+    int idx = gbys.indexOf(ai.getGroupByOperator());
+
+    int cum = 0;
+    for (int i = 0; i < idx; ++i) {
+      cum += aggregates.get(gbys.get(i)).size();
+    }
+    if (ai.getIndex() != -1) {
+      cum += ai.getIndex();
+    } else {
+      cum += aggregates.get(gbys.get(idx)).size() - 1;
+    }
+
+    return cum;
   }
 
   private void setupIds() {
@@ -165,7 +175,7 @@ public class ConditionAnnotation {
     gbyDict = new Dictionary<GroupByOperator>(gbys);
   }
 
-  public void setupMCSim(SelectOperator select) {
+  public void setupMCSim(SelectOperator select, int[] aggIdxs) {
     if (sorted == null) {
       setupIds();
     }
@@ -295,7 +305,7 @@ public class ConditionAnnotation {
 
     select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete, cachedOutputs,
         cachedInputs, simpleQuery, gbyIds, udafTypes, gbyIdsInPreds, colsInPreds, predTypes,
-        gbyIdsInPorts, colsInPorts, predTypesInPorts);
+        gbyIdsInPorts, colsInPorts, predTypesInPorts, aggIdxs, AbmUtilities.getNumSimulationSamples());
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
