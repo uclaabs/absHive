@@ -16,6 +16,9 @@ public class ConditionsParser {
   private final KeyWrapperParser keyParser;
   private final RangeMatrixParser rangesParser;
 
+  private IntArrayList keyOutput = null;
+  private List<RangeList> rangeOutput = null;
+
   public ConditionsParser(ObjectInspector oi) {
     this.oi = (StructObjectInspector) oi;
     List<? extends StructField> fields = this.oi.getAllStructFieldRefs();
@@ -31,6 +34,26 @@ public class ConditionsParser {
 
   public List<RangeList> parseRange(Object o) {
     return rangesParser.parse(oi.getStructFieldData(o, ranges));
+  }
+
+  public IntArrayList inplaceParseKey(Object o) {
+    if (keyOutput == null) {
+      keyOutput = keyParser.parse(oi.getStructFieldData(o, key));
+    } else {
+      keyOutput.clear();
+      keyParser.parseInto(oi.getStructFieldData(o, key), keyOutput);
+    }
+    return keyOutput;
+  }
+
+  public List<RangeList> inplaceParseRange(Object o) {
+    if (rangeOutput == null) {
+      rangeOutput = rangesParser.parse(oi.getStructFieldData(o, ranges));
+    } else {
+      rangeOutput.clear();
+      rangesParser.overwrite(oi.getStructFieldData(o, ranges), rangeOutput);
+    }
+    return rangeOutput;
   }
 
 }

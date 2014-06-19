@@ -3,7 +3,6 @@ package org.apache.hadoop.hive.ql.abm.datatypes;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
@@ -33,14 +32,24 @@ public class RangeMatrixParser {
     }
   }
 
-  public void append(Object o, List<RangeList> ret) throws HiveException {
+  public void append(Object o, List<RangeList> ret) {
     int length = oi.getListLength(o);
     for (int i = 0; i < length; ++i) {
       ret.add(parser.parse(oi.getListElement(o, i)));
     }
   }
 
-  public int overwrite(Object o, List<RangeList> ret, int start) throws HiveException {
+  public int overwrite(Object o, List<RangeList> ret) {
+    int length = oi.getListLength(o);
+    for (int i = 0; i < length; ++i) {
+      RangeList target = ret.get(i);
+      target.clear();
+      parser.parseInto(oi.getListElement(o, i), target);
+    }
+    return length;
+  }
+
+  public int overwrite(Object o, List<RangeList> ret, int start) {
     int length = oi.getListLength(o);
     for (int i = 0; i < length; ++i) {
       RangeList target = ret.get(i + start);
