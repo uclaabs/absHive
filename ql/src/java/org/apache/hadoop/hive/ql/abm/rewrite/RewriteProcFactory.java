@@ -454,7 +454,7 @@ public class RewriteProcFactory {
 
       GenericUDF udf = getUdf(getMeasureFuncName(AbmUtilities.getErrorMeasure()));
       ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
-      IntArrayList aggIdxs = new IntArrayList();
+      IntArrayList aggrColIdxs = new IntArrayList();
 
       // Forward original columns
       HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(parent);
@@ -463,17 +463,19 @@ public class RewriteProcFactory {
           String internalName = parentSignature.get(i).getInternalName();
           AggregateInfo linfo = ctx.getLineage(parent, internalName);
           if (linfo != null) {
-            aggIdxs.add(ctx.getAggregateId(linfo));
+            aggrColIdxs.add(ctx.getAggregateId(linfo));
             int index = selFactory.addColumn(
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
                 internalName);
             selFactory.putLineage(index, linfo);
           } else {
-            aggIdxs.add(-1);
+            aggrColIdxs.add(-1);
             selFactory.forwardColumn(parent, i, true);
           }
         }
       }
+      // for exist_prob
+      aggrColIdxs.add(0);
 
       int probIndex = selFactory.addColumn(
           ExprNodeGenericFuncDesc.newInstance(getUdf(EXIST_PROB), new ArrayList<ExprNodeDesc>()));
@@ -492,7 +494,7 @@ public class RewriteProcFactory {
       fs.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
 
       // Set SelectOperator
-      ctx.setupMCSim(sel, aggIdxs.toIntArray());
+      ctx.setupMCSim(sel, aggrColIdxs.toIntArray());
 
       return probIndex;
     }

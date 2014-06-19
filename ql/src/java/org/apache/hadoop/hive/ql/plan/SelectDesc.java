@@ -65,8 +65,8 @@ public class SelectDesc extends AbstractOperatorDesc {
   private int[][] colsInPorts;
   private PredicateType[][] predTypesInPorts;
 
-  private int[] aggIdxs;
-  private int numSimulationSample;
+  private int[] aggrColIdxs;
+  private int numSimulation;
 
   public SelectDesc() {
   }
@@ -319,20 +319,20 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.predTypesInPorts = predTypesInPorts;
   }
 
-  public int[] getAggIdxs() {
-    return aggIdxs;
+  public int[] getAggrColIdxs() {
+    return aggrColIdxs;
   }
 
-  public void setAggIdxs(int[] aggIdxs) {
-    this.aggIdxs = aggIdxs;
+  public void setAggrColIdxs(int[] aggrColIdxs) {
+    this.aggrColIdxs = aggrColIdxs;
   }
 
-  public int getNumSimulationSample() {
-    return numSimulationSample;
+  public int getNumSimulation() {
+    return numSimulation;
   }
 
-  public void setNumSimulationSample(int numSimulationSample) {
-    this.numSimulationSample = numSimulationSample;
+  public void setNumSimulation(int numSimulation) {
+    this.numSimulation = numSimulation;
   }
 
   public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
@@ -340,7 +340,7 @@ public class SelectDesc extends AbstractOperatorDesc {
       List<String> cachedOutputs, List<String> cachedInputs, boolean simpleQuery,
       int[][] gbyIds, UdafType[][][] udafTypes,
       int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
-      int[][] gbyIdsInPorts, int[][] colsInPorts, PredicateType[][] predTypesInPorts, int[] aggIdxs, int numSimulationSample) {
+      int[][] gbyIdsInPorts, int[][] colsInPorts, PredicateType[][] predTypesInPorts, int[] aggrColIdxs, int numSimulation) {
     simulated = true;
 
     this.numKeysContinuous = numKeysContinuous;
@@ -362,8 +362,8 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.colsInPorts = colsInPorts;
     this.predTypesInPorts = predTypesInPorts;
 
-    this.aggIdxs = aggIdxs;
-    this.numSimulationSample = numSimulationSample;
+    this.aggrColIdxs = aggrColIdxs;
+    this.numSimulation = numSimulation;
   }
 
 }

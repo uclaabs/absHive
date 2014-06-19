@@ -175,7 +175,7 @@ public class ConditionAnnotation {
     gbyDict = new Dictionary<GroupByOperator>(gbys);
   }
 
-  public void setupMCSim(SelectOperator select, int[] aggIdxs) {
+  public void setupMCSim(SelectOperator select, int[] aggrColIdxs) {
     if (sorted == null) {
       setupIds();
     }
@@ -323,7 +323,7 @@ public class ConditionAnnotation {
 
     select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete, cachedOutputs,
         cachedInputs, simpleQuery, gbyIds, udafTypes, gbyIdsInPreds, colsInPreds, predTypes,
-        gbyIdsInPorts, colsInPorts, predTypesInPorts, aggIdxs,
+        gbyIdsInPorts, colsInPorts, predTypesInPorts, aggrColIdxs,
         AbmUtilities.getNumSimulationSamples());
   }
 

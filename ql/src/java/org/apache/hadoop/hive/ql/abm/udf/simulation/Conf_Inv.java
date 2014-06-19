@@ -46,7 +46,7 @@ public class Conf_Inv extends GenericUDFWithSimulation {
     for(SimulationResult res : samples.samples) {
       for (double[][] smpls : res.samples) {
         if (smpls != null) {
-          buf.add(smpls[smpls.length - 1][idx]);
+          buf.add(smpls[smpls.length - 1][columnIndex]);
         }
       }
     }

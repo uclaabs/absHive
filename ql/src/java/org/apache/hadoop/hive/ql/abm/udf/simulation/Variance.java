@@ -29,7 +29,7 @@ public class Variance extends GenericUDFWithSimulation {
     for(SimulationResult res : samples.samples) {
       for (double[][] smpls : res.samples) {
         if (smpls != null) {
-          double v = smpls[smpls.length - 1][idx];
+          double v = smpls[smpls.length - 1][columnIndex];
           sum += v;
           ssum += (v * v);
           ++cnt;

@@ -193,8 +193,8 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return condAnno.getCondFlags(gby);
   }
 
-  public void setupMCSim(SelectOperator select, int[] aggIdxs) {
-    condAnno.setupMCSim(select, aggIdxs);
+  public void setupMCSim(SelectOperator select, int[] aggrColIdxs) {
+    condAnno.setupMCSim(select, aggrColIdxs);
   }
 
   public LineageCtx getLineageCtx() {

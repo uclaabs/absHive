@@ -8,7 +8,7 @@ public abstract class GenericUDFWithSimulation extends GenericUDF {
 
   protected int numSimulation;
   protected SimulationSamples samples = null;
-  protected int idx;
+  protected int columnIndex;
 
   public void setNumSimulation(int numSimulation) {
     this.numSimulation = numSimulation;
@@ -18,8 +18,8 @@ public abstract class GenericUDFWithSimulation extends GenericUDF {
     this.samples = samples;
   }
 
-  public void setIdx(int idx) {
-    this.idx = idx;
+  public void setColumnIndex(int columnIndex) {
+    this.columnIndex = columnIndex;
   }
 
 }
