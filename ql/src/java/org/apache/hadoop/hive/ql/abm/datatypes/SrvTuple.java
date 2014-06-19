@@ -27,4 +27,9 @@ public class SrvTuple implements Serializable {
     return idx;
   }
 
+  @Override
+  public String toString() {
+    return "(" + key.toString() + ", " + range.toString() + ")";
+  }
+
 }
