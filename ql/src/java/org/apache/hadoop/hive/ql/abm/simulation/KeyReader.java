@@ -36,6 +36,9 @@ public class KeyReader {
 
     // Initialize simulation-related fields
     tuples = new TupleList[gbyIds.length];
+    for (int i = 0; i < gbyIds.length; ++i) {
+      tuples[i] = new TupleList();
+    }
     condIds = new IntArrayList();
   }
 
