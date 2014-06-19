@@ -35,8 +35,20 @@ public class Exist_prob extends GenericUDFWithSimulation {
     return ret;
   }
 
-	@Override
-  public String getDisplayString(String[] children) {
-	  return "Exist_prob";
+  @Override
+  public String getDisplayString(String[] arg0) {
+    StringBuilder builder = new StringBuilder();
+    builder.append("exist_prob(");
+    boolean first = true;
+    for (String arg : arg0) {
+      if (!first) {
+        builder.append(", ");
+      }
+      first = false;
+      builder.append(arg);
+    }
+    builder.append(")");
+    return builder.toString();
   }
+
 }

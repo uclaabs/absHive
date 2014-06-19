@@ -40,8 +40,20 @@ public class Mean extends GenericUDFWithSimulation {
     return ret;
   }
 
-	@Override
-  public String getDisplayString(String[] children) {
-	  return "Mean";
+  @Override
+  public String getDisplayString(String[] arg0) {
+    StringBuilder builder = new StringBuilder();
+    builder.append("mean(");
+    boolean first = true;
+    for (String arg : arg0) {
+      if (!first) {
+        builder.append(", ");
+      }
+      first = false;
+      builder.append(arg);
+    }
+    builder.append(")");
+    return builder.toString();
   }
+
 }

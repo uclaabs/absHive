@@ -59,14 +59,19 @@ public class Conf_Inv extends GenericUDFWithSimulation {
   }
 
 	@Override
-  public String getDisplayString(String[] children) {
-	  String ret = "Conf_Inv_5_95 (";
-	  if (children != null) {
-	    for (String child: children) {
-	      ret += child + " ";
-	    }
-	  }
-	  ret += ")";
-	  return ret;
+  public String getDisplayString(String[] arg0) {
+    StringBuilder builder = new StringBuilder();
+    builder.append("conf_inv_5_95(");
+    boolean first = true;
+    for (String arg : arg0) {
+      if (!first) {
+        builder.append(", ");
+      }
+      first = false;
+      builder.append(arg);
+    }
+    builder.append(")");
+    return builder.toString();
   }
+
 }
