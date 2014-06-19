@@ -205,6 +205,10 @@ public class RewriteProcCtx implements NodeProcessorCtx {
     return tctx.isUncertain(op);
   }
 
+  public boolean conditionNeedsSimulation() {
+    return condAnno.conditionNeedsSimulation();
+  }
+
   public ParseContext getParseContext() {
     return tctx.getParseContext();
   }

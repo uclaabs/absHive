@@ -416,15 +416,19 @@ public class RewriteProcFactory {
         return null;
       }
 
+      // We always insert a select operator
+      // Even if we do not need to simulate, we still need to return 1.0 for existence probability
       int probIndex = insertSelect();
       initialize(nd, procCtx);
 
       // Propagates the correct types
-      for (int i = 0; i < signature.size(); ++i) {
-        AggregateInfo linfo = ctx.getLineage(parent, signature.get(i).getInternalName());
+      int pos = 0;
+      for (ColumnInfo ci : signature) {
+        AggregateInfo linfo = ctx.getLineage(parent, ci.getInternalName());
         if (linfo != null) {
-          signature.get(i).setType(parentSignature.get(i).getType());
+          ci.setType(parentSignature.get(pos).getType());
         }
+        ++pos;
       }
       // Add the probability column
       forwardColumn(probIndex);
@@ -458,6 +462,7 @@ public class RewriteProcFactory {
 
       // Forward original columns
       HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(parent);
+      boolean simulationFlag = false;
       for (int i = 0; i < parentSignature.size(); ++i) {
         if (!toSkip.contains(i)) {
           String internalName = parentSignature.get(i).getInternalName();
@@ -468,17 +473,22 @@ public class RewriteProcFactory {
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
                 internalName);
             selFactory.putLineage(index, linfo);
+            simulationFlag = true;
           } else {
             aggrColIdxs.add(-1);
             selFactory.forwardColumn(parent, i, true);
           }
         }
       }
-      // for exist_prob
-      aggrColIdxs.add(0);
 
-      int probIndex = selFactory.addColumn(
-          ExprNodeGenericFuncDesc.newInstance(getUdf(EXIST_PROB), new ArrayList<ExprNodeDesc>()));
+      simulationFlag = (simulationFlag || ctx.conditionNeedsSimulation());
+      // for exist_prob
+      int probIndex = simulationFlag ?
+          selFactory.addColumn(
+              ExprNodeGenericFuncDesc
+                  .newInstance(getUdf(EXIST_PROB), new ArrayList<ExprNodeDesc>()))
+          : selFactory.addColumn(new ExprNodeConstantDesc(new Double(1.0)));
+      aggrColIdxs.add(0);
 
       // Create SEL
       SelectOperator sel = selFactory.getSelectOperator();
@@ -494,7 +504,9 @@ public class RewriteProcFactory {
       fs.setParentOperators(new ArrayList<Operator<? extends OperatorDesc>>(Arrays.asList(sel)));
 
       // Set SelectOperator
-      ctx.setupMCSim(sel, aggrColIdxs.toIntArray());
+      if (simulationFlag) {
+        ctx.setupMCSim(sel, aggrColIdxs.toIntArray());
+      }
 
       return probIndex;
     }

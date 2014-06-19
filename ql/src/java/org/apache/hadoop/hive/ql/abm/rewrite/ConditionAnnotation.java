@@ -85,6 +85,10 @@ public class ConditionAnnotation {
 
   // <-- Used by RewriteProcCtx
 
+  public boolean conditionNeedsSimulation() {
+    return !transforms.isEmpty();
+  }
+
   // A query is either a simple query, in which case we do not need to cache any input;
   // or is a complex query, in which case we have to cache the inputs of all continuous gbys.
   // This is because the dependency graph is a connected tree for complex queries, and thus
