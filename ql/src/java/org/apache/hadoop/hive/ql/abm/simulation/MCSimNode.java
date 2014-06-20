@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -230,6 +231,12 @@ public class MCSimNode {
       }
     }
 
+    System.out.println("KAI fake " + Arrays.toString(fake));
+    System.out.println("KAI mean " + Arrays.toString(mu));
+    for (double[] x : A) {
+      System.out.println("KAI A " + Arrays.toString(x));
+    }
+
     MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu, A);
     double[][] smpls = dist.sample(NUM_SIMULATIONS);
 
@@ -278,6 +285,7 @@ public class MCSimNode {
       }
       sr.samples.add(sample);
     }
+    ret.addAll(map.values());
   }
 
   private static ArrayList<IntArrayList> cloneKey(ArrayList<IntArrayList> key) {
