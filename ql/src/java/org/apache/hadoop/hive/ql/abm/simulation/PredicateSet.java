@@ -134,7 +134,7 @@ public class PredicateSet implements Serializable {
     double value;
 
     int left = 0;
-    int right = ranges.get(0).size();
+    int right = ranges.get(0).size() - 1;
     int index;
 
     int keyIdx = 0;
@@ -148,8 +148,7 @@ public class PredicateSet implements Serializable {
       case SINGLE_LESS_THAN:
         value = samples[idx.getInt(keyIdx)];
         index = firstLte(value, range, left, right);
-        if (range.getDouble(index) > value) {
-          right = index;
+        if (index == -1) {
           left = firstLte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
@@ -164,7 +163,6 @@ public class PredicateSet implements Serializable {
         value = samples[idx.getInt(keyIdx)];
         index = firstLt(value, range, left, right);
         if (index == -1) {
-          right = index;
           left = firstLte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
@@ -179,7 +177,6 @@ public class PredicateSet implements Serializable {
         value = samples[idx.getInt(keyIdx)];
         index = firstGte(value, range, left, right);
         if (index == -1) {
-          right = index;
           left = firstGte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
@@ -194,7 +191,6 @@ public class PredicateSet implements Serializable {
         value = samples[idx.getInt(keyIdx)];
         index = firstGt(value, range, left, right);
         if (index == -1) {
-          right = index;
           left = firstGte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
@@ -208,8 +204,7 @@ public class PredicateSet implements Serializable {
       case DOUBLE_LESS_THAN:
         value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
         index = firstLte(value, range, left, right);
-        if (range.getDouble(index) > value) {
-          right = index;
+        if (index == -1) {
           left = firstLte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
@@ -224,7 +219,6 @@ public class PredicateSet implements Serializable {
         value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
         index = firstLt(value, range, left, right);
         if (index == -1) {
-          right = index;
           left = firstLte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
@@ -239,7 +233,6 @@ public class PredicateSet implements Serializable {
         value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
         index = firstGte(value, range, left, right);
         if (index == -1) {
-          right = index;
           left = firstGte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
@@ -254,7 +247,6 @@ public class PredicateSet implements Serializable {
         value = samples[idx.getInt(keyIdx)] - samples[idx.getInt(keyIdx + 1)];
         index = firstGt(value, range, left, right);
         if (index == -1) {
-          right = index;
           left = firstGte(range.getDouble(right), range, left, right);
         } else if (index == left) {
           left = right = range.size();
