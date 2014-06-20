@@ -84,10 +84,10 @@ public class MCSimNode {
         UdafType[] udaf2 = udafTypes[j];
         boolean continuous2 = (gby2 <= lastContinuousGby);
         if (independent || !continuous1 || !continuous2) {
-          lev[i] = new IndependentInterDistOracle(targets[i], targets[j], udaf1, udaf2,
+          lev[j] = new IndependentInterDistOracle(targets[i], targets[j], udaf1, udaf2,
               offsets[i], offsets[j]);
         } else {
-          lev[i] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[i][j], udaf1,
+          lev[j] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[i][j], udaf1,
               udaf2, offsets[i], offsets[j]);
         }
       }
@@ -111,10 +111,10 @@ public class MCSimNode {
           UdafType[] udaf2 = udafTypes[j];
           boolean continuous2 = (gby2 <= lastContinuousGby);
           if (independent || !continuous1 || !continuous2) {
-            lev[i] = new IndependentInterDistOracle(targets[i], parent.targets[j], udaf1, udaf2,
+            lev[j] = new IndependentInterDistOracle(targets[i], parent.targets[j], udaf1, udaf2,
                 offsets[i], parent.offsets[j]);
           } else {
-            lev[i] = new CorrelatedInterDistOracle(targets[i], parent.targets[j], inters[i][j],
+            lev[j] = new CorrelatedInterDistOracle(targets[i], parent.targets[j], inters[i][j],
                 udaf1, udaf2, offsets[i], parent.offsets[j]);
           }
         }
@@ -221,12 +221,16 @@ public class MCSimNode {
     double[][] A = new double[dimension][dimension];
 
     ArrayList<IntArrayList> condIds = zero();
+    System.out.println("KAI haha " + condIds);
 
     for (int i = 0; i < within1.length; ++i) {
       IntArrayList cIds = condIds.get(i);
       within1[i].fill(cIds, fake, mu, A);
       InterDistOracle[] w2s = within2[i];
       for (int j = i + 1; j < within2.length; ++j) {
+        System.out.println("KAI c1 " + (cIds == null));
+        System.out.println("KAI c2 " + (condIds.get(j) == null));
+        System.out.println("KAI w " + (w2s[j] == null));
         w2s[j].fillSym(cIds, condIds.get(j), fake, mu, A);
       }
     }
