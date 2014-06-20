@@ -50,7 +50,6 @@ public class ConditionsParser {
     if (rangeOutput == null) {
       rangeOutput = rangesParser.parse(oi.getStructFieldData(o, ranges));
     } else {
-      rangeOutput.clear();
       rangesParser.overwrite(oi.getStructFieldData(o, ranges), rangeOutput);
     }
     return rangeOutput;

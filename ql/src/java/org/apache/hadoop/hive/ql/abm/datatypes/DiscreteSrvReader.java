@@ -12,6 +12,7 @@ public class DiscreteSrvReader extends SrvReader {
 
   @Override
   public void locate(double[] srv, int condId) {
+    this.srv = srv;
     offset = condId * numCols;
   }
 
