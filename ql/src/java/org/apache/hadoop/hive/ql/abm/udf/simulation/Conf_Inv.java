@@ -21,12 +21,15 @@ public class Conf_Inv extends GenericUDFWithSimulation {
   private static double upperPercent = 0.95;
 
   private final DoubleArrayList buf = new DoubleArrayList();
-  private final DoubleWritable[] ret = new DoubleWritable[] {new DoubleWritable(0), new DoubleWritable(0)};
+  private final DoubleWritable[] ret = new DoubleWritable[] {new DoubleWritable(0),
+      new DoubleWritable(0), new DoubleWritable(0), new DoubleWritable(0)};
 
   public static StructObjectInspector oi = ObjectInspectorFactory
       .getStandardStructObjectInspector(
-          new ArrayList<String>(Arrays.asList("Lower", "Upper")),
+          new ArrayList<String>(Arrays.asList("Lower", "Upper", "Mean", "Variance")),
           new ArrayList<ObjectInspector>(Arrays.asList(
+              (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
+              (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
               (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
               (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector)));
 
@@ -43,22 +46,38 @@ public class Conf_Inv extends GenericUDFWithSimulation {
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
     buf.clear();
 
-    for(SimulationResult res : samples.samples) {
+    double sum = 0;
+    double ssum = 0;
+
+    for (SimulationResult res : samples.samples) {
       for (double[][] smpls : res.samples) {
         if (smpls != null) {
-          buf.add(smpls[smpls.length - 1][columnIndex]);
+          double v = smpls[smpls.length - 1][columnIndex];
+          sum += v;
+          ssum += v * v;
+          buf.add(v);
         }
       }
     }
 
     DoubleArrays.quickSort(buf.elements(), 0, buf.size());
 
-    ret[0].set(buf.getDouble((int) (buf.size() * lowerPercent)));
-    ret[1].set(buf.getDouble((int) (buf.size() * upperPercent)));
+
+    if (buf.size() == 0) {
+      ret[0].set(Double.NaN);
+      ret[1].set(Double.NaN);
+      ret[2].set(Double.NaN);
+      ret[3].set(Double.NaN);
+    } else {
+      ret[0].set(buf.getDouble((int) (buf.size() * lowerPercent)));
+      ret[1].set(buf.getDouble((int) (buf.size() * upperPercent)));
+      ret[2].set(sum/buf.size());
+      ret[3].set((ssum - (sum * sum)/buf.size()) / (buf.size()));
+    }
     return ret;
   }
 
-	@Override
+  @Override
   public String getDisplayString(String[] arg0) {
     StringBuilder builder = new StringBuilder();
     builder.append("conf_inv_5_95(");
