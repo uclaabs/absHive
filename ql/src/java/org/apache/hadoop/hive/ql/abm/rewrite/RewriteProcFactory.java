@@ -456,8 +456,7 @@ public class RewriteProcFactory {
     private int insertSelect() throws UDFArgumentException {
       SelectFactory selFactory = new SelectFactory(ctx);
 
-      GenericUDF udf = getUdf(getMeasureFuncName(AbmUtilities.getErrorMeasure()));
-      ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
+      String measure = getMeasureFuncName(AbmUtilities.getErrorMeasure());
       IntArrayList aggrColIdxs = new IntArrayList();
 
       // Forward original columns
@@ -469,6 +468,8 @@ public class RewriteProcFactory {
           AggregateInfo linfo = ctx.getLineage(parent, internalName);
           if (linfo != null) {
             aggrColIdxs.add(ctx.getAggregateId(linfo));
+            GenericUDF udf = getUdf(measure);
+            ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
             int index = selFactory.addColumn(
                 ExprNodeGenericFuncDesc.newInstance(udf, params),
                 internalName);
