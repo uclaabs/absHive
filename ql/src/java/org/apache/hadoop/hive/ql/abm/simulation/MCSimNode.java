@@ -350,7 +350,7 @@ public class MCSimNode {
         simpleQuery || allPreds[last][0].isSimpleCondition());
     node.setParent(parent);
 
-    return parent;
+    return node;
   }
 
 }
