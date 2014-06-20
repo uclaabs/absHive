@@ -218,7 +218,7 @@ public class RewriteProcFactory {
     ArrayList<ColumnInfo> signature = op.getSchema().getSignature();
     HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(op);
     for (int i = 0; i < signature.size(); ++i) {
-      if (!toSkip.contains(i)) { // TODO
+      if (!toSkip.contains(i)) {
         ColumnInfo ci = signature.get(i);
         String internalName = ci.getInternalName();
         AggregateInfo linfo = ctx.getLineage(op, internalName);
