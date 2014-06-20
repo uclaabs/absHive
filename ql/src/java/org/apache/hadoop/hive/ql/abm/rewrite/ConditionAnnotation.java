@@ -1,7 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.rewrite;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,7 +11,7 @@ import java.util.TreeSet;
 import org.apache.hadoop.hive.ql.abm.AbmUtilities;
 import org.apache.hadoop.hive.ql.abm.algebra.ComparisonTransform;
 import org.apache.hadoop.hive.ql.abm.lib.TopologicalSort;
-import org.apache.hadoop.hive.ql.abm.simulation.PredicateType;
+import org.apache.hadoop.hive.ql.abm.simulation.PredicateSet;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
@@ -263,80 +261,25 @@ public class ConditionAnnotation {
     }
 
     // Predicates
-    int[][][] gbyIdsInPreds = new int[numLevels][][];
-    int[][][] colsInPreds = new int[numLevels][][];
-    PredicateType[][][] predTypes = new PredicateType[numLevels][][];
-
-    for (int i = 0; i < numLevels; ++i) {
-      List<GroupByOperator> level = sorted.get(i);
-      List<GroupByOperator> parentLevel = null;
-      if (i != 0) {
-        parentLevel = sorted.get(i - 1);
-      } else {
-        parentLevel = new ArrayList<GroupByOperator>();
+    PredicateSet[][] allPreds = new PredicateSet[numLevels][];
+    for (int i = numLevels - 2; i >= 0; --i) {
+      List<GroupByOperator> level = sorted.get(i + 1);
+      PredicateSet[] predSets = new PredicateSet[level.size()];
+      for (int j = 0; j < predSets.length; ++j) {
+        predSets[j] = new PredicateSet(dependencies.get(level.get(j)), sorted.get(i), aggregates);
       }
-
-      int[][] gbyIdsInPreds2 = new int[level.size()][];
-      int[][] colsInPreds2 = new int[level.size()][];
-      PredicateType[][] predTypes2 = new PredicateType[level.size()][];
-
-      int j = 0;
-      for (GroupByOperator gby : level) {
-        IntArrayList gbyIdsInPreds1 = new IntArrayList();
-        IntArrayList colsInPreds1 = new IntArrayList();
-        List<PredicateType> predTypes1 = new ArrayList<PredicateType>();
-
-        // unfold it to array
-        for (ComparisonTransform transform : dependencies.get(gby)) {
-          for (AggregateInfo ai : transform.getAggregatesInvolved()) {
-            gbyIdsInPreds1.add(parentLevel.indexOf(ai.getGroupByOperator()));
-            colsInPreds1.add(getValidIndex(ai));
-          }
-          predTypes1.add(transform.getPredicateType());
-        }
-
-        gbyIdsInPreds2[j] = gbyIdsInPreds1.toIntArray();
-        colsInPreds2[j] = colsInPreds1.toIntArray();
-        predTypes2[j] = predTypes1.toArray(new PredicateType[predTypes1.size()]);
-        ++j;
-      }
-
-      gbyIdsInPreds[i] = gbyIdsInPreds2;
-      colsInPreds[i] = colsInPreds2;
-      predTypes[i] = predTypes2;
+      allPreds[i] = predSets;
     }
 
-    // Last condition
-    IntArrayList gbyIdsInPorts1 = new IntArrayList();
-    IntArrayList colsInPorts1 = new IntArrayList();
-    ArrayList<PredicateType> predTypesInPorts1 = new ArrayList<PredicateType>();
+    // Last predicate
+    allPreds[numLevels - 1] = new PredicateSet[] {
+        new PredicateSet(transforms.toArray(new ComparisonTransform[transforms.size()]), sorted.get(numLevels - 1),
+            aggregates)};
 
-    List<GroupByOperator> last = sorted.get(numLevels - 1);
-    for (ComparisonTransform transform : transforms) {
-      for (AggregateInfo ai : transform.getAggregatesInvolved()) {
-        gbyIdsInPorts1.add(last.indexOf(ai.getGroupByOperator()));
-        colsInPorts1.add(getValidIndex(ai));
-      }
-      predTypesInPorts1.add(transform.getPredicateType());
-    }
-
-    int[][] gbyIdsInPorts = new int[][] {gbyIdsInPorts1.toIntArray()};
-    int[][] colsInPorts = new int[][] {colsInPorts1.toIntArray()};
-    PredicateType[][] predTypesInPorts = new PredicateType[][] {
-        predTypesInPorts1.toArray(new PredicateType[predTypesInPorts1.size()])};
 
     select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete, cachedOutputs,
-        cachedInputs, simpleQuery, gbyIds, udafTypes, gbyIdsInPreds, colsInPreds, predTypes,
-        gbyIdsInPorts, colsInPorts, predTypesInPorts, aggrColIdxs,
-        AbmUtilities.getNumSimulationSamples());
-  }
-
-  private int getValidIndex(AggregateInfo ai) {
-    int idx = ai.getIndex();
-    if (idx == -1) {
-      idx = aggregates.get(ai.getGroupByOperator()).size() - 1;
-    }
-    return idx;
+        cachedInputs, simpleQuery, gbyIds, udafTypes, allPreds,
+        aggrColIdxs, AbmUtilities.getNumSimulationSamples());
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {

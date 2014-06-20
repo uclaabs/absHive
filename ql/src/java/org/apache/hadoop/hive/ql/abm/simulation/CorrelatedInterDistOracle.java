@@ -13,7 +13,7 @@ public class CorrelatedInterDistOracle extends InterDistOracle {
 
   public CorrelatedInterDistOracle(IntArrayList groupIds1, IntArrayList groupIds2,
       InterCovMap inter, UdafType[] udafTypes1, UdafType[] udafTypes2,
-      OffsetInfo offInfo1, OffsetInfo offInfo2) {
+      Offset offInfo1, Offset offInfo2) {
     super(groupIds1, groupIds2, udafTypes1.length, udafTypes2.length, offInfo1, offInfo2);
     this.inter = inter;
     oracles = CovOracle.getCovOracles(udafTypes1, udafTypes2);

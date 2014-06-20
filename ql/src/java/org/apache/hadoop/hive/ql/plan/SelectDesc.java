@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
-import org.apache.hadoop.hive.ql.abm.simulation.PredicateType;
+import org.apache.hadoop.hive.ql.abm.simulation.PredicateSet;
 
 
 /**
@@ -57,13 +57,8 @@ public class SelectDesc extends AbstractOperatorDesc {
 
   private int[][] gbyIds;
   private UdafType[][][] udafTypes;
-  private int[][][] gbyIdsInPreds;
-  private int[][][] colsInPreds;
-  private PredicateType[][][] predTypes;
 
-  private int[][] gbyIdsInPorts;
-  private int[][] colsInPorts;
-  private PredicateType[][] predTypesInPorts;
+  private PredicateSet[][] allPreds;
 
   private int[] aggrColIdxs;
   private int numSimulation;
@@ -271,52 +266,12 @@ public class SelectDesc extends AbstractOperatorDesc {
     this.udafTypes = udafTypes;
   }
 
-  public int[][][] getGbyIdsInPreds() {
-    return gbyIdsInPreds;
+  public PredicateSet[][] getAllPreds() {
+    return allPreds;
   }
 
-  public void setGbyIdsInPreds(int[][][] gbyIdsInPreds) {
-    this.gbyIdsInPreds = gbyIdsInPreds;
-  }
-
-  public int[][][] getColsInPreds() {
-    return colsInPreds;
-  }
-
-  public void setColsInPreds(int[][][] colsInPreds) {
-    this.colsInPreds = colsInPreds;
-  }
-
-  public PredicateType[][][] getPredTypes() {
-    return predTypes;
-  }
-
-  public void setPredTypes(PredicateType[][][] predTypes) {
-    this.predTypes = predTypes;
-  }
-
-  public int[][] getGbyIdsInPorts() {
-    return gbyIdsInPorts;
-  }
-
-  public void setGbyIdsInPorts(int[][] gbyIdsInPorts) {
-    this.gbyIdsInPorts = gbyIdsInPorts;
-  }
-
-  public int[][] getColsInPorts() {
-    return colsInPorts;
-  }
-
-  public void setColsInPorts(int[][] colsInPorts) {
-    this.colsInPorts = colsInPorts;
-  }
-
-  public PredicateType[][] getPredTypesInPorts() {
-    return predTypesInPorts;
-  }
-
-  public void setPredTypesInPorts(PredicateType[][] predTypesInPorts) {
-    this.predTypesInPorts = predTypesInPorts;
+  public void setAllPreds(PredicateSet[][] allPreds) {
+    this.allPreds = allPreds;
   }
 
   public int[] getAggrColIdxs() {
@@ -338,9 +293,8 @@ public class SelectDesc extends AbstractOperatorDesc {
   public void setMCSim(List<Integer> numKeysContinuous, List<List<UdafType>> aggrTypesContinuous,
       List<Integer> numKeysDiscrete,
       List<String> cachedOutputs, List<String> cachedInputs, boolean simpleQuery,
-      int[][] gbyIds, UdafType[][][] udafTypes,
-      int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
-      int[][] gbyIdsInPorts, int[][] colsInPorts, PredicateType[][] predTypesInPorts, int[] aggrColIdxs, int numSimulation) {
+      int[][] gbyIds, UdafType[][][] udafTypes, PredicateSet[][] allPreds,
+      int[] aggrColIdxs, int numSimulation) {
     simulated = true;
 
     this.numKeysContinuous = numKeysContinuous;
@@ -354,13 +308,8 @@ public class SelectDesc extends AbstractOperatorDesc {
 
     this.gbyIds = gbyIds;
     this.udafTypes = udafTypes;
-    this.gbyIdsInPreds = gbyIdsInPreds;
-    this.colsInPreds = colsInPreds;
-    this.predTypes = predTypes;
 
-    this.gbyIdsInPorts = gbyIdsInPorts;
-    this.colsInPorts = colsInPorts;
-    this.predTypesInPorts = predTypesInPorts;
+    this.allPreds = allPreds;
 
     this.aggrColIdxs = aggrColIdxs;
     this.numSimulation = numSimulation;

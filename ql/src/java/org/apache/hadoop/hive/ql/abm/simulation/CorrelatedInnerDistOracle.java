@@ -1,10 +1,8 @@
 package org.apache.hadoop.hive.ql.abm.simulation;
 
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import org.apache.hadoop.hive.ql.abm.datatypes.DoubleArray2D;
-import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 import org.apache.hadoop.hive.ql.abm.simulation.PartialCovMap.InnerCovMap;
 
@@ -13,20 +11,21 @@ public class CorrelatedInnerDistOracle extends InnerDistOracle {
   private final InnerCovMap inner;
   private final CovOracle[][] oracles;
 
-  public CorrelatedInnerDistOracle(Int2ReferenceOpenHashMap<SrvTuple> srv, boolean continuous,
-      IntArrayList groupIds, InnerCovMap inner, UdafType[] aggrTypes, OffsetInfo offInfo) {
+  public CorrelatedInnerDistOracle(TupleMap srv, boolean continuous,
+      IntArrayList groupIds, InnerCovMap inner, UdafType[] aggrTypes, Offset offInfo) {
     super(srv, continuous, groupIds, aggrTypes.length, offInfo);
     this.inner = inner;
     oracles = CovOracle.getCovOracles(aggrTypes, aggrTypes);
   }
 
   @Override
-  protected boolean fillMeanAndCov(int groupId, int condId, double[] mean, double[][] cov, int offset) {
+  protected void fillMeanAndCov(int groupId, int condId, boolean[] fake, double[] mean, double[][] cov, int offset) {
     reader.locate(srv.get(groupId).srv, condId);
 
     reader.fillMean(mean, offset);
-    boolean fake = reader.fillVar(cov, offset);
-    if (!fake) {
+    reader.fillVar(fake, cov, offset);
+
+    if (!fake[offset]) {
       DoubleArray2D pcov = inner.get(groupId);
       pcov.fill(condId, cov, offset);
 
@@ -42,8 +41,6 @@ public class CorrelatedInnerDistOracle extends InnerDistOracle {
         }
       }
     } // otherwise do nothing because the covariance matrix is already initialized to 0
-
-    return fake;
   }
 
   @Override

@@ -22,7 +22,7 @@ public abstract class SrvReader {
     System.arraycopy(srv, offset, dest, pos, numCols);
   }
 
-  public abstract boolean fillVar(double[][] dest, int pos);
+  public abstract void fillVar(boolean[] fake, double[][] dest, int pos);
 
   public static SrvReader createReader(int numCols, boolean continuous) {
     if (continuous) {

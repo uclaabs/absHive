@@ -5,12 +5,10 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.LUDecomposition;
-import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 import org.apache.hadoop.hive.ql.abm.datatypes.SrvTuple;
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 import org.apache.hadoop.hive.ql.abm.simulation.PartialCovMap.InnerCovMap;
@@ -20,16 +18,14 @@ public class MCSimNode {
 
   private static int NUM_SIMULATIONS = 0;
   private static int NUM_LEVEL = 0;
-  private static KeyReader port;
 
-  private static final SrvTuple fakeTuple = new SrvTuple(null, null, null);
-  private static final IntArrayList[] fakeTarget =
-      new IntArrayList[] {new IntArrayList(new int[] {0})};
+  private final int level;
 
   private final int[] gbys;
   private final IntArrayList[] targets;
-  private final OffsetInfo[] offInfos;
+  private final Offset[] offsets;
   private final int[] numAggrs;
+
   private int dimension = 0;
   private int pdimension = 0;
 
@@ -37,27 +33,29 @@ public class MCSimNode {
   private final InterDistOracle[][] within2;
   private final List<InterDistOracle[][]> between;
 
-  private final KeyReader reader;
+  private final Port port;
+
+  private final LinkedHashMap<ArrayList<IntArrayList>, SimulationResult> map =
+      new LinkedHashMap<ArrayList<IntArrayList>, SimulationResult>();
 
   private MCSimNode parent = null;
 
-  public MCSimNode(int[] gbys, UdafType[][] udafTypes,
-      int[][] gbyIdsInPreds, int[][] colsInPreds, PredicateType[][] predTypes,
-      List<MCSimNode> parents,
+  public MCSimNode(int level, int[] reqGbys, TupleMap[] reqSrvs, PredicateSet[] predSets,
+      int[] gbys, UdafType[][] udafTypes, List<MCSimNode> parents,
       TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
       boolean independent) {
+    this.level = level;
+
     int len1 = gbys.length;
 
     this.gbys = gbys;
     numAggrs = new int[len1];
-
     targets = new IntArrayList[len1];
-    offInfos = new OffsetInfo[len1];
+    offsets = new Offset[len1];
     for (int i = 0; i < len1; ++i) {
       numAggrs[i] = udafTypes[i].length;
-
       targets[i] = new IntArrayList();
-      offInfos[i] = new OffsetInfo();
+      offsets[i] = new Offset();
     }
 
     // Initialize distribution oracles
@@ -71,25 +69,25 @@ public class MCSimNode {
 
       if (independent || !continuous1) {
         within1[i] = new IndependentInnerDistOracle(srvs[gby1], continuous1, targets[i], udaf1,
-            offInfos[i]);
+            offsets[i]);
       } else {
         within1[i] = new CorrelatedInnerDistOracle(srvs[gby1], continuous1, targets[i],
-            inners[gby1], udaf1, offInfos[i]);
+            inners[gby1], udaf1, offsets[i]);
       }
 
-      InterDistOracle[] level = new InterDistOracle[len1];
-      within2[i] = level;
+      InterDistOracle[] lev = new InterDistOracle[len1];
+      within2[i] = lev;
 
       for (int j = i + 1; j < len1; ++j) {
         int gby2 = gbys[j];
         UdafType[] udaf2 = udafTypes[j];
         boolean continuous2 = (gby2 <= lastContinuousGby);
         if (independent || !continuous1 || !continuous2) {
-          level[i] = new IndependentInterDistOracle(targets[i], targets[j], udaf1, udaf2,
-              offInfos[i], offInfos[j]);
+          lev[i] = new IndependentInterDistOracle(targets[i], targets[j], udaf1, udaf2,
+              offsets[i], offsets[j]);
         } else {
-          level[i] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[i][j], udaf1,
-              udaf2, offInfos[i], offInfos[j]);
+          lev[i] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[i][j], udaf1,
+              udaf2, offsets[i], offsets[j]);
         }
       }
     }
@@ -100,8 +98,8 @@ public class MCSimNode {
       InterDistOracle[][] cur = new InterDistOracle[len1][len2];
       between.add(cur);
       for (int i = 0; i < len1; ++i) {
-        InterDistOracle[] level = new InterDistOracle[len2];
-        cur[i] = level;
+        InterDistOracle[] lev = new InterDistOracle[len2];
+        cur[i] = lev;
 
         int gby1 = gbys[i];
         UdafType[] udaf1 = udafTypes[i];
@@ -112,185 +110,188 @@ public class MCSimNode {
           UdafType[] udaf2 = udafTypes[j];
           boolean continuous2 = (gby2 <= lastContinuousGby);
           if (independent || !continuous1 || !continuous2) {
-            level[i] = new IndependentInterDistOracle(targets[i], parent.targets[j], udaf1, udaf2,
-                offInfos[i], parent.offInfos[j]);
+            lev[i] = new IndependentInterDistOracle(targets[i], parent.targets[j], udaf1, udaf2,
+                offsets[i], parent.offsets[j]);
           } else {
-            level[i] = new CorrelatedInterDistOracle(targets[i], parent.targets[j], inters[i][j],
-                udaf1, udaf2, offInfos[i], parent.offInfos[j]);
+            lev[i] = new CorrelatedInterDistOracle(targets[i], parent.targets[j], inters[i][j],
+                udaf1, udaf2, offsets[i], parent.offsets[j]);
           }
         }
       }
     }
 
     // Initialize condition reader
-    reader = new KeyReader(gbys, numAggrs, gbyIdsInPreds, colsInPreds, predTypes, srvs);
+    port = new Port(reqGbys, reqSrvs, predSets, targets, numAggrs, offsets);
   }
 
   public void setParent(MCSimNode parent) {
     this.parent = parent;
   }
 
-  public List<SimulationResult> simulate(IntArrayList key, List<RangeList> range) {
-    fakeTuple.key = key;
-    fakeTuple.range = range;
+  public List<SimulationResult> simulate(IntArrayList[] requests) {
+    dimension = port.init(requests);
 
-    port.init(fakeTarget, targets);
-
-    int level = NUM_LEVEL - 1;
-    List<SimulationResult> results = simulate(level);
-    for (SimulationResult result : results) {
-      int pos = 0;
-      for (double[][] smpls : result.samples) {
-        if (port.parse(smpls[level]).getInt(0) == 1) {
-          result.samples.set(pos, null);
-        }
-        ++pos;
-      }
+    if (dimension == 0) {
+      return null;
     }
-    return results;
-  }
-
-  public List<SimulationResult> simulate(int level) {
-    List<SimulationResult> ret = new ArrayList<SimulationResult>();
-
-    initOffsetInfos();
 
     if (parent == null) {
-      boolean[] fake = new boolean[dimension];
-      double[] mu = new double[dimension];
-      double[][] sigma = new double[dimension][dimension];
-
-      IntArrayList condIds = new IntArrayList();
-      condIds.add(0);
-
-      for (int i = 0; i < within1.length; ++i) {
-        within1[i].fill(condIds, fake, mu, sigma);
-        InterDistOracle[] w2s = within2[i];
-        for (int j = i + 1; j < within2.length; ++j) {
-          w2s[j].fillSym(condIds, fake, mu, sigma);
-        }
-      }
-
-      MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu, sigma);
-      double[][] smpls = dist.sample(NUM_SIMULATIONS);
-      fixFake(fake, smpls);
-
-      SimulationResult sr = new SimulationResult();
-      for (int i = 0; i < smpls.length; ++i) {
-        double[][] samples = new double[NUM_LEVEL][];
-        samples[0] = smpls[i];
-        sr.samples.add(samples);
-      }
-      sr.means.add(mu);
-      sr.sigma = new Array2DRowRealMatrix(sigma);
-
-      ret.add(sr);
-      return ret;
+      return defaultSimulate();
     }
 
-    int pLevel = level - 1;
-    reader.init(targets, parent.targets);
-    for (SimulationResult result : parent.simulate(pLevel)) {
-      LinkedHashMap<IntArrayList, SimulationResult> map = new LinkedHashMap<IntArrayList, SimulationResult>();
-      for (double[][] smpls : result.samples) {
-        IntArrayList condIds = reader.parse(smpls[pLevel]);
-        SimulationResult sr = map.get(condIds);
-        if (sr == null) {
-          sr = result.clone();
-          map.put(condIds.clone(), sr);
+    pdimension = parent.pdimension + parent.dimension;
+
+    List<SimulationResult> parRet = parent.simulate(targets);
+
+    if (parRet == null) {
+      return defaultSimulate();
+    }
+
+    List<SimulationResult> ret = new ArrayList<SimulationResult>();
+
+    for (SimulationResult res : parRet) {
+      ArrayList<IntArrayList> condIds = res.lastCondId;
+
+      boolean[] fake = new boolean[dimension];
+      double[] mu = new double[dimension];
+      double[][] A = new double[dimension][dimension];
+      double[][] B = new double[dimension][pdimension];
+
+      for (int i = 0; i < within1.length; ++i) {
+        IntArrayList cIds = condIds.get(i);
+        within1[i].fill(cIds, fake, mu, A);
+        InterDistOracle[] w2s = within2[i];
+        for (int j = i + 1; j < within2.length; ++j) {
+          w2s[j].fillSym(cIds, condIds.get(j), fake, mu, A);
         }
-        sr.samples.add(smpls);
       }
 
-      for (Map.Entry<IntArrayList, SimulationResult> entry : map.entrySet()) {
-        IntArrayList condIds = entry.getKey();
-        SimulationResult sr = entry.getValue();
-
-        boolean[] fake = new boolean[dimension];
-        double[] mu = new double[dimension];
-        double[][] A = new double[dimension][dimension];
-        double[][] B = new double[dimension][pdimension];
-
-        for (int i = 0; i < within1.length; ++i) {
-          within1[i].fill(condIds, fake, mu, A);
-          InterDistOracle[] w2s = within2[i];
-          for (int j = i + 1; j < within2.length; ++j) {
-            w2s[j].fillSym(condIds, fake, mu, A);
+      for (int k = 0; k < between.size(); ++k) {
+        InterDistOracle[][] oss = between.get(k);
+        ArrayList<IntArrayList> condIds2 = res.condIds.get(k);
+        double[] mu2 = res.means.get(k);
+        for (int i = 0; i < oss.length; ++i) {
+          IntArrayList cIds = condIds.get(i);
+          InterDistOracle[] os = oss[i];
+          for (int j = 0, cum = 0; j < os.length; ++j) {
+            cum += os[j].fillAsym(cIds, condIds2.get(j), fake, mu, mu2, A, cum);
           }
         }
-
-        for (int k = 0; k < between.size(); ++k) {
-          InterDistOracle[][] oss = between.get(k);
-          IntArrayList condIds2 = sr.condIds.get(k);
-          double[] mu2 = sr.means.get(k);
-          for (int i = 0; i < oss.length; ++i) {
-            InterDistOracle[] os = oss[i];
-            for (int j = 0, cum = 0; j < os.length; ++j) {
-              cum += os[j].fillAsym(condIds, condIds2, fake, mu, mu2, A, cum);
-            }
-          }
-        }
-
-        Array2DRowRealMatrix a = new Array2DRowRealMatrix(A);
-        Array2DRowRealMatrix b = new Array2DRowRealMatrix(B);
-        Array2DRowRealMatrix c = (Array2DRowRealMatrix) b.transpose();
-        Array2DRowRealMatrix id = new Array2DRowRealMatrix(new LUDecomposition(sr.sigma)
-            .getSolver().getInverse().getData());
-        Array2DRowRealMatrix tmp = b.multiply(id);
-
-        Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(c));
-        MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu,
-            sigma.getDataRef());
-
-        double[][] smpls = dist.sample(sr.samples.size());
-        fixFake(fake, smpls);
-
-        double[] pmu = sr.getMean(pdimension);
-        for (int i = 0; i < smpls.length; ++i) {
-          double[] s = sr.getSample(i, pdimension);
-          subtract(s, pmu);
-          add(smpls[i], tmp.operate(s));
-          sr.samples.get(i)[level] = smpls[i];
-        }
-        sr.means.add(mu);
-        sr.sigma = concat(a, b, c, sr.sigma);
-
-        ret.add(sr);
       }
+
+      Array2DRowRealMatrix a = new Array2DRowRealMatrix(A);
+      Array2DRowRealMatrix b = new Array2DRowRealMatrix(B);
+      Array2DRowRealMatrix c = (Array2DRowRealMatrix) b.transpose();
+      Array2DRowRealMatrix id = new Array2DRowRealMatrix(new LUDecomposition(res.sigma)
+          .getSolver().getInverse().getData());
+      Array2DRowRealMatrix tmp = b.multiply(id);
+
+      Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(c));
+      MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu,
+          sigma.getDataRef());
+
+      double[][] smpls = dist.sample(res.samples.size());
+
+
+      double[] pmu = res.getMean(pdimension);
+      int pos = 0;
+      for (double[] smpl : smpls) {
+        fixFake(fake, mu, smpl);
+        double[] s = res.getSample(pos, pdimension);
+        subtract(s, pmu);
+        add(smpl, tmp.operate(s));
+        res.samples.get(pos)[level] = smpl;
+        ++pos;
+      }
+      res.means.add(mu);
+      res.sigma = concat(a, b, c, res.sigma);
+
+      dispatch(res, ret);
     }
 
     return ret;
   }
 
-  private void initOffsetInfos() {
-    int cumPos = 0;
-    int cumOff = 0;
-    for (int i = 0; i < numAggrs.length; ++i) {
-      offInfos[i].pos = cumPos;
-      offInfos[i].offset = cumOff;
-      cumPos += targets[i].size();
-      cumOff += targets[i].size() * numAggrs[i];
+  private List<SimulationResult> defaultSimulate() {
+    List<SimulationResult> ret = new ArrayList<SimulationResult>();
+
+    boolean[] fake = new boolean[dimension];
+    double[] mu = new double[dimension];
+    double[][] A = new double[dimension][dimension];
+
+    ArrayList<IntArrayList> condIds = zero();
+
+    for (int i = 0; i < within1.length; ++i) {
+      IntArrayList cIds = condIds.get(i);
+      within1[i].fill(cIds, fake, mu, A);
+      InterDistOracle[] w2s = within2[i];
+      for (int j = i + 1; j < within2.length; ++j) {
+        w2s[j].fillSym(cIds, condIds.get(j), fake, mu, A);
+      }
     }
-    dimension = cumOff;
-    if (parent == null) {
-      pdimension = 0;
-    } else {
-      pdimension = parent.pdimension + parent.dimension;
+
+    MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu, A);
+    double[][] smpls = dist.sample(NUM_SIMULATIONS);
+
+    SimulationResult res = new SimulationResult();
+    for (double[] smpl : smpls) {
+      fixFake(fake, mu, smpl);
+      double[][] samples = new double[NUM_LEVEL][];
+      samples[level] = smpl;
+      res.samples.add(samples);
+    }
+    res.means.add(mu);
+    res.sigma = new Array2DRowRealMatrix(A);
+
+    dispatch(res, ret);
+    return ret;
+  }
+
+  private ArrayList<IntArrayList> zero() {
+    ArrayList<IntArrayList> ret = new ArrayList<IntArrayList>();
+    for (int i = 0; i < targets.length; ++i) {
+      IntArrayList list = new IntArrayList();
+      IntArrayList ts = targets[i];
+      for (int j = 0; j < ts.size(); ++j) {
+        list.add(0);
+      }
+      ret.add(list);
+    }
+    return ret;
+  }
+
+  private void dispatch(SimulationResult res, List<SimulationResult> ret) {
+    map.clear();
+    boolean last = (level == NUM_LEVEL - 1);
+    for (double[][] sample : res.samples) {
+      ArrayList<IntArrayList> cId = port.parse(sample[level]);
+
+      if (last && cId.get(0).getInt(0) != 0) {
+        continue;
+      }
+
+      SimulationResult sr = map.get(cId);
+      if (sr == null) {
+        sr = res.clone();
+        sr.lastCondId = cloneKey(cId);
+        map.put(sr.lastCondId, sr);
+      }
+      sr.samples.add(sample);
     }
   }
 
-  private void fixFake(boolean[] fake, double[][] samples) {
-    for (double[] sample : samples) {
-      for (int i = 0, pos = 0; i < fake.length; ++i) {
-        boolean flag = fake[i];
-        int numAggr = numAggrs[i];
-        if (flag) {
-          for (int j = 0; j < numAggr; ++j) {
-            sample[pos++] = 0;
-          }
-        } else {
-          pos += numAggr;
-        }
+  private static ArrayList<IntArrayList> cloneKey(ArrayList<IntArrayList> key) {
+    ArrayList<IntArrayList> ret = new ArrayList<IntArrayList>();
+    for (IntArrayList k : key) {
+      ret.add(k.clone());
+    }
+    return ret;
+  }
+
+  private void fixFake(boolean[] fake, double[] mu, double[] sample) {
+    for (int i = 0; i < fake.length; ++i) {
+      if (fake[i]) {
+        sample[i] = mu[i];
       }
     }
   }
@@ -324,38 +325,37 @@ public class MCSimNode {
     NUM_SIMULATIONS = numSimulations;
   }
 
-  public static MCSimNode createSimulationChain(int[][] gbyIds, UdafType[][][] udafTypes,
-      int[][][] gbyIdsInPreds, int[][][] colsInPreds, PredicateType[][][] predTypes,
-      TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
-      boolean simpleQuery, int[][] gbyIdsInPorts, int[][] colsInPorts,
-      PredicateType[][] predTypesInPorts) {
-    MCSimNode.NUM_LEVEL = gbyIds.length;
+  public static MCSimNode createSimulationChain(SrvTuple driver, int[][] gbys,
+      UdafType[][][] udafTypes,
+      PredicateSet[][] allPreds, TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
+      boolean simpleQuery) {
+    MCSimNode.NUM_LEVEL = gbys.length;
 
-    FakeTupleMap fakeMap = new FakeTupleMap();
-    fakeMap.setDefaultTuple(fakeTuple);
-    port = new KeyReader(new int[1], new int[1], gbyIdsInPorts, colsInPorts, predTypesInPorts,
-        new TupleMap[] {fakeMap});
-
-    int last = gbyIds.length - 1;
+    int last = gbys.length - 1;
     MCSimNode parent = null;
     List<MCSimNode> parents = new ArrayList<MCSimNode>();
-    for (int i = 0; i <= last; ++i) {
-      boolean simpleReturn = (i == last && predTypes[i].length <= 1);
-      MCSimNode node = new MCSimNode(gbyIds[i], udafTypes[i], gbyIdsInPreds[i],
-          colsInPreds[i], predTypes[i], parents, srvs, inners, inters,
-          simpleQuery || simpleReturn);
+    for (int i = 0; i < last; ++i) {
+      MCSimNode node = new MCSimNode(i, gbys[i + 1], srvs, allPreds[i], gbys[i], udafTypes[i],
+          parents, srvs, inners, inters, simpleQuery);
       node.setParent(parent);
 
       parent = node;
       parents.add(node);
     }
 
+    DriverTupleMap driverMap = new DriverTupleMap();
+    driverMap.setDefaultTuple(driver);
+    MCSimNode node = new MCSimNode(last, new int[1], new TupleMap[] {driverMap}, allPreds[last],
+        gbys[last], udafTypes[last], parents, srvs, inners, inters,
+        simpleQuery || allPreds[last][0].isSimpleCondition());
+    node.setParent(parent);
+
     return parent;
   }
 
 }
 
-class OffsetInfo {
+class Offset {
 
   public int pos;
   public int offset;

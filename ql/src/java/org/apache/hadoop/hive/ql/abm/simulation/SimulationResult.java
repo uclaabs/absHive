@@ -8,8 +8,9 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 
 public class SimulationResult {
 
+  public ArrayList<IntArrayList> lastCondId = null;
   public final ArrayList<double[]> means = new ArrayList<double[]>();
-  public final ArrayList<IntArrayList> condIds = new ArrayList<IntArrayList>();
+  public final ArrayList<ArrayList<IntArrayList>> condIds = new ArrayList<ArrayList<IntArrayList>>();
   public ArrayList<double[][]> samples = new ArrayList<double[][]>();
   public Array2DRowRealMatrix sigma;
 

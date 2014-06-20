@@ -7,7 +7,7 @@ import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 public class IndependentInterDistOracle extends InterDistOracle {
 
   public IndependentInterDistOracle(IntArrayList groupIds1, IntArrayList groupIds2,
-      UdafType[] udafTypes1, UdafType[] udafTypes2, OffsetInfo offInfo1, OffsetInfo offInfo2) {
+      UdafType[] udafTypes1, UdafType[] udafTypes2, Offset offInfo1, Offset offInfo2) {
     super(groupIds1, groupIds2, udafTypes1.length, udafTypes2.length, offInfo1, offInfo2);
   }
 

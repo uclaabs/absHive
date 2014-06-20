@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.ql.abm.datatypes;
 
+
 public class ContinuousSrvReader extends SrvReader {
 
   public ContinuousSrvReader(int numCols) {
@@ -17,17 +18,17 @@ public class ContinuousSrvReader extends SrvReader {
   }
 
   @Override
-  public boolean fillVar(double[][] dest, int pos) {
+  public void fillVar(boolean[] fake, double[][] dest, int pos) {
     if (srv[offset + numCols] != 0) {
       for (int i = offset + numCols, to = i + numCols; i < to; ++i, ++pos) {
         dest[pos][pos] = srv[i];
+        fake[pos] = false;
       }
-      return false;
     } else {
       for (int i = 0; i < numCols; ++i, ++pos) {
         dest[pos][pos] = FAKE_ZERO;
+        fake[pos] = true;
       }
-      return true;
     }
   }
 

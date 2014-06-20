@@ -10,7 +10,7 @@ public class TupleMap extends Int2ReferenceOpenHashMap<SrvTuple> {
 
 }
 
-class FakeTupleMap extends TupleMap {
+class DriverTupleMap extends TupleMap {
 
   private static final long serialVersionUID = 1L;
 

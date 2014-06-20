@@ -16,17 +16,17 @@ public class DiscreteSrvReader extends SrvReader {
   }
 
   @Override
-  public boolean fillVar(double[][] dest, int pos) {
+  public void fillVar(boolean[] fake, double[][] dest, int pos) {
     if (srv[offset] != 0) {
       for (int i = offset, to = i + numCols; i < to; ++i, ++pos) {
         dest[pos][pos] = srv[i];
+        fake[pos] = false;
       }
-      return false;
     } else {
       for (int i = 0; i < numCols; ++i, ++pos) {
         dest[pos][pos] = FAKE_ZERO;
+        fake[pos] = true;
       }
-      return true;
     }
   }
 
