@@ -119,7 +119,7 @@ public class ConditionAnnotation {
   }
 
   public void putGroupByInput(GroupByOperator gby, SelectOperator input) {
-    String tableName = AbmUtilities.ABM_CACHE_INPUT_PREFIX + gby.toString();
+    String tableName = AbmUtilities.ABM_CACHE_INPUT_PREFIX + AbmUtilities.getCacheSequence() + gby.toString();
     input.getConf().cache(tableName,
         AbmUtilities.fixSerDe(input.getSchema().getSignature()));
     inputs.put(gby, input);
@@ -127,7 +127,7 @@ public class ConditionAnnotation {
   }
 
   public void putGroupByOutput(GroupByOperator gby, SelectOperator output) {
-    String tableName = AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + gby.toString();
+    String tableName = AbmUtilities.ABM_CACHE_OUTPUT_PREFIX + AbmUtilities.getCacheSequence() + gby.toString();
     output.getConf().cache(tableName,
         AbmUtilities.fixSerDe(output.getSchema().getSignature()));
     outputs.put(gby, output);

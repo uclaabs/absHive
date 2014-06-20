@@ -34,6 +34,7 @@ public final class AbmUtilities {
   public static final String ABM_CACHE_DB_NAME = "AbmCache";
   public static final String ABM_CACHE_INPUT_PREFIX = "Input_";
   public static final String ABM_CACHE_OUTPUT_PREFIX = "Output_";
+  private static int cacheSequence = 0;
 
   private static boolean inAbmMode = false;
   private static HashMap<HiveConf.ConfVars, Boolean> prevSetting =
@@ -54,6 +55,7 @@ public final class AbmUtilities {
   public static void setAbmMode(HiveConf conf) throws SemanticException {
     if (conf.getBoolVar(HiveConf.ConfVars.HIVE_ABM)) {
       inAbmMode = true;
+      ++cacheSequence;
       // Turn off skewed data support, because of
       // (1) group-by with map-side group-by and skewed data, and
       // (2) skew join optimizer.
@@ -234,6 +236,10 @@ public final class AbmUtilities {
 
     return PlanUtils.getDefaultQueryOutputTableDesc(
         cols.toString(), colTypes.toString(), queryResultFileFormat);
+  }
+
+  public static int getCacheSequence() {
+    return cacheSequence;
   }
 
   public static ErrorMeasure getErrorMeasure() {
