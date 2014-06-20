@@ -102,7 +102,7 @@ public class Port {
       IntArrayList res = reqCondIds.get(i);
       res.clear();
       for (int j = 0; j < list.size(); ++j) {
-        predSet.parse(sample, inds.get(j), list.get(j).range);
+        res.add(predSet.parse(sample, inds.get(j), list.get(j).range));
       }
     }
     return reqCondIds;
