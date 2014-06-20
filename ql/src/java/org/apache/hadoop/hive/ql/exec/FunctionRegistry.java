@@ -49,6 +49,7 @@ import org.apache.hadoop.hive.ql.abm.udaf.SrvLin;
 import org.apache.hadoop.hive.ql.abm.udaf.SrvSum;
 import org.apache.hadoop.hive.ql.abm.udf.ConditionJoin;
 import org.apache.hadoop.hive.ql.abm.udf.GenRowId;
+import org.apache.hadoop.hive.ql.abm.udf.RangeTrunc;
 import org.apache.hadoop.hive.ql.abm.udf.SrvGreater;
 import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqual;
 import org.apache.hadoop.hive.ql.abm.udf.SrvGreaterEqualFilter;
@@ -434,6 +435,8 @@ public final class FunctionRegistry {
     registerGenericUDF("variance", Variance.class);
     registerGenericUDF("conf_inv_5_95", Conf_Inv.class);
     registerGenericUDF("exist_prob", Exist_prob.class);
+
+    registerGenericUDF("range", RangeTrunc.class);
 
     registerGenericUDF("gen_id", GenRowId.class);
     registerGenericUDF("cond_join", ConditionJoin.class);

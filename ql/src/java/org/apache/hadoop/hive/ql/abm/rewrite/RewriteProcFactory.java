@@ -86,6 +86,8 @@ public class RewriteProcFactory {
   private static final String CASE_AVG = "case_avg";
   private static final String CASE_COUNT = "case_count";
 
+  private static final String RANGE = "range";
+
   private static final String COND_JOIN = "cond_join";
   private static final String COND_MERGE = "cond_merge";
 
@@ -135,7 +137,7 @@ public class RewriteProcFactory {
       return addColumn(column, Utils.getColumnInternalName(colList.size()));
     }
 
-    private int addColumn(ExprNodeDesc column, String outputName) {
+    public int addColumn(ExprNodeDesc column, String outputName) {
       colList.add(column);
       outputColumnNames.add(outputName);
       columnExprMap.put(outputName, column);
@@ -209,18 +211,34 @@ public class RewriteProcFactory {
 
   public static SelectOperator appendSelect(
       Operator<? extends OperatorDesc> op, RewriteProcCtx ctx, boolean afterGby,
-      boolean forwardCondition, ExprNodeDesc... additionalConds) throws SemanticException {
+      boolean unselectiveForward, ExprNodeDesc... additionalConds) throws SemanticException {
     SelectFactory selFactory = new SelectFactory(ctx);
 
     // Forward original columns
     ArrayList<ColumnInfo> signature = op.getSchema().getSignature();
     HashSet<Integer> toSkip = ctx.getSpecialColumnIndexes(op);
     for (int i = 0; i < signature.size(); ++i) {
-      if (!toSkip.contains(i)) {
-        int index = selFactory.forwardColumn(op, i, true);
-        AggregateInfo linfo = ctx.getLineage(op, signature.get(i).getInternalName());
+      if (!toSkip.contains(i)) { // TODO
+        ColumnInfo ci = signature.get(i);
+        String internalName = ci.getInternalName();
+        AggregateInfo linfo = ctx.getLineage(op, internalName);
         if (linfo != null) {
+          int index;
+          if (unselectiveForward) {
+            index = selFactory.forwardColumn(op, i, true);
+          } else {
+            GenericUDF udf = getUdf(RANGE);
+            ArrayList<ExprNodeDesc> params = new ArrayList<ExprNodeDesc>();
+            params.addAll(Utils.generateColumnDescs(op, i));
+            ExprNodeGenericFuncDesc expr = ExprNodeGenericFuncDesc.newInstance(udf, params);
+            index = selFactory.addColumn(expr, internalName);
+            // Set type info
+//            linfo.setTypeInfo(expr.getTypeInfo());
+          }
+
           selFactory.putLineage(index, linfo);
+        } else {
+          selFactory.forwardColumn(op, i, true);
         }
       }
     }
@@ -247,7 +265,7 @@ public class RewriteProcFactory {
 
     // Add the condition column
     List<ExprNodeDesc> conds = new ArrayList<ExprNodeDesc>();
-    if (forwardCondition) {
+    if (unselectiveForward) {
       conds.addAll(Utils.generateColumnDescs(op, ctx.getCondColumnIndexes(op)));
     }
     conds.addAll(Arrays.asList(additionalConds));
