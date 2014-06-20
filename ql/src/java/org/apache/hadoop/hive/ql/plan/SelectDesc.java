@@ -63,6 +63,8 @@ public class SelectDesc extends AbstractOperatorDesc {
   private int[] aggrColIdxs;
   private int numSimulation;
 
+  private int totalTupleNumber;
+
   public SelectDesc() {
   }
 
@@ -313,6 +315,14 @@ public class SelectDesc extends AbstractOperatorDesc {
 
     this.aggrColIdxs = aggrColIdxs;
     this.numSimulation = numSimulation;
+  }
+
+  public int getTotalTupleNumber() {
+    return totalTupleNumber;
+  }
+
+  public void setTotalTupleNumber(int totalTupleNumber) {
+    this.totalTupleNumber = totalTupleNumber;
   }
 
 }

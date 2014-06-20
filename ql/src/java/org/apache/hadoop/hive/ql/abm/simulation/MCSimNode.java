@@ -3,7 +3,6 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -221,24 +220,14 @@ public class MCSimNode {
     double[][] A = new double[dimension][dimension];
 
     ArrayList<IntArrayList> condIds = zero();
-    System.out.println("KAI haha " + condIds);
 
     for (int i = 0; i < within1.length; ++i) {
       IntArrayList cIds = condIds.get(i);
       within1[i].fill(cIds, fake, mu, A);
       InterDistOracle[] w2s = within2[i];
       for (int j = i + 1; j < within2.length; ++j) {
-        System.out.println("KAI c1 " + (cIds == null));
-        System.out.println("KAI c2 " + (condIds.get(j) == null));
-        System.out.println("KAI w " + (w2s[j] == null));
         w2s[j].fillSym(cIds, condIds.get(j), fake, mu, A);
       }
-    }
-
-    System.out.println("KAI fake " + Arrays.toString(fake));
-    System.out.println("KAI mean " + Arrays.toString(mu));
-    for (double[] x : A) {
-      System.out.println("KAI A " + Arrays.toString(x));
     }
 
     MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu, A);

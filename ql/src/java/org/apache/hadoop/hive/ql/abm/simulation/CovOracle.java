@@ -2,7 +2,6 @@ package org.apache.hadoop.hive.ql.abm.simulation;
 
 import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
-
 public abstract class CovOracle {
 
   public static int NUM_TUTPLES = 0;

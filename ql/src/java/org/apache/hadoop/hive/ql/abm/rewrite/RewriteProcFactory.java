@@ -505,6 +505,7 @@ public class RewriteProcFactory {
 
       // Set SelectOperator
       if (simulationFlag) {
+        sel.getConf().setTotalTupleNumber(AbmUtilities.getTotalTupleNumber());
         ctx.setupMCSim(sel, aggrColIdxs.toIntArray());
       }
 
