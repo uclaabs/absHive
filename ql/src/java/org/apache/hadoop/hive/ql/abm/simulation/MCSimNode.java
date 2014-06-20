@@ -325,8 +325,8 @@ public class MCSimNode {
     NUM_SIMULATIONS = numSimulations;
   }
 
-  public static MCSimNode createSimulationChain(SrvTuple driver, int[][] gbys,
-      UdafType[][][] udafTypes,
+  public static MCSimNode createSimulationChain(SrvTuple driver,
+      int[][] gbys, UdafType[][][] udafTypes,
       PredicateSet[][] allPreds, TupleMap[] srvs, InnerCovMap[] inners, InterCovMap[][] inters,
       boolean simpleQuery) {
     MCSimNode.NUM_LEVEL = gbys.length;

@@ -17,9 +17,12 @@ public class PredicateSet implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private final int[] gbys;
-  private final int[] cols;
-  private final PredicateType[] preds;
+  private int[] gbys;
+  private int[] cols;
+  private PredicateType[] preds;
+
+  public PredicateSet() {
+  }
 
   public PredicateSet(ComparisonTransform[] transforms, List<GroupByOperator> ordered,
       HashMap<GroupByOperator, TreeSet<AggregateInfo>> aggregates) {
@@ -73,6 +76,30 @@ public class PredicateSet implements Serializable {
         return PredicateType.DOUBLE_GREATER_THAN_OR_EQUAL_TO;
       }
     }
+  }
+
+  public int[] getGbys() {
+    return gbys;
+  }
+
+  public void setGbys(int[] gbys) {
+    this.gbys = gbys;
+  }
+
+  public int[] getCols() {
+    return cols;
+  }
+
+  public void setCols(int[] cols) {
+    this.cols = cols;
+  }
+
+  public PredicateType[] getPreds() {
+    return preds;
+  }
+
+  public void setPreds(PredicateType[] preds) {
+    this.preds = preds;
   }
 
   public void initDep(IntArrayList key, IntArrayList[] dependents, Int2IntOpenHashMap[] uniqs) {
