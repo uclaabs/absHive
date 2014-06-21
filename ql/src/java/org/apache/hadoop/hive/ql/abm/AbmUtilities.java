@@ -37,6 +37,7 @@ public final class AbmUtilities {
   private static int cacheSequence = 0;
 
   private static boolean inAbmMode = false;
+  private static boolean specialFlag = false;
   private static HashMap<HiveConf.ConfVars, Boolean> prevSetting =
       new HashMap<HiveConf.ConfVars, Boolean>();
 
@@ -120,7 +121,11 @@ public final class AbmUtilities {
   }
 
   public static boolean inAbmMode() {
-    return inAbmMode;
+    return inAbmMode && !specialFlag;
+  }
+
+  public static void setSpecialQuery(boolean specialQuery) {
+    specialFlag = specialQuery;
   }
 
   public static String getLabel() {
@@ -128,7 +133,7 @@ public final class AbmUtilities {
   }
 
   public static void checkAndReport(ErrorMsg msg) throws SemanticException {
-    if (inAbmMode) {
+    if (inAbmMode()) {
       report(msg);
     }
   }

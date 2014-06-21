@@ -8663,6 +8663,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     // analyze and process the position alias
     processPositionAlias(ast);
 
+    AbmUtilities.setSpecialQuery(ast.getToken().getType() == HiveParser.TOK_CREATETABLE
+        || ast.getToken().getType() == HiveParser.TOK_CREATEVIEW
+        || ast.getToken().getType() == HiveParser.TOK_ALTERVIEW_AS);
+
     // analyze create table command
     if (ast.getToken().getType() == HiveParser.TOK_CREATETABLE) {
       // if it is not CTAS, we don't need to go further and just return
