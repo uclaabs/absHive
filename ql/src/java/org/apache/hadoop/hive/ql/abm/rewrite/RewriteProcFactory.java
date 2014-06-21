@@ -233,7 +233,7 @@ public class RewriteProcFactory {
             ExprNodeGenericFuncDesc expr = ExprNodeGenericFuncDesc.newInstance(udf, params);
             index = selFactory.addColumn(expr, internalName);
             // Set type info
-//            linfo.setTypeInfo(expr.getTypeInfo());
+            // linfo.setTypeInfo(expr.getTypeInfo());
           }
 
           selFactory.putLineage(index, linfo);
