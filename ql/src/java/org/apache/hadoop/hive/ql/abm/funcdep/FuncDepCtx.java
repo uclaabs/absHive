@@ -1,6 +1,5 @@
 package org.apache.hadoop.hive.ql.abm.funcdep;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 
 import org.apache.hadoop.hive.ql.abm.lineage.ExprInfo;
@@ -24,6 +23,20 @@ public class FuncDepCtx implements NodeProcessorCtx {
     public FuncDep(HashSet<String> det, HashSet<String> dep) {
       determinant = det;
       dependent = dep;
+    }
+
+    @Override
+    public int hashCode() {
+      return determinant.hashCode() * 31 + dependent.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (!(o instanceof FuncDep)) {
+        return false;
+      }
+      FuncDep other = (FuncDep) o;
+      return determinant.equals(other.determinant) && dependent.equals(other.dependent);
     }
 
     @Override
@@ -53,7 +66,7 @@ public class FuncDepCtx implements NodeProcessorCtx {
     return ret;
   }
 
-  private final ArrayList<FuncDep> funcDeps = new ArrayList<FuncDep>();
+  private final HashSet<FuncDep> funcDeps = new HashSet<FuncDep>();
   private final LineageCtx lineage;
 
   public FuncDepCtx(LineageCtx lctx) {
