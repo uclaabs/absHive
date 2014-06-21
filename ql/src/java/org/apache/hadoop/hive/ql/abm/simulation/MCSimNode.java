@@ -156,6 +156,7 @@ public class MCSimNode {
       double[] mu = new double[dimension];
       double[][] A = new double[dimension][dimension];
       double[][] B = new double[dimension][pdimension];
+      double[] zero = new double[dimension];
 
       for (int i = 0; i < within1.length; ++i) {
         IntArrayList cIds = condIds.get(i);
@@ -187,15 +188,19 @@ public class MCSimNode {
       Array2DRowRealMatrix tmp = b.multiply(id);
 
       Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(c));
-      MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu,
+      double[] scale = correct(sigma.getDataRef());
+
+      MultivariateNormalDistribution dist = new MultivariateNormalDistribution(zero,
           sigma.getDataRef());
 
       double[][] smpls = dist.sample(res.samples.size());
 
-
       double[] pmu = res.getMean(pdimension);
       int pos = 0;
       for (double[] smpl : smpls) {
+        if (scale != null) {
+          restore(smpl, scale);
+        }
         fixFake(fake, mu, smpl);
         double[] s = res.getSample(pos, pdimension);
         subtract(s, pmu);
@@ -218,6 +223,7 @@ public class MCSimNode {
     boolean[] fake = new boolean[dimension];
     double[] mu = new double[dimension];
     double[][] A = new double[dimension][dimension];
+    double[] zero = new double[dimension];
 
     ArrayList<IntArrayList> condIds = zero();
 
@@ -230,11 +236,16 @@ public class MCSimNode {
       }
     }
 
-    MultivariateNormalDistribution dist = new MultivariateNormalDistribution(mu, A);
+    double[] scale = correct(A);
+
+    MultivariateNormalDistribution dist = new MultivariateNormalDistribution(zero, A);
     double[][] smpls = dist.sample(NUM_SIMULATIONS);
 
     SimulationResult res = new SimulationResult();
     for (double[] smpl : smpls) {
+      if (scale != null) {
+        restore(smpl, scale);
+      }
       fixFake(fake, mu, smpl);
       double[][] samples = new double[NUM_LEVEL][];
       samples[level] = smpl;
@@ -258,6 +269,49 @@ public class MCSimNode {
       ret.add(list);
     }
     return ret;
+  }
+
+  private double[] correct(double[][] A) {
+    double max = Double.MIN_VALUE;
+    double min = Double.MAX_VALUE;
+    for (int i = 0; i < A.length; ++i) {
+      double v = A[i][i];
+      if (v > max) {
+        max = v;
+      }
+      if (v < min) {
+        min = v;
+      }
+    }
+
+    if (max > min * 1000000) {
+      double[] ret = new double[A.length];
+      for (int i = 0; i < A.length; ++i) {
+        ret[i] = Math.sqrt(max / A[i][i]);
+      }
+      scale(A, ret);
+      return ret;
+    }
+
+    return null;
+  }
+
+  private void scale(double[][] A, double[] scale) {
+    for (int i = 0; i < A.length; ++i) {
+      double[] sub = A[i];
+      double s1 = scale[i];
+      sub[i] *= (s1 * s1);
+      for (int j = i + 1; j < A.length; ++j) {
+        sub[j] *= (s1 * scale[j]);
+        A[j][i] = sub[j];
+      }
+    }
+  }
+
+  private void restore(double[] sample, double[] scale) {
+    for (int i = 0; i < sample.length; ++i) {
+      sample[i] /= scale[i];
+    }
   }
 
   private void dispatch(SimulationResult res, List<SimulationResult> ret) {
@@ -292,8 +346,9 @@ public class MCSimNode {
   private void fixFake(boolean[] fake, double[] mu, double[] sample) {
     for (int i = 0; i < fake.length; ++i) {
       if (fake[i]) {
-        sample[i] = mu[i];
+        sample[i] = 0;
       }
+      sample[i] += mu[i];
     }
   }
 
