@@ -86,7 +86,7 @@ public class MCSimNode {
           lev[j] = new IndependentInterDistOracle(targets[i], targets[j], udaf1, udaf2,
               offsets[i], offsets[j]);
         } else {
-          lev[j] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[i][j], udaf1,
+          lev[j] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[gby1][gby2], udaf1,
               udaf2, offsets[i], offsets[j]);
         }
       }
@@ -113,7 +113,7 @@ public class MCSimNode {
             lev[j] = new IndependentInterDistOracle(targets[i], parent.targets[j], udaf1, udaf2,
                 offsets[i], parent.offsets[j]);
           } else {
-            lev[j] = new CorrelatedInterDistOracle(targets[i], parent.targets[j], inters[i][j],
+            lev[j] = new CorrelatedInterDistOracle(targets[i], parent.targets[j], inters[gby2][gby1],
                 udaf1, udaf2, offsets[i], parent.offsets[j]);
           }
         }

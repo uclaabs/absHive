@@ -1279,7 +1279,7 @@ public class RewriteProcFactory {
 
     private Map<Byte, List<String>> iOutputColumnNames = null;
     private String tidColumnName = null;
-    private HashSet<String> condColumnNames = null;
+    private ArrayList<String> condColumnNames = null;
     private HashMap<GroupByOperator, String> gbyIdColumnNames = null;
 
     private ReduceSinkOperator parentRS = null;
@@ -1366,7 +1366,7 @@ public class RewriteProcFactory {
         names.add(name);
       }
       tidColumnName = null;
-      condColumnNames = new HashSet<String>();
+      condColumnNames = new ArrayList<String>();
       gbyIdColumnNames = new HashMap<GroupByOperator, String>();
     }
 

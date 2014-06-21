@@ -2,10 +2,13 @@ package org.apache.hadoop.hive.ql.abm.lib;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
 import org.apache.hadoop.hive.ql.lib.Dispatcher;
 import org.apache.hadoop.hive.ql.lib.Node;
@@ -64,6 +67,9 @@ public class PostOrderPlanWalker extends DefaultGraphWalker {
   public void walk(Node nd) throws SemanticException {
     ArrayList<Node> parents = child2parent.get(nd);
     if (parents != null) {
+      if (parents.size() > 1) {
+        Collections.sort(parents, new TagOrderComparator());
+      }
       for (Node n : parents) {
         walk(n);
       }
@@ -71,6 +77,15 @@ public class PostOrderPlanWalker extends DefaultGraphWalker {
 
     opStack.push(nd);
     dispatch(nd, opStack);
+  }
+
+}
+
+class TagOrderComparator implements Comparator<Node> {
+
+  @Override
+  public int compare(Node o1, Node o2) {
+    return ((ReduceSinkOperator) o1).getConf().getTag() - ((ReduceSinkOperator) o2).getConf().getTag();
   }
 
 }

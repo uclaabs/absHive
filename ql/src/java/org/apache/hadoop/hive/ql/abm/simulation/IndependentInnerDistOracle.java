@@ -6,9 +6,9 @@ import org.apache.hadoop.hive.ql.abm.rewrite.UdafType;
 
 public class IndependentInnerDistOracle extends InnerDistOracle {
 
-  public IndependentInnerDistOracle(TupleMap srvs, boolean continuous,
+  public IndependentInnerDistOracle(TupleMap srv, boolean continuous,
       IntArrayList groupIds, UdafType[] udafTypes, Offset offInfo) {
-    super(srvs, continuous, groupIds, udafTypes.length, offInfo);
+    super(srv, continuous, groupIds, udafTypes.length, offInfo);
   }
 
   @Override
