@@ -177,7 +177,7 @@ public class MCSimNode {
           ArrayList<IntArrayList> condIds2 = res.condIds.get(k);
           InterDistOracle[] os = between.get(k + dif)[i];
           for (int j = 0; j < os.length; ++j) {
-            cum += os[j].fillAsym(cIds, condIds2.get(j), fake, mu, pmu, A, cum);
+            cum += os[j].fillAsym(cIds, condIds2.get(j), fake, mu, pmu, B, cum);
           }
         }
       }
