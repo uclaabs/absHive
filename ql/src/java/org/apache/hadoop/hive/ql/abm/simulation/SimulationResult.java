@@ -28,6 +28,9 @@ public class SimulationResult {
     double[] res = new double[sigma.getColumnDimension()];
     int pos = 0;
     for(double[] smpl : samples.get(idx)) {
+      if (smpl == null) {
+        continue;
+      }
       System.arraycopy(smpl, 0, res, pos, smpl.length);
       pos += smpl.length;
     }
