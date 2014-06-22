@@ -69,6 +69,7 @@ import org.apache.hadoop.hive.ql.abm.udf.SrvLessSrvFilter;
 import org.apache.hadoop.hive.ql.abm.udf.simulation.Conf_Inv;
 import org.apache.hadoop.hive.ql.abm.udf.simulation.Exist_prob;
 import org.apache.hadoop.hive.ql.abm.udf.simulation.Mean;
+import org.apache.hadoop.hive.ql.abm.udf.simulation.Quantile;
 import org.apache.hadoop.hive.ql.abm.udf.simulation.Variance;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
@@ -433,8 +434,9 @@ public final class FunctionRegistry {
     // computation UDFs
     registerGenericUDF("mean", Mean.class);
     registerGenericUDF("variance", Variance.class);
-    registerGenericUDF("conf_inv_5_95", Conf_Inv.class);
+    registerGenericUDF("conf_inv", Conf_Inv.class);
     registerGenericUDF("exist_prob", Exist_prob.class);
+    registerGenericUDF("quantile", Quantile.class);
 
     registerGenericUDF("range", RangeTrunc.class);
 

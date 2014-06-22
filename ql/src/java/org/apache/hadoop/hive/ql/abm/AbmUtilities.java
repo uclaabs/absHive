@@ -15,6 +15,8 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.abm.rewrite.ErrorMeasure;
+import org.apache.hadoop.hive.ql.abm.udf.simulation.Conf_Inv;
+import org.apache.hadoop.hive.ql.abm.udf.simulation.Quantile;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.parse.RowResolver;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
@@ -98,6 +100,15 @@ public final class AbmUtilities {
 
       // Error measure
       measure = ErrorMeasure.get(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_MEASURE));
+      switch (measure) {
+      case QUANTILE:
+        Quantile.setQuantile(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_QUANTILE));
+        break;
+      case CONF_INV_5_95:
+        Conf_Inv.setConfInv(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_CONF_INV_LOWER),
+            HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_CONF_INV_UPPER));
+        break;
+      }
 
       // Simulation size
       numSimulationSamples = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_SIMULATION_SIZE);
@@ -106,7 +117,8 @@ public final class AbmUtilities {
       label = conf.getVar(HiveConf.ConfVars.HIVE_ABM_LABEL);
 
       // Covariance negligible
-      covarianceNegligible = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_ABM_COVARIANCE_NEGLIGIBLE);
+      covarianceNegligible = HiveConf.getBoolVar(conf,
+          HiveConf.ConfVars.HIVE_ABM_COVARIANCE_NEGLIGIBLE);
     } else {
       inAbmMode = false;
       for (Map.Entry<HiveConf.ConfVars, Boolean> entry : prevSetting.entrySet()) {
