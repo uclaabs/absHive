@@ -104,7 +104,7 @@ public final class AbmUtilities {
       case QUANTILE:
         Quantile.setQuantile(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_QUANTILE));
         break;
-      case CONF_INV_5_95:
+      case CONF_INV:
         Conf_Inv.setConfInv(HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_CONF_INV_LOWER),
             HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_ABM_CONF_INV_UPPER));
         break;
