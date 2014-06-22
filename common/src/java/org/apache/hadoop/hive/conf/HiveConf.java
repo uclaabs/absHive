@@ -784,6 +784,9 @@ public class HiveConf extends Configuration {
     HIVE_ABM_LABEL("hive.abm.label", ""),
 
     HIVE_ABM_MEASURE("hive.abm.measure", 2),
+    HIVE_ABM_QUANTILE("hive.abm.quantile", 50),
+    HIVE_ABM_CONF_INV_LOWER("hive.abm.conf.inv.lower", 5),
+    HIVE_ABM_CONF_INV_UPPER("hive.abm.conf.inv.upper", 95),
     HIVE_ABM_SIMULATION_SIZE("hive.abm.simulation.size", 100),
 
     HIVE_ABM_COVARIANCE_NEGLIGIBLE("hive.abm.convariance.negligible", true)

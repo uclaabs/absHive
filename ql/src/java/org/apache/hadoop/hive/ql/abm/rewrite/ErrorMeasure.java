@@ -7,9 +7,10 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 public enum ErrorMeasure {
   MEAN,
   VARIANCE,
-  CONF_INV_5_95;
+  QUANTILE,
+  CONF_INV;
 
-  private static ErrorMeasure[] dict = new ErrorMeasure[] { MEAN, VARIANCE, CONF_INV_5_95 };
+  private static ErrorMeasure[] dict = new ErrorMeasure[] {MEAN, VARIANCE, QUANTILE, CONF_INV};
 
   public static ErrorMeasure get(int type) throws SemanticException {
     if (type < 0 || type >= dict.length) {

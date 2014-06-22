@@ -15,20 +15,18 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
-public class Conf_Inv extends GenericUDFWithSimulation {
+public class Quantile extends GenericUDFWithSimulation {
 
-  private static double lowerPercent = 0.05;
-  private static double upperPercent = 0.95;
+  private static double quantilePct = 0.5;
 
   private final DoubleArrayList buf = new DoubleArrayList();
   private final DoubleWritable[] ret = new DoubleWritable[] {new DoubleWritable(0),
-      new DoubleWritable(0), new DoubleWritable(0), new DoubleWritable(0)};
+      new DoubleWritable(0), new DoubleWritable(0)};
 
   public static StructObjectInspector oi = ObjectInspectorFactory
       .getStandardStructObjectInspector(
-          new ArrayList<String>(Arrays.asList("Lower", "Upper", "Mean", "Variance")),
+          new ArrayList<String>(Arrays.asList("Quantile", "Mean", "Variance")),
           new ArrayList<ObjectInspector>(Arrays.asList(
-              (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
               (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
               (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector,
               (ObjectInspector) PrimitiveObjectInspectorFactory.writableDoubleObjectInspector)));
@@ -67,12 +65,10 @@ public class Conf_Inv extends GenericUDFWithSimulation {
       ret[0].set(Double.NaN);
       ret[1].set(Double.NaN);
       ret[2].set(Double.NaN);
-      ret[3].set(Double.NaN);
     } else {
-      ret[0].set(buf.getDouble((int) (buf.size() * lowerPercent)));
-      ret[1].set(buf.getDouble((int) (buf.size() * upperPercent)));
-      ret[2].set(sum/buf.size());
-      ret[3].set((ssum - (sum * sum)/buf.size()) / (buf.size()));
+      ret[0].set(buf.getDouble((int) (buf.size() * quantilePct)));
+      ret[1].set(sum/buf.size());
+      ret[2].set((ssum - (sum * sum)/buf.size()) / (buf.size()));
     }
     return ret;
   }
@@ -80,7 +76,7 @@ public class Conf_Inv extends GenericUDFWithSimulation {
   @Override
   public String getDisplayString(String[] arg0) {
     StringBuilder builder = new StringBuilder();
-    builder.append("conf_inv_5_95(");
+    builder.append("quantile(");
     boolean first = true;
     for (String arg : arg0) {
       if (!first) {
@@ -93,9 +89,8 @@ public class Conf_Inv extends GenericUDFWithSimulation {
     return builder.toString();
   }
 
-  public static void setConfInv(int lower, int upper) {
-    lowerPercent = lower / 100.0;
-    upperPercent = upper / 100.0;
+  public static void setQuantile(int quant) {
+    quantilePct = quant / 100.0;
   }
 
 }
