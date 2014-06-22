@@ -8,7 +8,8 @@ import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 
 public class SimulationResult {
 
-  public ArrayList<IntArrayList> lastCondId = null;
+  public ArrayList<IntArrayList> lastCondId = null; // filled by dispatch
+
   public final ArrayList<double[]> means = new ArrayList<double[]>();
   public final ArrayList<ArrayList<IntArrayList>> condIds = new ArrayList<ArrayList<IntArrayList>>();
   public ArrayList<double[][]> samples = new ArrayList<double[][]>();
@@ -23,19 +24,18 @@ public class SimulationResult {
     return ret;
   }
 
-  public double[] getSample(int idx, int len) {
-    double[] res = new double[len];
-    double[][] smpls = samples.get(idx);
-    for(int i = 0, ind = 0; ind < len; ) {
-      double[] smpl = smpls[i++];
-      System.arraycopy(smpl, 0, res, ind, smpl.length);
-      ind += smpl.length;
+  public double[] getSample(int idx) {
+    double[] res = new double[sigma.getColumnDimension()];
+    int pos = 0;
+    for(double[] smpl : samples.get(idx)) {
+      System.arraycopy(smpl, 0, res, pos, smpl.length);
+      pos += smpl.length;
     }
     return res;
   }
 
-  public double[] getMean(int len) {
-    double[] res = new double[len];
+  public double[] getMean() {
+    double[] res = new double[sigma.getColumnDimension()];
     int pos = 0;
     for (double[] mean : means) {
       System.arraycopy(mean, 0, res, pos, mean.length);

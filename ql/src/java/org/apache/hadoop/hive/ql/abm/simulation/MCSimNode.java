@@ -25,9 +25,9 @@ public class MCSimNode {
   private final IntArrayList[] targets;
   private final Offset[] offsets;
   private final int[] numAggrs;
+  private final ArrayList<IntArrayList> zeroCondIds;
 
   private int dimension = 0;
-  private int pdimension = 0;
 
   private final InnerDistOracle[] within1;
   private final InterDistOracle[][] within2;
@@ -52,10 +52,12 @@ public class MCSimNode {
     numAggrs = new int[len1];
     targets = new IntArrayList[len1];
     offsets = new Offset[len1];
+    zeroCondIds = new ArrayList<IntArrayList>();
     for (int i = 0; i < len1; ++i) {
       numAggrs[i] = udafTypes[i].length;
       targets[i] = new IntArrayList();
       offsets[i] = new Offset();
+      zeroCondIds.add(new IntArrayList());
     }
 
     // Initialize distribution oracles
@@ -113,7 +115,8 @@ public class MCSimNode {
             lev[j] = new IndependentInterDistOracle(targets[i], parent.targets[j], udaf1, udaf2,
                 offsets[i], parent.offsets[j]);
           } else {
-            lev[j] = new CorrelatedInterDistOracle(targets[i], parent.targets[j], inters[gby2][gby1],
+            lev[j] = new CorrelatedInterDistOracle(targets[i], parent.targets[j],
+                inters[gby2][gby1],
                 udaf1, udaf2, offsets[i], parent.offsets[j]);
           }
         }
@@ -129,7 +132,7 @@ public class MCSimNode {
   }
 
   public List<SimulationResult> simulate(IntArrayList[] requests) {
-    dimension = port.init(requests);
+    init(requests);
 
     if (dimension == 0) {
       return null;
@@ -138,8 +141,6 @@ public class MCSimNode {
     if (parent == null) {
       return defaultSimulate();
     }
-
-    pdimension = parent.pdimension + parent.dimension;
 
     List<SimulationResult> parRet = parent.simulate(targets);
 
@@ -155,7 +156,7 @@ public class MCSimNode {
       boolean[] fake = new boolean[dimension];
       double[] mu = new double[dimension];
       double[][] A = new double[dimension][dimension];
-      double[][] B = new double[dimension][pdimension];
+      double[][] B = new double[dimension][res.sigma.getColumnDimension()];
       double[] zero = new double[dimension];
 
       for (int i = 0; i < within1.length; ++i) {
@@ -167,15 +168,16 @@ public class MCSimNode {
         }
       }
 
-      for (int k = 0; k < between.size(); ++k) {
-        InterDistOracle[][] oss = between.get(k);
-        ArrayList<IntArrayList> condIds2 = res.condIds.get(k);
-        double[] mu2 = res.means.get(k);
-        for (int i = 0; i < oss.length; ++i) {
-          IntArrayList cIds = condIds.get(i);
-          InterDistOracle[] os = oss[i];
-          for (int j = 0, cum = 0; j < os.length; ++j) {
-            cum += os[j].fillAsym(cIds, condIds2.get(j), fake, mu, mu2, A, cum);
+      int dif = between.size() - res.condIds.size();
+      double[] pmu = res.getMean();
+      for (int i = 0; i < targets.length; ++i) {
+        int cum = 0;
+        IntArrayList cIds = condIds.get(i);
+        for (int k = 0; k < res.condIds.size(); ++k) {
+          ArrayList<IntArrayList> condIds2 = res.condIds.get(k);
+          InterDistOracle[] os = between.get(k + dif)[i];
+          for (int j = 0; j < os.length; ++j) {
+            cum += os[j].fillAsym(cIds, condIds2.get(j), fake, mu, pmu, A, cum);
           }
         }
       }
@@ -195,14 +197,13 @@ public class MCSimNode {
 
       double[][] smpls = dist.sample(res.samples.size());
 
-      double[] pmu = res.getMean(pdimension);
       int pos = 0;
       for (double[] smpl : smpls) {
         if (scale != null) {
           restore(smpl, scale);
         }
         fixFake(fake, mu, smpl);
-        double[] s = res.getSample(pos, pdimension);
+        double[] s = res.getSample(pos);
         subtract(s, pmu);
         add(smpl, tmp.operate(s));
         res.samples.get(pos)[level] = smpl;
@@ -225,7 +226,7 @@ public class MCSimNode {
     double[][] A = new double[dimension][dimension];
     double[] zero = new double[dimension];
 
-    ArrayList<IntArrayList> condIds = zero();
+    ArrayList<IntArrayList> condIds = zeroCondIds;
 
     for (int i = 0; i < within1.length; ++i) {
       IntArrayList cIds = condIds.get(i);
@@ -255,20 +256,22 @@ public class MCSimNode {
     res.sigma = new Array2DRowRealMatrix(A);
 
     dispatch(res, ret);
+
     return ret;
   }
 
-  private ArrayList<IntArrayList> zero() {
-    ArrayList<IntArrayList> ret = new ArrayList<IntArrayList>();
+  private void init(IntArrayList[] requests) {
+    dimension = port.init(requests);
     for (int i = 0; i < targets.length; ++i) {
-      IntArrayList list = new IntArrayList();
+      IntArrayList zci = zeroCondIds.get(i);
       IntArrayList ts = targets[i];
-      for (int j = 0; j < ts.size(); ++j) {
-        list.add(0);
+      if (zci.size() > ts.size()) {
+        zci.removeElements(ts.size(), zci.size());
       }
-      ret.add(list);
+      for (int j = zci.size(); j < ts.size(); ++j) {
+        zci.add(0);
+      }
     }
-    return ret;
   }
 
   private double[] correct(double[][] A) {
@@ -327,6 +330,9 @@ public class MCSimNode {
       SimulationResult sr = map.get(cId);
       if (sr == null) {
         sr = res.clone();
+        if (res.lastCondId != null) {
+          sr.condIds.add(res.lastCondId);
+        }
         sr.lastCondId = cloneKey(cId);
         map.put(sr.lastCondId, sr);
       }
