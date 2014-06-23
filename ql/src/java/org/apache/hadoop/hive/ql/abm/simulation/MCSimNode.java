@@ -88,8 +88,6 @@ public class MCSimNode {
           lev[j] = new IndependentInterDistOracle(targets[i], targets[j], udaf1, udaf2,
               offsets[i], offsets[j]);
         } else {
-          System.out.println("KAI " + gby1 + ", " + gby2);
-          System.out.println("KAI SHIT " + inters);
           lev[j] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[gby1][gby2], udaf1,
               udaf2, offsets[i], offsets[j]);
         }
