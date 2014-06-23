@@ -351,6 +351,8 @@ public class AbmTestHelper {
     sb.append("[");
     sb.append(nodeMap.get(sinkOp).getJSONObject().toString());
     sb.append("]");
+    sb.append("|");
+    sb.append(AbmUtilities.isCLTQuery() + "");
 
     return sb.toString();
     /*

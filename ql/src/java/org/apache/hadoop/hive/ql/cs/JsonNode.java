@@ -26,7 +26,7 @@ public class JsonNode {
     List<ColumnInfo> columnInfos = null;
     StringBuilder sb = new StringBuilder();
     static final int interval = 3;
-    static final String inlineSep = ":";
+    static final String inlineSep = "=";
 
     public String process() {
       if ((columnInfos = op.getSchema().getSignature()) != null) {
@@ -49,10 +49,12 @@ public class JsonNode {
     }
 
     private boolean needNewLine(int i) {
+      /*
       if (i % interval == interval - 1) {
         return true;
       }
-      return false;
+      return false;*/
+      return true;
     }
 
     private void perform(TableScanOperator tab) {
