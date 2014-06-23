@@ -55,6 +55,8 @@ public final class AbmUtilities {
 
   private static String label;
 
+  private static boolean CLTQuery = false;
+
   public static void setAbmMode(HiveConf conf) throws SemanticException {
     if (conf.getBoolVar(HiveConf.ConfVars.HIVE_ABM)) {
       inAbmMode = true;
@@ -273,6 +275,14 @@ public final class AbmUtilities {
 
   public static boolean isCovarianceNegligible() {
     return covarianceNegligible;
+  }
+
+  public static boolean isCLTQuery() {
+    return CLTQuery;
+  }
+
+  public static void setCLTQuery(boolean cLTQuery) {
+    CLTQuery = cLTQuery;
   }
 
 }

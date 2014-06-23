@@ -114,6 +114,29 @@ public class ConditionAnnotation {
     return false;
   }
 
+  private boolean isCLTQuery() {
+    if (!AbmUtilities.isCovarianceNegligible()) {
+      return false;
+    }
+
+    for (ComparisonTransform[] val : dependencies.values()) {
+      if (val.length != 0) {
+        return false;
+      }
+    }
+
+    HashSet<AggregateInfo> hash = new HashSet<AggregateInfo>();
+    for (ComparisonTransform ct : transforms) {
+      hash.addAll(ct.getAggregatesInvolved());
+    }
+    if (hash.size() <= 1) {
+      // It must contain COUNT(*) > 0
+      return true;
+    }
+
+    return false;
+  }
+
   public boolean isContinuous(GroupByOperator gby) {
     return continuous.contains(gby);
   }
@@ -279,10 +302,11 @@ public class ConditionAnnotation {
             sorted.get(numLevels - 1),
             aggregates)};
 
-
     select.getConf().setMCSim(numKeysContinuous, aggrTypes, numKeysDiscrete, cachedOutputs,
         cachedInputs, simpleQuery, gbyIds, udafTypes, allPreds,
         aggrColIdxs, AbmUtilities.getNumSimulationSamples());
+
+    AbmUtilities.setCLTQuery(isCLTQuery());
   }
 
   private Map<GroupByOperator, Set<GroupByOperator>> getDependencyGraph() {
