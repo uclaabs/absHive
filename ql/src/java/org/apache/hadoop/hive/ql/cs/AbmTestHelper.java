@@ -61,7 +61,7 @@ public class AbmTestHelper {
   static ParseContext pCtx;
   static boolean printExprMap = true;
   static boolean needLogToFile = false;
-  static int rootOpId = 0;
+  public static int rootOpId = 0;
 
   static {
     File f = new File(planFileFolder);
@@ -94,7 +94,7 @@ public class AbmTestHelper {
     }
   }
 
-  private static String getSampledTable() {
+  public static String getSampledTable() {
     String sampledTable = AbmUtilities.getSampledTable();
     if (AbmUtilities.inAbmMode()) {
       return sampledTable;
@@ -362,7 +362,6 @@ public class AbmTestHelper {
     }
      */
   }
-
 
   public static String hdfsURI = "hdfs://localhost:9000";
   public static String filePath = "/tmp/json_plan.txt";
