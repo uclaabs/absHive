@@ -156,7 +156,7 @@ public class MCSimNode {
       boolean[] fake = new boolean[dimension];
       double[] mu = new double[dimension];
       double[][] A = new double[dimension][dimension];
-      double[][] B = new double[res.sigma.getColumnDimension()][dimension];
+      double[][] B = new double[res.invSigma.getColumnDimension()][dimension];
       double[] zero = new double[dimension];
 
       for (int i = 0; i < within1.length; ++i) {
@@ -199,9 +199,7 @@ public class MCSimNode {
       Array2DRowRealMatrix a = new Array2DRowRealMatrix(A);
       Array2DRowRealMatrix b = new Array2DRowRealMatrix(B);
       Array2DRowRealMatrix c = (Array2DRowRealMatrix) b.transpose();
-      Array2DRowRealMatrix id = new Array2DRowRealMatrix(new LUDecomposition(res.sigma)
-          .getSolver().getInverse().getData());
-      Array2DRowRealMatrix tmp = c.multiply(id);
+      Array2DRowRealMatrix tmp = c.multiply(res.invSigma);
 
       Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(b));
       double[] scale = correct(sigma.getDataRef());
@@ -224,7 +222,8 @@ public class MCSimNode {
         ++pos;
       }
       res.means.add(mu);
-      res.sigma = concat(a, c, b, res.sigma);
+      res.invSigma = new Array2DRowRealMatrix(new LUDecomposition(concat(a, c, b, res.invSigma))
+          .getSolver().getInverse().getData());
 
       dispatch(res, ret);
     }
@@ -267,7 +266,8 @@ public class MCSimNode {
       res.samples.add(samples);
     }
     res.means.add(mu);
-    res.sigma = new Array2DRowRealMatrix(A);
+    res.invSigma = new Array2DRowRealMatrix(new LUDecomposition(new Array2DRowRealMatrix(A))
+        .getSolver().getInverse().getData());
 
     dispatch(res, ret);
 
