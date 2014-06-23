@@ -29,7 +29,7 @@ public abstract class InterDistOracle {
       int condId1 = condIds1.getInt(i);
       for (int j = 0, off2 = offInfo2.offset; j < groupIds2.size(); ++j, off2 += elemDim2) {
         // if (!fake[off2]) {
-        fillCovSym(groupId1, groupIds1.getInt(j), condId1, condIds2.getInt(j),
+        fillCovSym(groupId1, groupIds2.getInt(j), condId1, condIds2.getInt(j),
             mean, cov, off1, off2);
         // }
       }
@@ -44,7 +44,7 @@ public abstract class InterDistOracle {
       int groupId1 = groupIds1.getInt(i);
       int condId1 = condIds1.getInt(i);
       for (int j = 0, off2 = offInfo2.offset; j < groupIds2.size(); ++j, off2 += elemDim2) {
-        fillCovAsym(groupId1, groupIds1.getInt(j), condId1, condIds2.getInt(j),
+        fillCovAsym(groupId1, groupIds2.getInt(j), condId1, condIds2.getInt(j),
             mean1, mean2, cov, off1, off2);
       }
       // }
