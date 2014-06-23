@@ -24,16 +24,16 @@ public abstract class InterDistOracle {
   public void fillSym(IntArrayList condIds1, IntArrayList condIds2,
       boolean[] fake, double[] mean, double[][] cov) {
     for (int i = 0, off1 = offInfo1.offset; i < groupIds1.size(); ++i, off1 += elemDim1) {
-      if (!fake[off1]) {
-        int groupId1 = groupIds1.getInt(i);
-        int condId1 = condIds1.getInt(i);
-        for (int j = 0, off2 = offInfo2.offset; j < groupIds2.size(); ++j, off2 += elemDim2) {
-          if (!fake[off2]) {
-            fillCovSym(groupId1, groupIds1.getInt(j), condId1, condIds2.getInt(j),
-                mean, cov, off1, off2);
-          }
-        }
+      // if (!fake[off1]) {
+      int groupId1 = groupIds1.getInt(i);
+      int condId1 = condIds1.getInt(i);
+      for (int j = 0, off2 = offInfo2.offset; j < groupIds2.size(); ++j, off2 += elemDim2) {
+        // if (!fake[off2]) {
+        fillCovSym(groupId1, groupIds1.getInt(j), condId1, condIds2.getInt(j),
+            mean, cov, off1, off2);
+        // }
       }
+      // }
     }
   }
 

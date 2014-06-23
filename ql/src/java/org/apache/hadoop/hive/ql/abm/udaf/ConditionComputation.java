@@ -89,7 +89,7 @@ public class ConditionComputation extends UDAFComputation {
     List<RangeList> currentRangeMatrix = condGroups.get(level).getRangeMatrix();
     int rowNumber = currentRangeMatrix.get(0).size();
 
-    for (int j = 0; j < dim; j ++) {
+    for (int j = 0; j < dim; ++j) {
       rangeArray[offset + j] = (flags.get(j)) ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
     }
 
@@ -99,8 +99,8 @@ public class ConditionComputation extends UDAFComputation {
       unfoldRangeMatrix(level + 1, rangeArray);
     }
 
-    for (int i = 0; i < rowNumber; i ++) {
-      for (int j = 0; j < dim; j ++) {
+    for (int i = 0; i < rowNumber; ++i) {
+      for (int j = 0; j < dim; ++j) {
         rangeArray[offset + j] = currentRangeMatrix.get(j).get(i);
       }
 

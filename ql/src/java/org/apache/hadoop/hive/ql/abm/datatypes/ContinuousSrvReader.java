@@ -8,7 +8,7 @@ public class ContinuousSrvReader extends SrvReader {
   }
 
   public int getNumCondition(int bufLen) {
-    return bufLen/(numCols * 2);
+    return bufLen / (numCols * 2);
   }
 
   @Override
@@ -19,13 +19,12 @@ public class ContinuousSrvReader extends SrvReader {
 
   @Override
   public void fillVar(boolean[] fake, double[][] dest, int pos) {
-    if (srv[offset + numCols] != 0) {
-      for (int i = offset + numCols, to = i + numCols; i < to; ++i, ++pos) {
-        dest[pos][pos] = srv[i];
+    for (int i = offset + numCols, to = i + numCols; i < to; ++i, ++pos) {
+      double v = srv[i];
+      if (v != 0) {
+        dest[pos][pos] = v;
         fake[pos] = false;
-      }
-    } else {
-      for (int i = 0; i < numCols; ++i, ++pos) {
+      } else {
         dest[pos][pos] = FAKE_ZERO;
         fake[pos] = true;
       }

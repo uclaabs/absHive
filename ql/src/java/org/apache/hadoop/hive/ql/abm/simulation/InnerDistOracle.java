@@ -25,15 +25,16 @@ public abstract class InnerDistOracle {
   public void fill(IntArrayList condIds, boolean[] fake, double[] mean, double[][] cov) {
     for (int i = 0, off1 = offset.offset; i < groupIds.size(); ++i, off1 += elemDim) {
       fillMeanAndCov(groupIds.getInt(i), condIds.getInt(i), fake, mean, cov, off1);
-      if (!fake[off1]) {
-        for (int j = i + 1, off2 = off1 + elemDim; j < groupIds.size(); ++j, off2 += elemDim) {
-          fillCov(mean, cov, off1, off2);
-        }
+      // if (!fake[off1]) {
+      for (int j = i + 1, off2 = off1 + elemDim; j < groupIds.size(); ++j, off2 += elemDim) {
+        fillCov(mean, cov, off1, off2);
       }
+      // }
     }
   }
 
-  protected abstract void fillMeanAndCov(int groupId, int condId, boolean[] fake, double[] mean, double[][] cov,
+  protected abstract void fillMeanAndCov(int groupId, int condId, boolean[] fake, double[] mean,
+      double[][] cov,
       int offset);
 
   protected abstract void fillCov(double[] mean, double[][] cov, int offset1, int offset2);
