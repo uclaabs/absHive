@@ -36,19 +36,26 @@ public class CaseAvgComputation extends SrvAvgComputation {
 
   @Override
   public void unfold() {
+    result.add(0);
+    result.add(0);
+
     if (groupCnt >= 0) {
       unfoldSrvList(0, baseSum, baseCnt);
     }
 
-    result.add(0);
-    result.add(0);
-    addDistribution(baseSum, baseCnt);
     result.set(0, confidenceLower);
     result.set(1, confidenceUpper);
   }
 
   protected void unfoldSrvList(int level, double sum, double cnt) {
     boolean leaf = (level == groupCnt);
+
+    if (leaf) {
+      addDistribution(sum, cnt);
+    } else {
+      unfoldSrvList(level + 1, sum, cnt);
+    }
+
     DoubleArrayList lev = doubleMatrix.get(level);
     for (int i = 0; i < lev.size();) {
       double tmpSum = sum + lev.getDouble(i++);

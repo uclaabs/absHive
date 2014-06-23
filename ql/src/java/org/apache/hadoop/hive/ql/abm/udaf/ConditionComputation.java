@@ -10,6 +10,7 @@ import org.apache.hadoop.hive.ql.abm.datatypes.RangeList;
 
 public class ConditionComputation extends UDAFComputation {
 
+  private final List<Boolean> flags;
   private int cnt = -1;
   private final int dim;
   private final double[] newCondRanges;
@@ -20,8 +21,9 @@ public class ConditionComputation extends UDAFComputation {
 
   private final CondList condList = new CondList();
 
-  public ConditionComputation(int dimension) {
-    dim = dimension;
+  public ConditionComputation(List<Boolean> flags) {
+    this.flags = flags;
+    dim = flags.size();
     newCondRanges = new double[dim];
   }
 
@@ -85,6 +87,16 @@ public class ConditionComputation extends UDAFComputation {
 
     List<RangeList> currentRangeMatrix = condGroups.get(level).getRangeMatrix();
     int rowNumber = currentRangeMatrix.get(0).size();
+
+    for (int j = 0; j < dim; j ++) {
+      rangeArray[level * dim + j] = (flags.get(j)) ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+    }
+
+    if (leaf) {
+      condList.addRange(rangeArray);
+    } else {
+      unfoldRangeMatrix(level + 1, rangeArray);
+    }
 
     for (int i = 0; i < rowNumber; i ++) {
       for (int j = 0; j < dim; j ++) {

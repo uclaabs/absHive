@@ -94,19 +94,26 @@ public class SrvAvgComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
+    result.add(0);
+    result.add(0);
+
     if (groupCnt >= 0) {
       unfoldSrvList(0, baseSum, baseSsum, baseCnt);
     }
 
-    result.add(0);
-    result.add(0);
-    addDistribution(baseSum, baseSsum, baseCnt);
     result.set(0, confidenceLower);
     result.set(1, confidenceUpper);
   }
 
   protected void unfoldSrvList(int level, double sum, double ssum, double cnt) {
     boolean leaf = (level == groupCnt);
+
+    if (leaf) {
+      addDistribution(sum, ssum, cnt);
+    } else {
+      unfoldSrvList(level + 1, sum, ssum, cnt);
+    }
+
     DoubleArrayList lev = doubleMatrix.get(level);
     for (int i = 0; i < lev.size();) {
       double tmpSum = sum + lev.getDouble(i++);

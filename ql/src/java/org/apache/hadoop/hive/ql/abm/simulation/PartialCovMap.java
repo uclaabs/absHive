@@ -38,19 +38,15 @@ public class PartialCovMap implements Serializable {
     public void update(int tid, int groupId, EWAHCompressedBitmap[] lineage, double[] vals) {
       DoubleArray2D buf = get(groupId);
 
-      int numRows = lineage.length; // number of conditions
-
       if (buf == null) {
-        buf = new DoubleArray2D(numRows, numCovs, numCols);
+        buf = new DoubleArray2D(lineage.length, numCovs, numCols);
         put(groupId, buf);
       }
 
-      --numRows;
-
-      EWAHCompressedBitmap baseLineage = lineage[numRows];
+      EWAHCompressedBitmap baseLineage = lineage[0];
       if (baseLineage.get(tid)) {
         // check L(1) .. L(n-1)
-        for (int i = 0; i < numRows; ++i) {
+        for (int i = 1; i < lineage.length; ++i) {
           if (!lineage[i].get(tid)) {
             // update Sum(XY) in this condition
             buf.updateRow(i, vals);
@@ -59,7 +55,7 @@ public class PartialCovMap implements Serializable {
       } else {
         // it is for base
         // add it to the last
-        buf.updateRow(numRows, vals);
+        buf.updateRow(0, vals);
       }
     }
   }
@@ -88,28 +84,22 @@ public class PartialCovMap implements Serializable {
       long id = ((long) groupId1 << 32) + groupId2;
       DoubleArray3D buf = get(id);
 
-      int numRow1 = lineage1.length;
-      int numRow2 = lineage2.length;
-
       if (buf == null) {
-        buf = new DoubleArray3D(numRow1, numRow2, numCovs, rows1, rows2);
+        buf = new DoubleArray3D(lineage1.length, lineage2.length, numCovs, rows1, rows2);
         put(id, buf);
       }
 
-      --numRow1;
-      --numRow2;
-
-      EWAHCompressedBitmap baseLineage1 = lineage1[numRow1];
-      EWAHCompressedBitmap baseLineage2 = lineage2[numRow2];
+      EWAHCompressedBitmap baseLineage1 = lineage1[0];
+      EWAHCompressedBitmap baseLineage2 = lineage2[0];
 
       boolean flag1 = baseLineage1.get(tid);
       boolean flag2 = baseLineage2.get(tid);
 
       if (flag1 & flag2) {
         // both of them contain this tuple
-        for (int i = 0; i < numRow1; ++i) {
+        for (int i = 1; i < lineage1.length; ++i) {
           if (!lineage1[i].get(tid)) {
-            for (int j = 0; j < numRow2; ++j) {
+            for (int j = 1; j < lineage2.length; ++j) {
               if (!lineage2[j].get(tid)) {
                 buf.updateRow(i, j, vals1, vals2);
               }
@@ -118,20 +108,20 @@ public class PartialCovMap implements Serializable {
         }
         // end of if
       } else if (flag1 && !flag2) {
-        for (int i = 0; i < numRow1; ++i) {
+        for (int i = 1; i < lineage1.length; ++i) {
           if (!lineage1[i].get(tid)) {
-            buf.updateRow(i, numRow2, vals1, vals2);
+            buf.updateRow(i, 0, vals1, vals2);
           }
         }
       } else if (!flag1 && flag2) {
-        for (int i = 0; i < numRow2; ++i) {
+        for (int i = 1; i < lineage2.length; ++i) {
           if (!lineage2[i].get(tid)) {
-            buf.updateRow(numRow1, i, vals1, vals2);
+            buf.updateRow(0, i, vals1, vals2);
           }
         }
       } else {
         // both of them are base
-        buf.updateRow(numRow1, numRow2, vals1, vals2);
+        buf.updateRow(0, 0, vals1, vals2);
       }
     }
   }

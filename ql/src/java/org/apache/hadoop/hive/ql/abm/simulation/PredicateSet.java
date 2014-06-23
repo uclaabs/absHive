@@ -150,10 +150,11 @@ public class PredicateSet implements Serializable {
         index = firstLte(value, range, left, right);
         if (index == -1) {
           left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstLte(range.getDouble(right), range, left, right);
         }
         ++keyIdx;
@@ -164,10 +165,11 @@ public class PredicateSet implements Serializable {
         index = firstLt(value, range, left, right);
         if (index == -1) {
           left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstLte(range.getDouble(right), range, left, right);
         }
         ++keyIdx;
@@ -178,10 +180,11 @@ public class PredicateSet implements Serializable {
         index = firstGte(value, range, left, right);
         if (index == -1) {
           left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstGte(range.getDouble(right), range, left, right);
         }
         ++keyIdx;
@@ -192,10 +195,11 @@ public class PredicateSet implements Serializable {
         index = firstGt(value, range, left, right);
         if (index == -1) {
           left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstGte(range.getDouble(right), range, left, right);
         }
         ++keyIdx;
@@ -206,10 +210,11 @@ public class PredicateSet implements Serializable {
         index = firstLte(value, range, left, right);
         if (index == -1) {
           left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstLte(range.getDouble(right), range, left, right);
         }
         keyIdx += 2;
@@ -220,10 +225,11 @@ public class PredicateSet implements Serializable {
         index = firstLt(value, range, left, right);
         if (index == -1) {
           left = firstLte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstLte(range.getDouble(right), range, left, right);
         }
         keyIdx += 2;
@@ -234,10 +240,11 @@ public class PredicateSet implements Serializable {
         index = firstGte(value, range, left, right);
         if (index == -1) {
           left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstGte(range.getDouble(right), range, left, right);
         }
         keyIdx += 2;
@@ -248,10 +255,11 @@ public class PredicateSet implements Serializable {
         index = firstGt(value, range, left, right);
         if (index == -1) {
           left = firstGte(range.getDouble(right), range, left, right);
-        } else if (index == left) {
-          left = right = range.size();
         } else {
           right = index - 1;
+          if (right == -1) {
+            return -1;
+          }
           left = firstGte(range.getDouble(right), range, left, right);
         }
         keyIdx += 2;

@@ -20,7 +20,7 @@ public class RangeTrunc extends GenericUDF {
   private DoubleObjectInspector eoi = null;
 
   private final DoubleWritable lower = new DoubleWritable(0);
-  private final DoubleWritable upper = new DoubleWritable(1);
+  private final DoubleWritable upper = new DoubleWritable(0);
   private final ArrayList<Object> ret = new ArrayList<Object>();
 
   @Override
@@ -39,8 +39,9 @@ public class RangeTrunc extends GenericUDF {
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
-    lower.set(eoi.get(loi.getListElement(arguments[0].get(), 0)));
-    upper.set(eoi.get(loi.getListElement(arguments[0].get(), 1)));
+    Object o = arguments[0].get();
+    lower.set(eoi.get(loi.getListElement(o, 0)));
+    upper.set(eoi.get(loi.getListElement(o, 1)));
     return ret;
   }
 

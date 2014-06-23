@@ -87,7 +87,7 @@ public class CondMergeEvaluator extends GenericUDAFEvaluatorWithInstruction {
 
   public void setFlags(List<Boolean> flags) {
     this.flags = flags;
-    compute = new ConditionComputation(this.flags.size());
+    compute = new ConditionComputation(flags);
   }
 
   protected static class MyAggregationBuffer implements AggregationBuffer {

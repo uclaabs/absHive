@@ -42,12 +42,10 @@ public class DoubleArray2D implements Serializable {
   }
 
   public void updateByBase() {
-    int rows2Update = buf.length / len - 1;
-    int baseOffset = rows2Update * len;
-
-    int pos = 0;
-    for (int i = 0; i < rows2Update; ++i) {
-      for (int j = baseOffset; j < buf.length; ++j) {
+    int numRows = buf.length / len;
+    int pos = len;
+    for (int i = 1; i < numRows; ++i) {
+      for (int j = 0; j < len; ++j) {
         buf[pos++] += buf[j];
       }
     }

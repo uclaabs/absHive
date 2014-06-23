@@ -16,6 +16,8 @@ import com.googlecode.javaewah.EWAHCompressedBitmap;
 
 public class LineageComputation extends UDAFComputation {
 
+  private final static EWAHCompressedBitmap emptySet = new EWAHCompressedBitmap();
+
   private final IntListConverter converter = new IntListConverter();
 
   private IntArrayList currentLineage = null;
@@ -72,21 +74,30 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
+    recursiveList = new EWAHCompressedBitmap[bitmaps.size() + 1];
+
     converter.setIntList(totalLineage);
     EWAHCompressedBitmap totalBitmap = converter.getBitmap();
-    recursiveList = new EWAHCompressedBitmap[bitmaps.size() + 1];
     recursiveList[0] = totalBitmap;
 
     if(bitmaps.size() > 0) {
       unfoldLineageList(0);
     }
-    result.add(totalBitmap);
   }
 
   private void unfoldLineageList(int level) {
     boolean leaf = (level == bitmaps.size() - 1);
+    int idx = level + 1;
+
+    recursiveList[idx] = emptySet;
+    if (leaf) {
+      result.add(EWAHCompressedBitmap.xor(recursiveList));
+    } else {
+      unfoldLineageList(level + 1);
+    }
+
     for (int i = 0; i < bitmaps.get(level).size(); i++) {
-      recursiveList[level + 1] = bitmaps.get(level).get(i);
+      recursiveList[idx] = bitmaps.get(level).get(i);
       if (leaf) {
         result.add(EWAHCompressedBitmap.xor(recursiveList));
       } else {

@@ -72,13 +72,13 @@ public class SrvSumComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
+    result.add(0); // dummy place holder
+    result.add(0); // dummy place holder
+
     if(groupCnt >= 0) {
       unfoldSrvList(0, baseSum, baseSsum);
     }
 
-    result.add(0); // dummy place holder
-    result.add(0); // dummy place holder
-    addDistribution(baseSum, baseSsum);
     result.set(0, confidenceLower);
     result.set(1, confidenceUpper);
     // update the first two values of array
@@ -104,6 +104,13 @@ public class SrvSumComputation extends UDAFComputation {
 
   protected void unfoldSrvList(int level, double sum, double ssum) {
     boolean leaf = (level == groupCnt);
+
+    if (leaf) {
+      addDistribution(sum, ssum);
+    } else {
+      unfoldSrvList(level + 1, sum, ssum);
+    }
+
     DoubleArrayList lev = doubleMatrix.get(level);
     for (int i = 0; i < lev.size(); ) {
       double tmpSum = sum + lev.getDouble(i++);

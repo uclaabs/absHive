@@ -78,19 +78,26 @@ public class SrvCountComputation extends UDAFComputation {
 
   @Override
   public void unfold() {
+    result.add(0);
+    result.add(1);
+
     if (groupCnt >= 0) {
       unfoldSrvList(0, baseCnt);
     }
 
-    result.add(0);
-    result.add(1);
-    addDistribution(baseCnt);
     result.set(0, confidenceLower);
     result.set(1, confidenceUpper);
   }
 
   protected void unfoldSrvList(int level, long cnt) {
     boolean leaf = (level == groupCnt);
+
+    if (leaf) {
+      addDistribution(cnt);
+    } else {
+      unfoldSrvList(level + 1, cnt);
+    }
+
     LongArrayList lev = cntMatrix.get(level);
     for (int i = 0; i < lev.size();) {
       long tmpCnt = cnt + lev.getLong(i++);

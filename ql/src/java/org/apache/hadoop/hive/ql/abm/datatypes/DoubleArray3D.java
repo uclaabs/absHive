@@ -44,33 +44,32 @@ public class DoubleArray3D implements Serializable {
   }
 
   public void updateByBase() {
-    int numRows1 = buf.length / area - 1;
-    int numRows2 = area / len - 1;
-    int baseOffset = numRows1 * area;
+    int numRows1 = buf.length / area;
+    int numRows2 = area / len;
 
     // add the x base surface to the above
-    int pos = 0;
-    for (int i = 0; i < numRows1; ++i) {
-      for (int j = baseOffset; j < buf.length; ++j) {
+    int pos = area;
+    for (int i = 1; i < numRows1; ++i) {
+      for (int j = 0; j < area; ++j) {
         buf[pos++] = buf[j];
       }
     }
 
     // add the y base to the left
-    ++numRows1;
-    int from, to = 0;
+    int from = 0;
+    int to = len;
     pos = 0;
     for (int i = 0; i < numRows1; ++i) {
       // move to the base in this row
-      to += area;
-      from = to - len;
-      for (int j = 0; j < numRows2; ++j) {
+      // skip the base in this row
+      pos += len;
+      for (int j = 1; j < numRows2; ++j) {
         for (int k = from; k < to; ++k) {
           buf[pos++] = buf[k];
         }
       }
-      // skip the base in this row
-      pos += len;
+      from += area;
+      to += area;
     }
   }
 
