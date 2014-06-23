@@ -88,6 +88,8 @@ public class MCSimNode {
           lev[j] = new IndependentInterDistOracle(targets[i], targets[j], udaf1, udaf2,
               offsets[i], offsets[j]);
         } else {
+          System.out.println("KAI " + gby1 + ", " + gby2);
+          System.out.println("KAI SHIT " + inters);
           lev[j] = new CorrelatedInterDistOracle(targets[i], targets[j], inters[gby1][gby2], udaf1,
               udaf2, offsets[i], offsets[j]);
         }
@@ -97,27 +99,27 @@ public class MCSimNode {
     between = new ArrayList<InterDistOracle[][]>(parents.size());
     for (MCSimNode parent : parents) {
       int len2 = parent.targets.length;
-      InterDistOracle[][] cur = new InterDistOracle[len1][len2];
+      InterDistOracle[][] cur = new InterDistOracle[len2][len1];
       between.add(cur);
-      for (int i = 0; i < len1; ++i) {
-        InterDistOracle[] lev = new InterDistOracle[len2];
+      for (int i = 0; i < len2; ++i) {
+        InterDistOracle[] lev = new InterDistOracle[len1];
         cur[i] = lev;
 
-        int gby1 = gbys[i];
+        int gby1 = parent.gbys[i];
         UdafType[] udaf1 = udafTypes[i];
-        boolean continuous1 = (gby1 <= lastContinuousGby);
+        boolean continuous2 = (gby1 <= lastContinuousGby);
 
-        for (int j = 0; j < len2; ++j) {
-          int gby2 = parent.gbys[j];
+        for (int j = 0; j < len1; ++j) {
+          int gby2 = gbys[j];
           UdafType[] udaf2 = udafTypes[j];
-          boolean continuous2 = (gby2 <= lastContinuousGby);
+          boolean continuous1 = (gby2 <= lastContinuousGby);
           if (independent || !continuous1 || !continuous2) {
-            lev[j] = new IndependentInterDistOracle(targets[i], parent.targets[j], udaf1, udaf2,
-                offsets[i], parent.offsets[j]);
+            lev[j] = new IndependentInterDistOracle(parent.targets[i], targets[j], udaf1, udaf2,
+                parent.offsets[i], offsets[j]);
           } else {
-            lev[j] = new CorrelatedInterDistOracle(targets[i], parent.targets[j],
-                inters[gby2][gby1],
-                udaf1, udaf2, offsets[i], parent.offsets[j]);
+            lev[j] = new CorrelatedInterDistOracle(parent.targets[i], targets[j],
+                inters[gby1][gby2],
+                udaf1, udaf2, parent.offsets[i], offsets[j]);
           }
         }
       }
@@ -156,7 +158,7 @@ public class MCSimNode {
       boolean[] fake = new boolean[dimension];
       double[] mu = new double[dimension];
       double[][] A = new double[dimension][dimension];
-      double[][] B = new double[dimension][res.sigma.getColumnDimension()];
+      double[][] B = new double[res.sigma.getColumnDimension()][dimension];
       double[] zero = new double[dimension];
 
       for (int i = 0; i < within1.length; ++i) {
@@ -182,14 +184,28 @@ public class MCSimNode {
         }
       }
 
+      for (int k = 0, cum = 0; k < res.condIds.size(); ++k) {
+        ArrayList<IntArrayList> pCIds = res.condIds.get(k);
+        InterDistOracle[][] oss = between.get(k + dif);
+        for (int j = 0; j < oss.length; ++j) {
+          IntArrayList cIds = pCIds.get(j);
+          InterDistOracle[] os = oss[j];
+          int off = 0;
+          for (int i = 0; i < os.length; ++i) {
+            off = os[i].fillAsym(cIds, condIds.get(i), fake, pmu, mu, B, cum);
+          }
+          cum += off;
+        }
+      }
+
       Array2DRowRealMatrix a = new Array2DRowRealMatrix(A);
       Array2DRowRealMatrix b = new Array2DRowRealMatrix(B);
       Array2DRowRealMatrix c = (Array2DRowRealMatrix) b.transpose();
       Array2DRowRealMatrix id = new Array2DRowRealMatrix(new LUDecomposition(res.sigma)
           .getSolver().getInverse().getData());
-      Array2DRowRealMatrix tmp = b.multiply(id);
+      Array2DRowRealMatrix tmp = c.multiply(id);
 
-      Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(c));
+      Array2DRowRealMatrix sigma = a.subtract(tmp.multiply(b));
       double[] scale = correct(sigma.getDataRef());
 
       MultivariateNormalDistribution dist = new MultivariateNormalDistribution(zero,
@@ -210,7 +226,7 @@ public class MCSimNode {
         ++pos;
       }
       res.means.add(mu);
-      res.sigma = concat(a, b, c, res.sigma);
+      res.sigma = concat(a, c, b, res.sigma);
 
       dispatch(res, ret);
     }

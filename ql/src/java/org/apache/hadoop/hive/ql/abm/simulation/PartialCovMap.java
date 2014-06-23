@@ -154,7 +154,6 @@ public class PartialCovMap implements Serializable {
     int length = gbys.size();
     // then update every InnerCovMap
     for (int i = 0; i < length; ++i) {
-
       int groupOpId1 = gbys.getInt(i);
       InnerCovMap innerCovMap = innerGbyCovs[groupOpId1];
       innerCovMap.update(tid, groupIds.getInt(i), lineages.get(i), values.get(i));

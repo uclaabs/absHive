@@ -39,17 +39,17 @@ public abstract class InterDistOracle {
 
   public int fillAsym(IntArrayList condIds1, IntArrayList condIds2, boolean[] fake1,
       double[] mean1, double[] mean2, double[][] cov, int cum) {
-    for (int i = 0, off1 = offInfo1.offset; i < groupIds1.size(); ++i, off1 += elemDim1) {
-      if (!fake1[off1]) {
-        int groupId1 = groupIds1.getInt(i);
-        int condId1 = condIds1.getInt(i);
-        for (int j = 0, off2 = cum + offInfo2.offset; j < groupIds2.size(); ++j, off2 += elemDim2) {
-          fillCovAsym(groupId1, groupIds1.getInt(j), condId1, condIds2.getInt(j),
-              mean1, mean2, cov, off1, off2);
-        }
+    for (int i = 0, off1 = cum + offInfo1.offset; i < groupIds1.size(); ++i, off1 += elemDim1) {
+      // if (!fake1[off1]) {
+      int groupId1 = groupIds1.getInt(i);
+      int condId1 = condIds1.getInt(i);
+      for (int j = 0, off2 = offInfo2.offset; j < groupIds2.size(); ++j, off2 += elemDim2) {
+        fillCovAsym(groupId1, groupIds1.getInt(j), condId1, condIds2.getInt(j),
+            mean1, mean2, cov, off1, off2);
       }
+      // }
     }
-    return groupIds2.size() * elemDim2;
+    return groupIds1.size() * elemDim1;
   }
 
   public abstract void fillCovSym(int groupId1, int groupId2, int condId1, int condId2,
