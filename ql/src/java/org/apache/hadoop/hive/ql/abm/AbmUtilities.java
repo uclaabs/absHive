@@ -121,6 +121,8 @@ public final class AbmUtilities {
       // Covariance negligible
       covarianceNegligible = HiveConf.getBoolVar(conf,
           HiveConf.ConfVars.HIVE_ABM_COVARIANCE_NEGLIGIBLE);
+
+      CLTQuery = false;
     } else {
       inAbmMode = false;
       for (Map.Entry<HiveConf.ConfVars, Boolean> entry : prevSetting.entrySet()) {
