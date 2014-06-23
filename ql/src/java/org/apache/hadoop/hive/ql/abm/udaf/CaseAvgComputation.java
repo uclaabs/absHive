@@ -41,6 +41,8 @@ public class CaseAvgComputation extends SrvAvgComputation {
 
     if (groupCnt >= 0) {
       unfoldSrvList(0, baseSum, baseCnt);
+    } else {
+      addDistribution(baseSum, baseCnt);
     }
 
     result.set(0, confidenceLower);

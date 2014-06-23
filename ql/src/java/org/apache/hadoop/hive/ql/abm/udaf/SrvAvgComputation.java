@@ -99,6 +99,8 @@ public class SrvAvgComputation extends UDAFComputation {
 
     if (groupCnt >= 0) {
       unfoldSrvList(0, baseSum, baseSsum, baseCnt);
+    } else {
+      addDistribution(baseSum, baseSsum, baseCnt);
     }
 
     result.set(0, confidenceLower);

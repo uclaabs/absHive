@@ -83,6 +83,8 @@ public class SrvCountComputation extends UDAFComputation {
 
     if (groupCnt >= 0) {
       unfoldSrvList(0, baseCnt);
+    } else {
+      addDistribution(baseCnt);
     }
 
     result.set(0, confidenceLower);

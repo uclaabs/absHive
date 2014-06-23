@@ -75,8 +75,10 @@ public class SrvSumComputation extends UDAFComputation {
     result.add(0); // dummy place holder
     result.add(0); // dummy place holder
 
-    if(groupCnt >= 0) {
+    if (groupCnt >= 0) {
       unfoldSrvList(0, baseSum, baseSsum);
+    } else {
+      addDistribution(baseSum, baseSsum);
     }
 
     result.set(0, confidenceLower);
@@ -112,7 +114,7 @@ public class SrvSumComputation extends UDAFComputation {
     }
 
     DoubleArrayList lev = doubleMatrix.get(level);
-    for (int i = 0; i < lev.size(); ) {
+    for (int i = 0; i < lev.size();) {
       double tmpSum = sum + lev.getDouble(i++);
       double tmpSsum = ssum + lev.getDouble(i++);
 

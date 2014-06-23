@@ -25,6 +25,8 @@ public class CaseSumComputation extends SrvSumComputation {
 
     if (groupCnt >= 0) {
       unfoldSrvList(0, baseSum);
+    } else {
+      addDistribution(baseSum);
     }
 
     result.set(0, confidenceLower);

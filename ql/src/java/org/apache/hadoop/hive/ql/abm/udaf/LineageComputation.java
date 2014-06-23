@@ -80,8 +80,10 @@ public class LineageComputation extends UDAFComputation {
     EWAHCompressedBitmap totalBitmap = converter.getBitmap();
     recursiveList[0] = totalBitmap;
 
-    if(bitmaps.size() > 0) {
+    if (bitmaps.size() > 0) {
       unfoldLineageList(0);
+    } else {
+      result.add(totalBitmap);
     }
   }
 
@@ -108,9 +110,9 @@ public class LineageComputation extends UDAFComputation {
 
   protected void printRes() {
     System.out.println("LinComputation Print Result");
-    for(EWAHCompressedBitmap bitmap:result) {
+    for (EWAHCompressedBitmap bitmap : result) {
       int[] resultArray = bitmap.toArray();
-      for(int resultVal:resultArray) {
+      for (int resultVal : resultArray) {
         System.out.print(resultVal + "\t");
       }
       System.out.println();
@@ -120,7 +122,7 @@ public class LineageComputation extends UDAFComputation {
 
   @Override
   public Object serializeResult() {
-//    printRes();
+    // printRes();
     BitmapObjectOutputStream oo;
     try {
       for (int i = 0; i < result.size(); ++i) {
