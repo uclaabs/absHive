@@ -138,6 +138,34 @@ public class JsonNode {
     }
   }
 
+  private String expand(String s) {
+    s = s.toLowerCase();
+
+    if (s.startsWith("fs")) {
+      return "FileSink";
+    }
+    else if (s.startsWith("sel")) {
+      return "Select";
+    }
+    else if (s.startsWith("rs")) {
+      return "ReduceSink";
+    }
+    else if (s.startsWith("fil")) {
+      return "Filter";
+    }
+    else if (s.startsWith("ts")) {
+      return "TableScan";
+    }
+    else if (s.startsWith("gby")) {
+      return "GroupBy";
+    }
+    else if (s.startsWith("join")) {
+      return "Join";
+    }
+
+    return "";
+  }
+
   public JsonNode(Operator<? extends OperatorDesc> op) {
     super();
     //this.parent = parent;
@@ -146,7 +174,8 @@ public class JsonNode {
     this.op = op;
 
     try {
-      json.put("name", op.toString());
+      //json.put("name", op.toString());
+      json.put("name", expand(op.toString()));
       json.put("val", new SchemaHelper().process());
       json.put("isAbmOp", isAbmOp());
       json.put("children", new JSONArray());
