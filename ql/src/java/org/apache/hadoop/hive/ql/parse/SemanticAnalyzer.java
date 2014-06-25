@@ -3441,6 +3441,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
 
       boolean isDistinct = value.getType() == HiveParser.TOK_FUNCTIONDI;
+      if (isDistinct) {
+        AbmUtilities.checkAndReport(ErrorMsg.DISTINCT_AGGR_NOT_ABM_PTIME_ELIGIBLE);
+      }
       containsDistinctAggr = containsDistinctAggr || isDistinct;
       boolean isAllColumns = value.getType() == HiveParser.TOK_FUNCTIONSTAR;
       Mode amode = groupByDescModeToUDAFMode(mode, isDistinct);
