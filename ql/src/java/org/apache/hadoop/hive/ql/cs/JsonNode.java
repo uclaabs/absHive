@@ -162,6 +162,9 @@ public class JsonNode {
     else if (s.startsWith("join")) {
       return "Join";
     }
+    else if (s.startsWith("mapjoin")) {
+      return "MapJoin";
+    }
 
     return "";
   }
