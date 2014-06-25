@@ -129,13 +129,44 @@ public class JsonNode {
 
   }
 
+  private Boolean isAbmSelect(Operator<? extends OperatorDesc> op) {
+    int id = Integer.parseInt(op.getIdentifier());
+    if (id > AbmTestHelper.rootOpId && op.getName().equals("SEL")) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   private String isAbmOp() {
     int id = Integer.parseInt(op.getIdentifier());
-    if (id <= AbmTestHelper.rootOpId || op.getName().equals("FIL")) {
-      return "false";
-    } else {
-      return "true";
+
+    try {
+      if (op.getName().equals("FIL")) {
+        if (op.getChildOperators() != null) {
+          return isAbmSelect(op.getChildOperators().get(0)) + "";
+        }
+      } else if (op.getName().equals("GBY")) {
+        if (op.getChildOperators() != null) {
+          //firstGby
+          if (isAbmSelect(op.getChildOperators().get(0))) {
+            return "true";
+          }
+          //secondGby
+          else if (op.getChildOperators().get(0).getName().equals("RS")) {
+            return isAbmSelect(op.getChildOperators().get(0).
+                                  getChildOperators().get(0).
+                                  getChildOperators().get(0)) + "";
+          }
+        }
+      }
     }
+    catch (NullPointerException e) {
+      e.printStackTrace();
+      return "false";
+    }
+
+    return isAbmSelect(op) + "";
   }
 
   private String expand(String s) {
